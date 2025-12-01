@@ -1,0 +1,13 @@
+---
+// This component initializes Lenis on page load
+---
+
+<script>
+  import { setupSmoothScroll } from '../animations/gsapLenis';
+  
+  // Initialize Lenis when the component mounts
+  if (typeof window !== 'undefined') {
+    setupSmoothScroll();
+  }
+</script>
+

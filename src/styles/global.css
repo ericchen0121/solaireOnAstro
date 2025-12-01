@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Color Palette */
+    --color-black: #000000;
+    --color-charcoal: #1a1a1a;
+    --color-white: #ffffff;
+    --color-solar-yellow: #ffd700;
+    
+    /* Typography */
+    --font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-hero: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-white text-charcoal font-primary antialiased;
+    font-family: var(--font-primary);
+  }
+
+  /* Smooth scroll behavior handled by Lenis */
+  html.lenis {
+    height: auto;
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  .lenis.lenis-scrolling iframe {
+    pointer-events: none;
+  }
+}
+
+@layer components {
+  /* Big numerical stats utility class */
+  .stat-number {
+    @apply text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight;
+    font-feature-settings: 'tnum';
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Hero title styling - F37 Moon style */
+  .hero-title {
+    font-family: var(--font-hero);
+    font-weight: 300;
+    font-size: 80px;
+    line-height: 80px;
+    letter-spacing: 0.02em; /* 2% */
+    margin-left: 10vw;
+  }
+
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 60px;
+      line-height: 58px;
+    }
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .hero-title {
+      font-size: 90px;
+      line-height: 86px;
+    }
+  }
+
+  /* Company name title styling */
+  .company-name-title {
+    /* line-height: 1; */
+  }
+}
+
+@layer utilities {
+  /* Custom color utilities */
+  .text-charcoal {
+    color: var(--color-charcoal);
+  }
+  
+  .bg-charcoal {
+    background-color: var(--color-charcoal);
+  }
+  
+  .text-solar-yellow {
+    color: var(--color-solar-yellow);
+  }
+  
+  .bg-solar-yellow {
+    background-color: var(--color-solar-yellow);
+  }
+  
+  /* Outlined text utility for "Solaire" */
+  .text-outline-white {
+    color: transparent;
+    -webkit-text-stroke: 1.5px white;
+    text-stroke: 1.5px white;
+    font-weight: 300;
+  }
+  
+  @media (min-width: 768px) {
+    .text-outline-white {
+      -webkit-text-stroke: 2px white;
+      text-stroke: 2px white;
+    }
+  }
+}
+

@@ -1,0 +1,125 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Odometer from "../components/react/Odometer.tsx";
+---
+
+<BaseLayout title="Rochat Solaire - Home">
+  <!-- Section 1: Headline -->
+  <section
+    id="hero-trigger"
+    class="hero min-h-screen flex items-center justify-center bg-black text-white"
+  >
+    <div id="hero-content" class="container mx-auto px-4">
+      <h1 class="hero-title text-left max-w-6xl">
+        <span>Le soleil produit en une</span><br />
+        <span>heure ce que l'humanité</span><br />
+        <span id="last-span" class="last-span">consomme en un an.</span>
+      </h1>
+    </div>
+  </section>
+
+  <!-- Section 2: Company Name -->
+  <section
+    class="company-name-section min-h-screen flex items-end justify-center bg-black text-white pb-8 md:pb-12 lg:pb-16"
+  >
+    <div class="container mx-auto w-full">
+      <h2
+        class="company-name-title text-7xl md:text-8xl lg:text-9xl xl:text-[12rem] font-bold text-center leading-none"
+      >
+        <span class="font-bold">Rochat</span>
+        <span class="font-light text-outline-white ml-4 md:ml-6">Solaire</span>
+      </h2>
+    </div>
+  </section>
+
+  <!-- Section 3: Stats -->
+  <section
+    class="stats-section min-h-screen flex items-center justify-center bg-black text-white py-20"
+  >
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16 max-w-7xl">
+        <!-- Stat 1: 1482 -->
+        <div>
+          <Odometer
+            client:only="react"
+            value={1482}
+            duration={2}
+            className="stat-number text-white mb-6"
+          />
+          <p class="text-base md:text-lg leading-relaxed text-white/90">
+            Vinet Rochat exploite le flu des rivières à la vallée de Joux, une
+            source d'énergie renouvelable que nous a accordée la nature.
+          </p>
+        </div>
+
+        <!-- Stat 2: 2007 -->
+        <div>
+          <Odometer
+            client:only="react"
+            value={2007}
+            duration={2}
+            className="stat-number text-white mb-6"
+          />
+          <p class="text-base md:text-lg leading-relaxed text-white/90">
+            Dès 2007, pionniers en production d'énergie photovoltaïque, conseil,
+            investissement et service clients.
+          </p>
+        </div>
+
+        <!-- Stat 3: 15 -->
+        <div>
+          <Odometer
+            client:only="react"
+            value={15}
+            duration={2}
+            className="stat-number text-white mb-6"
+          />
+          <p class="text-base md:text-lg leading-relaxed text-white/90">
+            fois plus d'énergie est produite par un module qu'il ne faut pour le
+            produire.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { initLetterReveal } from "../animations/letterReveal";
+  import { initHeroScrollAnimation } from "../animations/heroScrollAnimation";
+
+  // Initialize animations when DOM is ready
+  if (typeof window !== "undefined") {
+    let cleanupScrollAnimation: (() => void) | null = null;
+
+    function initAnimations() {
+      // Letter reveal for hero title
+      initLetterReveal(".hero-title", 0, 0.05);
+
+      // Initialize hero scroll animation with two-phase motion
+      cleanupScrollAnimation = initHeroScrollAnimation({
+        triggerSelector: "#hero-trigger",
+        contentSelector: "#hero-content",
+        lastSpanSelector: "#last-span",
+        markers: true, // Set to true for debugging
+      });
+
+      // Letter reveal for company name (optional)
+      // initLetterReveal('.company-name-section h2', 0, 0.03);
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initAnimations);
+    } else {
+      // Small delay to ensure Lenis is ready
+      setTimeout(initAnimations, 300);
+    }
+
+    // Cleanup on page unload
+    window.addEventListener("beforeunload", () => {
+      if (cleanupScrollAnimation) {
+        cleanupScrollAnimation();
+      }
+    });
+  }
+</script>

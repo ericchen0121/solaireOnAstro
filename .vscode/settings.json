@@ -1,0 +1,16 @@
+{
+  "files.associations": {
+    "*.astro": "astro"
+  },
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "[astro]": {
+    "editor.defaultFormatter": "astro-build.astro-vscode",
+    "editor.formatOnSave": true
+  },
+  "emmet.includeLanguages": {
+    "astro": "html"
+  }
+}
+

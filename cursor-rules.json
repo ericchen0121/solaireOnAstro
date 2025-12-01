@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json.schemastore.org/cursor-rules.json",
+  "rules": [
+    {
+      "name": "Project Architecture",
+      "description": "This is an Astro static site with React islands for interactive components. Use Astro components by default, React only when needed for interactivity.",
+      "rules": [
+        "Astro is the primary framework - use Astro components (.astro) for static content and layouts",
+        "React components (.tsx) should only be used for interactive client-side features",
+        "All React components must be placed in src/components/react/",
+        "React components must use client:only=\"react\" directive when imported in Astro files",
+        "Static site generation (output: 'static') - no SSR unless explicitly needed"
+      ]
+    },
+    {
+      "name": "File Organization",
+      "description": "Follow the established folder structure and naming conventions",
+      "rules": [
+        "Components: src/components/ for Astro components, src/components/react/ for React components",
+        "Animations: src/animations/ for GSAP/Lenis animation utilities",
+        "Layouts: src/layouts/ for page layouts",
+        "Pages: src/pages/ following Astro file-based routing",
+        "Styles: src/styles/global.css for global styles and Tailwind configuration",
+        "Utils: src/utils/ for shared utilities and constants",
+        "Use kebab-case for file names (e.g., orbit-nav.tsx, letter-reveal.ts)"
+      ]
+    },
+    {
+      "name": "React Component Patterns",
+      "description": "Guidelines for React components used as Astro islands",
+      "rules": [
+        "Always use TypeScript with proper interface definitions for props",
+        "Use functional components with hooks (useState, useEffect, useRef)",
+        "Export default function components, not arrow functions",
+        "Use client:only=\"react\" directive in Astro files importing React components",
+        "Never use 'use client' directive (not needed in Astro)",
+        "Keep React components focused on interactivity - prefer Astro for static markup",
+        "Use refs for DOM manipulation and GSAP animations"
+      ]
+    },
+    {
+      "name": "Animation Patterns",
+      "description": "GSAP and Lenis integration patterns",
+      "rules": [
+        "All GSAP animations should be in src/animations/ as reusable utilities",
+        "Use Lenis for smooth scrolling - initialized via LenisProvider.astro",
+        "Always bind GSAP ScrollTrigger to Lenis using setupSmoothScroll() from gsapLenis.ts",
+        "Use physics-based easing (power1.inOut, power2.inOut, sine.inOut) for natural motion",
+        "Clean up GSAP timelines and animations in useEffect cleanup functions",
+        "Use GSAP SplitText for character-by-character animations (now free, no membership required)",
+        "Store animation references in useRef to allow cleanup and control"
+      ]
+    },
+    {
+      "name": "Styling Conventions",
+      "description": "TailwindCSS and global styles",
+      "rules": [
+        "Use TailwindCSS utility classes for all styling",
+        "Global styles and custom CSS variables in src/styles/global.css",
+        "Use design system colors: black, charcoal, white, solar-yellow (defined in global.css)",
+        "Responsive design: mobile-first approach with md:, lg:, xl: breakpoints",
+        "Use Poppins font family (loaded in BaseLayout.astro)",
+        "Avoid inline styles unless necessary for dynamic values (use Tailwind classes when possible)"
+      ]
+    },
+    {
+      "name": "TypeScript Best Practices",
+      "description": "Type safety and code quality",
+      "rules": [
+        "Always define interfaces for component props",
+        "Use strict TypeScript configuration (extends astro/tsconfigs/strict)",
+        "Type all function parameters and return values",
+        "Use type inference where appropriate, explicit types where clarity is needed",
+        "Import types from their source files, not from barrel exports"
+      ]
+    },
+    {
+      "name": "Code Quality Principles",
+      "description": "DRY, reusable code, minimize tech debt",
+      "rules": [
+        "Follow DRY (Don't Repeat Yourself) - extract reusable logic into utilities",
+        "Create reusable animation functions in src/animations/ rather than duplicating code",
+        "Share constants and configuration in src/utils/",
+        "Prefer composition over duplication - build complex components from simple ones",
+        "Write self-documenting code with clear variable and function names",
+        "Add comments for complex animation logic or non-obvious implementations",
+        "Keep components focused and single-purpose"
+      ]
+    },
+    {
+      "name": "Performance Optimization",
+      "description": "Optimize for static site generation and client-side performance",
+      "rules": [
+        "Minimize JavaScript bundle size - use React islands sparingly",
+        "Lazy load heavy animations or components when possible",
+        "Use Astro's built-in image optimization for images",
+        "Keep animation code efficient - use GSAP's optimized methods",
+        "Avoid unnecessary re-renders in React components (use useMemo, useCallback when needed)"
+      ]
+    },
+    {
+      "name": "Accessibility",
+      "description": "Ensure accessible user experience",
+      "rules": [
+        "Use semantic HTML elements",
+        "Provide proper ARIA labels for interactive elements",
+        "Ensure keyboard navigation works for all interactive components",
+        "Maintain proper color contrast ratios",
+        "Test with screen readers when adding new interactive features"
+      ]
+    },
+    {
+      "name": "Mobile-First Design",
+      "description": "Perfect mobile functionality is a requirement",
+      "rules": [
+        "All pages must work perfectly on mobile with vertical scroll",
+        "Test all animations and interactions on mobile devices",
+        "Use responsive Tailwind classes (mobile-first: base styles, then md:, lg:, xl:)",
+        "Ensure touch targets are appropriately sized (minimum 44x44px)",
+        "Optimize animations for mobile performance"
+      ]
+    },
+    {
+      "name": "Project-Specific Conventions",
+      "description": "Specific patterns used in this project",
+      "rules": [
+        "Navigation labels are in French lowercase (accueil, solaire, nous, clients, projets, contact)",
+        "OrbitNav component uses physics-based motion with subtle inertia and tension",
+        "Color inversion: OrbitNav adapts to page background (auto mode) or can be set explicitly",
+        "Email masking: Use EmailMask component for contact email addresses",
+        "Full-page sections: Use min-h-screen for full-page sections",
+        "Use French text for content (as per design requirements)"
+      ]
+    },
+    {
+      "name": "Development Workflow",
+      "description": "Development commands and practices",
+      "rules": [
+        "Use npm run dev to start development server",
+        "Use npm run kill to kill processes on ports 4321 and 4322 if needed",
+        "Clear .astro and node_modules/.vite cache if experiencing build issues",
+        "Check terminal for port conflicts before starting dev server"
+      ]
+    },
+    {
+      "name": "Error Prevention",
+      "description": "Common pitfalls to avoid",
+      "rules": [
+        "Never use 'use client' directive (Astro doesn't use it)",
+        "Always use client:only=\"react\" for React components in Astro files",
+        "Don't mix Astro and React JSX syntax in the same file",
+        "Ensure React components are in src/components/react/ directory",
+        "Don't forget to clean up GSAP animations in useEffect cleanup",
+        "Check that Lenis is initialized before using ScrollTrigger"
+      ]
+    }
+  ]
+}
+
