@@ -122,6 +122,7 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
           start: 'top+=10px top', // Trigger after scrolling 10px
           end: `top+=${10 + viewportHeightPx}px top`, // End trigger zone after scrolling 100vh (10px + viewport height)
           scrub: false, // Not tied to scroll - plays at own pace
+          // To enable scrub mode (tie Phase 3 animation to scroll): change to scrub: true
           markers: markers,
           pin: false, // Don't pin, let it scroll naturally
           toggleActions: 'play none none none', // Only play forward, no reverse
@@ -379,9 +380,9 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
 
       // Phase 3: Fade in and slide up company name section
       // Starts after Phase 2 completes (after scroll to 100vh)
-      // We'll use a separate ScrollTrigger to pin the section while animating
-      // This ensures the element's position is accounted for when scrolling continues
-      if (companyNameH2 && companyNameSpans.length > 0 && companyNameSection) {
+      // Uses transform-based animations (y, opacity) - doesn't affect document flow
+      // To switch to scrub mode: change main timeline's ScrollTrigger scrub to true (line ~98)
+      if (companyNameH2 && companyNameSpans.length > 0) {
         // Get the height of the h2 element
         const h2Height = companyNameH2.offsetHeight;
         
@@ -389,55 +390,35 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
         const duration2 = 0.55;
         const totalDuration = duration1 + duration2;
 
-        // Create a separate timeline for Phase 3 with its own ScrollTrigger
-        // This will pin the section while animating, then unpin
-        // The pin duration should match the animation duration
-        const phase3Timeline = gsap.timeline({
-          scrollTrigger: {
-            trigger: companyNameSection,
-            start: 'top top', // Start when section top hits viewport top
-            // End after animation completes - use a pixel value that matches the timeline duration
-            // For a 1.55s animation, we'll use approximately 100vh worth of scroll
-            end: `+=${viewportHeightPx}`, // Pin for about 1 viewport height of scroll
-            pin: true, // Pin the section during animation
-            scrub: false, //true, // Not tied to scroll - plays automatically
-            pinSpacing: true, // Add spacing to account for pinned element
-            markers: markers, // Use same markers setting
-            onEnter: () => {
-              console.log('📌 Phase 3 ScrollTrigger: Section pinned, animation starting');
-            },
-            onLeave: () => {
-              console.log('📌 Phase 3 ScrollTrigger: Animation complete, unpinning section');
-            },
-          },
-        });
-
         // Animate spans opacity (fade in) - same timing as both parts
-        phase3Timeline.to(companyNameSpans, {
+        timeline.to(companyNameSpans, {
           opacity: 1,
           duration: totalDuration,
           ease: CustomEase.create("custom", "M0,0 C0.272,0 0.522,0.117 0.566,0.335 0.654,0.776 0.744,1 1,1 "),
           onStart: () => {
+            if (!timeline) return;
             console.log('✨ Phase 3 started - Company name section fade in and slide up');
           },
           onComplete: () => {
+            if (!timeline) return;
             console.log('✅ Phase 3 completed - Company name section animation finished');
           },
-        }, 0); // Start at timeline position 0
+        }, '>='); // Start after Phase 2 completes
 
         // Part 1: Move from y: 100 to y: -h2Height+100
-        phase3Timeline.to(companyNameH2, {
+        // Using transform (translateY) - doesn't affect document flow, allows normal scrolling
+        timeline.to(companyNameH2, {
           y: -h2Height + 100,
           duration: duration1,
           ease: 'none',
-        }, 0); // Start at timeline position 0 (same time as spans)
+        }, '<'); // Start at the same time as spans animation
         
         // Part 2: Move from y: -h2Height+100 to y: -(viewportHeightPx - h2Height*1.75)
-        phase3Timeline.to(companyNameH2, {
+        timeline.to(companyNameH2, {
           y: -(viewportHeightPx - h2Height * 1.75),
           duration: duration2,
           ease: 'power3.out',
-        }, duration1); // Start after part 1 completes
+        }, '>='); // Start after part 1 completes
       }
 
       // Refresh ScrollTrigger after setup
