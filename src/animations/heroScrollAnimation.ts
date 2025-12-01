@@ -1,9 +1,10 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { CustomEase } from 'gsap/CustomEase';
 import { getLenis } from './gsapLenis';
 
-// Register ScrollTrigger plugin
-gsap.registerPlugin(ScrollTrigger);
+// Register GSAP plugins
+gsap.registerPlugin(ScrollTrigger, CustomEase);
 
 interface HeroScrollAnimationOptions {
   triggerSelector: string;
@@ -32,11 +33,21 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
     const triggerElement = document.querySelector(triggerSelector) as HTMLElement;
     const contentElement = document.querySelector(contentSelector) as HTMLElement;
     const lastSpan = document.querySelector(lastSpanSelector) as HTMLElement;
+    const companyNameSection = document.querySelector('.company-name-section') as HTMLElement;
+    const companyNameH2 = companyNameSection 
+      ? companyNameSection.querySelector('h2') as HTMLElement
+      : null;
+    const companyNameSpans = companyNameH2 
+      ? Array.from(companyNameH2.querySelectorAll('span')) as HTMLElement[]
+      : [];
 
     console.log('🔍 Hero Scroll Animation Debug:', {
       triggerElement: triggerElement ? 'Found' : 'NOT FOUND',
       contentElement: contentElement ? 'Found' : 'NOT FOUND',
       lastSpan: lastSpan ? 'Found' : 'NOT FOUND',
+      companyNameSection: companyNameSection ? 'Found' : 'NOT FOUND',
+      companyNameH2: companyNameH2 ? 'Found' : 'NOT FOUND',
+      companyNameSpans: companyNameSpans.length,
       mounted,
     });
 
@@ -85,6 +96,21 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
       // Get the top position of the hero section for scroll-to-top functionality
       const heroTopPosition = triggerElement.offsetTop;
       console.log("heroTopPosition", heroTopPosition)
+      
+      // Set initial state for company name section
+      // h2 container: y: 40 (will move up)
+      // spans: opacity: 0 (will fade in)
+      // Keep section background black
+      if (companyNameH2) {
+        gsap.set(companyNameH2, { y: 40 });
+        console.log('🎨 Company name h2 initial state set (y: 40)');
+      }
+      if (companyNameSpans.length > 0) {
+        companyNameSpans.forEach((span) => {
+          gsap.set(span, { opacity: 0 });
+        });
+        console.log(`🎨 Company name spans initial state set (opacity: 0) for ${companyNameSpans.length} spans`);
+      }
       
       // Create timeline with ScrollTrigger
       // Animation triggers when user scrolls a bit from top, then plays automatically
@@ -190,6 +216,20 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
               ease: 'power2.out',
               overwrite: 'auto', // Only overwrite conflicting properties, preserve timeline tweens
             });
+            
+            // Reset company name section to initial state
+            // h2 container: y: 40
+            // spans: opacity: 0
+            if (companyNameH2) {
+              gsap.set(companyNameH2, { y: 100 }); // set this to padding height
+              console.log('🔄 Reset company name h2 to initial state (y: 40)');
+            }
+            if (companyNameSpans.length > 0) {
+              companyNameSpans.forEach((span) => {
+                gsap.set(span, { opacity: 0 });
+              });
+              console.log(`🔄 Reset company name spans to initial state (opacity: 0)`);
+            }
             
             // Scroll to top of hero section
             const lenis = getLenis();
@@ -336,6 +376,69 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
           console.log(`📜 Scrolled to 100vh (${viewportHeightPx}px) - next section in view`);
         },
       });
+
+      // Phase 3: Fade in and slide up company name section
+      // Starts after Phase 2 completes (after scroll to 100vh)
+      // We'll use a separate ScrollTrigger to pin the section while animating
+      // This ensures the element's position is accounted for when scrolling continues
+      if (companyNameH2 && companyNameSpans.length > 0 && companyNameSection) {
+        // Get the height of the h2 element
+        const h2Height = companyNameH2.offsetHeight;
+        
+        const duration1 = 1;
+        const duration2 = 0.55;
+        const totalDuration = duration1 + duration2;
+
+        // Create a separate timeline for Phase 3 with its own ScrollTrigger
+        // This will pin the section while animating, then unpin
+        // The pin duration should match the animation duration
+        const phase3Timeline = gsap.timeline({
+          scrollTrigger: {
+            trigger: companyNameSection,
+            start: 'top top', // Start when section top hits viewport top
+            // End after animation completes - use a pixel value that matches the timeline duration
+            // For a 1.55s animation, we'll use approximately 100vh worth of scroll
+            end: `+=${viewportHeightPx}`, // Pin for about 1 viewport height of scroll
+            pin: true, // Pin the section during animation
+            scrub: false, //true, // Not tied to scroll - plays automatically
+            pinSpacing: true, // Add spacing to account for pinned element
+            markers: markers, // Use same markers setting
+            onEnter: () => {
+              console.log('📌 Phase 3 ScrollTrigger: Section pinned, animation starting');
+            },
+            onLeave: () => {
+              console.log('📌 Phase 3 ScrollTrigger: Animation complete, unpinning section');
+            },
+          },
+        });
+
+        // Animate spans opacity (fade in) - same timing as both parts
+        phase3Timeline.to(companyNameSpans, {
+          opacity: 1,
+          duration: totalDuration,
+          ease: CustomEase.create("custom", "M0,0 C0.272,0 0.522,0.117 0.566,0.335 0.654,0.776 0.744,1 1,1 "),
+          onStart: () => {
+            console.log('✨ Phase 3 started - Company name section fade in and slide up');
+          },
+          onComplete: () => {
+            console.log('✅ Phase 3 completed - Company name section animation finished');
+          },
+        }, 0); // Start at timeline position 0
+
+        // Part 1: Move from y: 100 to y: -h2Height+100
+        phase3Timeline.to(companyNameH2, {
+          y: -h2Height + 100,
+          duration: duration1,
+          ease: 'none',
+        }, 0); // Start at timeline position 0 (same time as spans)
+        
+        // Part 2: Move from y: -h2Height+100 to y: -(viewportHeightPx - h2Height*1.75)
+        phase3Timeline.to(companyNameH2, {
+          y: -(viewportHeightPx - h2Height * 1.75),
+          duration: duration2,
+          ease: 'power3.out',
+        }, duration1); // Start after part 1 completes
+      }
 
       // Refresh ScrollTrigger after setup
       ScrollTrigger.refresh();
