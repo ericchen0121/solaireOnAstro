@@ -44,6 +44,7 @@ import Odometer from "../components/react/Odometer.tsx";
             client:only="react"
             value={1482}
             duration={2}
+            delay={0}
             className="stat-number text-white mb-6"
           />
           <p class="text-base md:text-lg leading-relaxed text-white/90">
@@ -58,6 +59,7 @@ import Odometer from "../components/react/Odometer.tsx";
             client:only="react"
             value={2007}
             duration={2}
+            delay={0.5}
             className="stat-number text-white mb-6"
           />
           <p class="text-base md:text-lg leading-relaxed text-white/90">
@@ -71,7 +73,8 @@ import Odometer from "../components/react/Odometer.tsx";
           <Odometer
             client:only="react"
             value={15}
-            duration={2}
+            duration={1.5}
+            delay={1.0}
             className="stat-number text-white mb-6"
           />
           <p class="text-base md:text-lg leading-relaxed text-white/90">
@@ -82,15 +85,79 @@ import Odometer from "../components/react/Odometer.tsx";
       </div>
     </div>
   </section>
+
+  <!-- Section 4: Video Background with Text Overlay -->
+  <section
+    class="video-section relative min-h-screen flex items-center justify-center overflow-hidden"
+  >
+    <!-- Video Background -->
+    <video
+      autoplay
+      loop
+      muted
+      playsinline
+      class="absolute inset-0 w-full h-full object-cover"
+    >
+      <source src="/romande_r1.mp4" type="video/mp4" />
+    </video>
+
+    <!-- Text Overlay -->
+    <div class="relative z-10 text-center px-4">
+      <h2
+        class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-white leading-tight"
+      >
+        Un réseau romand,<br />
+        basé sur la confiance.
+      </h2>
+    </div>
+  </section>
+
+  <!-- Section 5: Pourquoi le solaire? -->
+  <section
+    class="why-solar-section h-screen w-screen flex items-center justify-center bg-black text-white"
+  >
+    <h2
+      id="why-solar-text"
+      class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4"
+    >
+      Pourquoi le solaire?
+    </h2>
+  </section>
+
+  <!-- Section 6: Pourquoi travailler avec nous? -->
+  <section
+    class="why-us-section h-screen w-screen flex items-center justify-center bg-black text-white"
+  >
+    <h2
+      id="why-us-text"
+      class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4"
+    >
+      Pourquoi travailler avec nous?
+    </h2>
+  </section>
+
+  <!-- Section 7: Qui sont nos clients? -->
+  <section
+    class="clients-section h-screen w-screen flex items-center justify-center bg-black text-white"
+  >
+    <h2
+      id="clients-text"
+      class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4"
+    >
+      Qui sont nos clients?
+    </h2>
+  </section>
 </BaseLayout>
 
 <script>
   import { initLetterReveal } from "../animations/letterReveal";
   import { initHeroScrollAnimation } from "../animations/heroScrollAnimation";
+  import { initScrollLetterReveal } from "../animations/scrollLetterReveal";
 
   // Initialize animations when DOM is ready
   if (typeof window !== "undefined") {
     let cleanupScrollAnimation: (() => void) | null = null;
+    const cleanupFunctions: (() => void)[] = [];
 
     function initAnimations() {
       // Letter reveal for hero title
@@ -102,7 +169,15 @@ import Odometer from "../components/react/Odometer.tsx";
         contentSelector: "#hero-content",
         lastSpanSelector: "#last-span",
         markers: true, // Set to true for debugging
+        // scrubPhase12: true,
       });
+
+      // Scroll-triggered letter reveal for new sections
+      const cleanup1 = initScrollLetterReveal("#why-solar-text", 0.1);
+      const cleanup2 = initScrollLetterReveal("#why-us-text", 0.1);
+      const cleanup3 = initScrollLetterReveal("#clients-text", 0.1);
+
+      cleanupFunctions.push(cleanup1, cleanup2, cleanup3);
 
       // Letter reveal for company name (optional)
       // initLetterReveal('.company-name-section h2', 0, 0.03);
@@ -120,6 +195,7 @@ import Odometer from "../components/react/Odometer.tsx";
       if (cleanupScrollAnimation) {
         cleanupScrollAnimation();
       }
+      cleanupFunctions.forEach((cleanup) => cleanup());
     });
   }
 </script>

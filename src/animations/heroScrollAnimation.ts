@@ -11,6 +11,17 @@ interface HeroScrollAnimationOptions {
   contentSelector: string;
   lastSpanSelector: string;
   markers?: boolean;
+  /**
+   * When true, Phase 1 & 2 of the hero animation are tied to scroll position (scrubbed).
+   * When false (default), they play automatically after the trigger is entered.
+   */
+  scrubPhase12?: boolean;
+  /**
+   * When true, Phase 3 (company name section) animation is tied to scroll position (scrubbed).
+   * When false (default), it plays automatically after Phase 2 completes.
+   * This is independent of scrubPhase12, so you can have different scrub modes for different phases.
+   */
+  scrubPhase3?: boolean;
 }
 
 /**
@@ -24,9 +35,12 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
     contentSelector,
     lastSpanSelector,
     markers = false,
+    scrubPhase12 = false,
+    scrubPhase3 = false,
   } = options;
 
   let timeline: gsap.core.Timeline | null = null;
+  let phase3Timeline: gsap.core.Timeline | null = null;
   let mounted = true;
 
   const initAnimation = () => {
@@ -97,6 +111,28 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
       const heroTopPosition = triggerElement.offsetTop;
       console.log("heroTopPosition", heroTopPosition)
       
+      // Check initial scroll position - if already past the hero section, hide content
+      const currentScrollY = window.scrollY || window.pageYOffset;
+      const triggerBottom = heroTopPosition + viewportHeightPx;
+      const isPastHeroSection = currentScrollY > triggerBottom;
+      
+      if (isPastHeroSection) {
+        // If page loaded while scrolled past hero section, hide the content immediately
+        gsap.set(contentElement, { 
+          opacity: 0,
+          y: -(distanceToLastSpan + lastSpanHeight), // Set to final animated position
+          visibility: 'hidden' // Hide completely to prevent flash
+        });
+        console.log('🚫 Page loaded past hero section - hiding content element');
+      } else {
+        // Ensure content is visible if we're in or before the hero section
+        gsap.set(contentElement, { 
+          opacity: 1,
+          y: 0,
+          visibility: 'visible'
+        });
+      }
+      
       // Set initial state for company name section
       // h2 container: y: 40 (will move up)
       // spans: opacity: 0 (will fade in)
@@ -107,7 +143,7 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
       }
       if (companyNameSpans.length > 0) {
         companyNameSpans.forEach((span) => {
-          gsap.set(span, { opacity: 0 });
+          gsap.set(span, { opacity: 0.05 });
         });
         console.log(`🎨 Company name spans initial state set (opacity: 0) for ${companyNameSpans.length} spans`);
       }
@@ -116,47 +152,67 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
       // Animation triggers when user scrolls a bit from top, then plays automatically
       // Trigger zone spans 100vh to match the scroll distance at the end
       timeline = gsap.timeline({
-        paused: true, // Start paused, will be triggered by ScrollTrigger
+        paused: !scrubPhase12, // If scrubbed, ScrollTrigger drives the timeline
         scrollTrigger: {
           trigger: triggerElement,
           start: 'top+=10px top', // Trigger after scrolling 10px
           end: `top+=${10 + viewportHeightPx}px top`, // End trigger zone after scrolling 100vh (10px + viewport height)
-          scrub: false, // Not tied to scroll - plays at own pace
-          // To enable scrub mode (tie Phase 3 animation to scroll): change to scrub: true
+          scrub: scrubPhase12, // When true, Phase 1 & 2 follow scroll
           markers: markers,
           pin: false, // Don't pin, let it scroll naturally
           toggleActions: 'play none none none', // Only play forward, no reverse
-          onEnter: () => {
-            console.log('✅ ScrollTrigger: onEnter - Animation should play forward');
-            console.log('🔍 Debug onEnter - Timeline state:', {
-              timelineExists: !!timeline,
-              paused: timeline?.paused(),
-              progress: timeline?.progress(),
-              duration: timeline?.duration(),
-              isActive: timeline?.isActive(),
-              scrollTrigger: timeline?.scrollTrigger ? 'exists' : 'missing',
-              scrollTriggerIsActive: timeline?.scrollTrigger?.isActive,
-              scrollTriggerProgress: timeline?.scrollTrigger?.progress,
-            });
-            
-            // Explicitly play the timeline to ensure it starts
-            if (timeline) {
-              if (timeline.paused()) {
-                console.log('▶️ Timeline is paused, calling play()...');
-                timeline.play();
-                console.log('🔍 After play() - Timeline state:', {
-                  paused: timeline.paused(),
-                  progress: timeline.progress(),
-                  isActive: timeline.isActive(),
-                });
-              } else {
-                console.log('⚠️ Timeline is not paused, current state:', {
-                  paused: timeline.paused(),
-                  progress: timeline.progress(),
-                });
+          onRefresh: () => {
+            // When ScrollTrigger refreshes, check if we're past the section
+            const scrollY = window.scrollY || window.pageYOffset;
+            const triggerBottom = heroTopPosition + viewportHeightPx;
+            if (scrollY > triggerBottom && timeline) {
+              // If past the section, ensure content is hidden and timeline is at end
+              gsap.set(contentElement, { 
+                opacity: 0,
+                y: -(distanceToLastSpan + lastSpanHeight),
+                visibility: 'hidden'
+              });
+              if (!scrubPhase12) {
+                timeline.progress(1); // Set timeline to completed state
               }
-            } else {
-              console.error('❌ Timeline does not exist in onEnter!');
+            }
+          },
+          onEnter: () => {
+            // Make content visible when entering the trigger zone
+            gsap.set(contentElement, { visibility: 'visible' });
+            
+            if (!scrubPhase12) {
+              console.log('✅ ScrollTrigger: onEnter - Animation should play forward');
+              console.log('🔍 Debug onEnter - Timeline state:', {
+                timelineExists: !!timeline,
+                paused: timeline?.paused(),
+                progress: timeline?.progress(),
+                duration: timeline?.duration(),
+                isActive: timeline?.isActive(),
+                scrollTrigger: timeline?.scrollTrigger ? 'exists' : 'missing',
+                scrollTriggerIsActive: timeline?.scrollTrigger?.isActive,
+                scrollTriggerProgress: timeline?.scrollTrigger?.progress,
+              });
+              
+              // Explicitly play the timeline to ensure it starts
+              if (timeline) {
+                if (timeline.paused()) {
+                  console.log('▶️ Timeline is paused, calling play()...');
+                  timeline.play();
+                  console.log('🔍 After play() - Timeline state:', {
+                    paused: timeline.paused(),
+                    progress: timeline.progress(),
+                    isActive: timeline.isActive(),
+                  });
+                } else {
+                  console.log('⚠️ Timeline is not paused, current state:', {
+                    paused: timeline.paused(),
+                    progress: timeline.progress(),
+                  });
+                }
+              } else {
+                console.error('❌ Timeline does not exist in onEnter!');
+              }
             }
           },
           onLeaveBack: () => {
@@ -222,7 +278,8 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
             // h2 container: y: 40
             // spans: opacity: 0
             if (companyNameH2) {
-              gsap.set(companyNameH2, { y: 100 }); // set this to padding height
+              const h2Height = companyNameH2.offsetHeight;
+              gsap.set(companyNameH2, { y: h2Height }); // set this to padding height
               console.log('🔄 Reset company name h2 to initial state (y: 40)');
             }
             if (companyNameSpans.length > 0) {
@@ -379,10 +436,9 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
       });
 
       // Phase 3: Fade in and slide up company name section
-      // Starts after Phase 2 completes (after scroll to 100vh)
+      // Separate timeline with its own ScrollTrigger for independent scrub control
       // Uses transform-based animations (y, opacity) - doesn't affect document flow
-      // To switch to scrub mode: change main timeline's ScrollTrigger scrub to true (line ~98)
-      if (companyNameH2 && companyNameSpans.length > 0) {
+      if (companyNameH2 && companyNameSpans.length > 0 && companyNameSection) {
         // Get the height of the h2 element
         const h2Height = companyNameH2.offsetHeight;
         
@@ -390,35 +446,55 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
         const duration2 = 0.55;
         const totalDuration = duration1 + duration2;
 
+        // Create separate timeline for Phase 3 with independent ScrollTrigger
+        phase3Timeline = gsap.timeline({
+          paused: !scrubPhase3, // Pause if not scrubbing (will be triggered by ScrollTrigger)
+          scrollTrigger: {
+            trigger: companyNameSection,
+            start: 'top-=100px top', // Start when section top hits viewport top
+            end: `+=${viewportHeightPx}`, // End after scrolling 100vh
+            scrub: scrubPhase3, // Independent scrub control for Phase 3
+            markers: markers,
+            // pin: true,
+            onEnter: () => {
+              if (!scrubPhase3 && phase3Timeline && phase3Timeline.paused()) {
+                phase3Timeline.play();
+                console.log('✨ Phase 3 started - Company name section fade in and slide up');
+              }
+            },
+            onLeave: () => {
+              console.log('✅ Phase 3 completed - Company name section animation finished');
+            },
+          },
+        });
+
         // Animate spans opacity (fade in) - same timing as both parts
-        timeline.to(companyNameSpans, {
+        phase3Timeline.to(companyNameSpans, {
           opacity: 1,
           duration: totalDuration,
           ease: CustomEase.create("custom", "M0,0 C0.272,0 0.522,0.117 0.566,0.335 0.654,0.776 0.744,1 1,1 "),
           onStart: () => {
-            if (!timeline) return;
             console.log('✨ Phase 3 started - Company name section fade in and slide up');
           },
           onComplete: () => {
-            if (!timeline) return;
             console.log('✅ Phase 3 completed - Company name section animation finished');
           },
-        }, '>='); // Start after Phase 2 completes
+        }, 0); // Start at timeline position 0
 
-        // Part 1: Move from y: 100 to y: -h2Height+100
+        // Part 1: Move from y: h2Height to y: -h2Height+100
         // Using transform (translateY) - doesn't affect document flow, allows normal scrolling
-        timeline.to(companyNameH2, {
+        phase3Timeline.to(companyNameH2, {
           y: -h2Height + 100,
           duration: duration1,
           ease: 'none',
-        }, '<'); // Start at the same time as spans animation
+        }, 0); // Start at the same time as spans animation
         
         // Part 2: Move from y: -h2Height+100 to y: -(viewportHeightPx - h2Height*1.75)
-        timeline.to(companyNameH2, {
+        phase3Timeline.to(companyNameH2, {
           y: -(viewportHeightPx - h2Height * 1.75),
           duration: duration2,
           ease: 'power3.out',
-        }, '>='); // Start after part 1 completes
+        }, duration1); // Start after part 1 completes
       }
 
       // Refresh ScrollTrigger after setup
@@ -456,6 +532,12 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
       timeline.scrollTrigger?.kill();
       timeline.kill();
       timeline = null;
+    }
+
+    if (phase3Timeline) {
+      phase3Timeline.scrollTrigger?.kill();
+      phase3Timeline.kill();
+      phase3Timeline = null;
     }
   };
 }
