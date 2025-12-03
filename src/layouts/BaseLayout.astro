@@ -1,21 +1,21 @@
 ---
-import LenisProvider from '../components/LenisProvider.astro';
-import OrbitNav from '../components/react/OrbitNav.tsx';
-import { navigationItems } from '../utils/navigation';
-import '../styles/global.css';
+// Lenis removed - using native scrolling for better section snap reliability
+import OrbitNav from "../components/react/OrbitNav.tsx";
+import { navigationItems } from "../utils/navigation";
+import "../styles/global.css";
 
 interface Props {
   title?: string;
   description?: string;
   isDark?: boolean;
-  orbitNavColorMode?: 'auto' | 'light' | 'dark';
+  orbitNavColorMode?: "auto" | "light" | "dark";
 }
 
 const {
-  title = 'Rochat Solaire - Solar Energy Solutions',
-  description = 'Leading solar energy solutions for sustainable power generation.',
+  title = "Rochat Solaire - Solar Energy Solutions",
+  description = "Leading solar energy solutions for sustainable power generation.",
   isDark = false,
-  orbitNavColorMode = 'auto',
+  orbitNavColorMode = "auto",
 } = Astro.props;
 ---
 
@@ -27,19 +27,19 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content="/og-image.jpg" />
-    
+
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:title" content={title} />
     <meta property="twitter:description" content={description} />
     <meta property="twitter:image" content="/og-image.jpg" />
-    
+
     <!-- Google Fonts - Poppins & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -47,12 +47,15 @@ const {
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    
+
     <title>{title}</title>
   </head>
   <body>
-    <LenisProvider />
-    <OrbitNav client:only="react" isDark={isDark} colorMode={orbitNavColorMode} />
+    <OrbitNav
+      client:only="react"
+      isDark={isDark}
+      colorMode={orbitNavColorMode}
+    />
     <slot />
   </body>
 </html>

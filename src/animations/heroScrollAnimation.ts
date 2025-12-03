@@ -1,10 +1,10 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 import { CustomEase } from 'gsap/CustomEase';
-import { getLenis } from './gsapLenis';
 
 // Register GSAP plugins
-gsap.registerPlugin(ScrollTrigger, CustomEase);
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, CustomEase);
 
 interface HeroScrollAnimationOptions {
   triggerSelector: string;
@@ -294,20 +294,15 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
               console.log(`🔄 Reset company name spans to initial state (opacity: 0)`);
             }
             
-            // Scroll to top of hero section
-            const lenis = getLenis();
-            if (lenis) {
-              lenis.scrollTo(heroTopPosition, {
-                duration: 0.7,
-                easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-              });
-            } else {
-              // Fallback to native scroll if Lenis is not available
-              window.scrollTo({
-                top: heroTopPosition,
-                behavior: 'smooth',
-              });
-            }
+            // Scroll to top of hero section using GSAP ScrollTo
+            gsap.to(window, {
+              scrollTo: {
+                y: heroTopPosition,
+                autoKill: false,
+              },
+              duration: 0.7,
+              ease: "power2.out",
+            });
             console.log(`📜 Reset timeline, text y position to 0, and scrolled to top of hero section at position ${heroTopPosition}`);
           },
           onUpdate: (self) => {
@@ -421,21 +416,16 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
             isActive: timeline.isActive(),
           });
           // Scroll to exactly 100vh from top so next section is in view
-          const lenis = getLenis();
           const scrollTarget = viewportHeightPx; // Scroll to exactly 100vh from top
-          console.log(lenis, "scrollTarget", scrollTarget)
-          if (lenis) {
-            lenis.scrollTo(scrollTarget, {
-              duration: 0.05,
-              easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-            });
-          } else {
-            // Fallback to native scroll if Lenis is not available
-            window.scrollTo({
-              top: scrollTarget,
-              behavior: 'smooth',
-            });
-          }
+          console.log("scrollTarget", scrollTarget);
+          gsap.to(window, {
+            scrollTo: {
+              y: scrollTarget,
+              autoKill: false,
+            },
+            duration: 0.05,
+            ease: "power2.out",
+          });
           console.log(`📜 Scrolled to 100vh (${viewportHeightPx}px) - next section in view`);
           
           // Call completion callback if provided

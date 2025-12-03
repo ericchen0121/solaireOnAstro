@@ -88,7 +88,7 @@ import Odometer from "../components/react/Odometer.tsx";
 
   <!-- Section 4: Video Background -->
   <section
-    class="video-section relative h-screen flex items-center justify-center overflow-hidden"
+    class="video-section relative h-screen w-screen flex items-center justify-center overflow-hidden"
   >
     <video
       autoplay
@@ -148,7 +148,7 @@ import Odometer from "../components/react/Odometer.tsx";
 </BaseLayout>
 
 <!-- ====================== -->
-<!--  STABLE LENIS VERSION  -->
+<!--  NATIVE SCROLL VERSION -->
 <!-- ====================== -->
 
 <script>
@@ -161,8 +161,8 @@ import Odometer from "../components/react/Odometer.tsx";
     setSectionSnapAnimationActive,
   } from "../animations/sectionSnap";
 
-  // Lenis + ScrollTrigger are already initialized globally in BaseLayout
-  // All we do here is initialize animations AFTER layout + Lenis
+  // Using native browser scrolling for better section snap reliability
+  // ScrollTrigger works natively with window scrolling
 
   if (typeof window !== "undefined") {
     let cleanupScrollAnimation = null;

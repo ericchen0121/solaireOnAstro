@@ -1,5 +1,8 @@
-import { getLenis } from "./gsapLenis";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ScrollToPlugin } from "gsap/ScrollToPlugin";
+import { gsap } from "gsap";
+
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
 interface SectionSnapOptions {
   threshold?: number; // scroll % before advancing (0–1)
@@ -7,11 +10,13 @@ interface SectionSnapOptions {
   sections?: string[];
 }
 
+let currentIndex = -1;
+let animating = false;
 let sections: HTMLElement[] = [];
-let positions: number[] = [];
-let snapping = false;
-let rafId: number | null = null;
-let scrollListener: ((e: any) => void) | null = null;
+let scrollTimeline: gsap.core.Timeline | null = null;
+let pinTrigger: ScrollTrigger | null = null;
+let processingWheel = false; // Lock to prevent multiple wheel events
+let processingTouch = false; // Lock to prevent multiple touch events
 
 export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
   const {
@@ -20,16 +25,13 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
     sections: selectors,
   } = options;
 
-  let lenis: ReturnType<typeof getLenis> = null;
   let cleanupFn: (() => void) | null = null;
-  let checkInterval: number | null = null;
+  let wheelListener: ((e: WheelEvent) => void) | null = null;
+  let touchStartY = 0;
+  let touchListener: ((e: TouchEvent) => void) | null = null;
 
   const init = () => {
-    lenis = getLenis();
-    if (!lenis) {
-      console.warn("SectionSnap: Lenis not available");
-      return;
-    }
+    console.log("🔧 SectionSnap: Initializing...");
 
     // --- GET SECTIONS ---
     sections = selectors
@@ -38,196 +40,353 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
           .filter((el) => el !== null)
       : Array.from(document.querySelectorAll("section")) as HTMLElement[];
 
+    console.log(`📋 SectionSnap: Found ${sections.length} sections`, sections);
+
     if (sections.length === 0) {
-      console.warn("SectionSnap: No sections found");
+      console.warn("❌ SectionSnap: No sections found");
       return;
     }
 
-    // --- CALCULATE REAL POSITIONS ---
-    const updatePositions = () => {
-      positions = sections.map((sec) => {
-        const rect = sec.getBoundingClientRect();
-        return window.scrollY + rect.top;
-      });
-    };
-    updatePositions();
+    // Initialize current index to first section
+    currentIndex = 0;
+    console.log(`📍 SectionSnap: Starting at index ${currentIndex}`);
 
-    const resizeHandler = () => {
-      updatePositions();
-      ScrollTrigger.refresh();
-    };
-    window.addEventListener("resize", resizeHandler);
-
-    // --- CONTINUOUS SNAP MONITORING ---
-    let lastScrollY = lenis.scroll || window.scrollY;
-    let isScrolling = false;
-    let scrollTimeout: number | null = null;
-
-    const checkAndSnap = () => {
-      if (snapping) {
-        rafId = requestAnimationFrame(checkAndSnap);
+    // --- GO TO SECTION FUNCTION ---
+    const gotoSection = (index: number, isScrollingDown: boolean) => {
+      if (animating) {
         return;
       }
 
-      // Don't snap while ScrollTrigger is active (hero animation)
-      const heroTrigger = document.querySelector("#hero-trigger");
-      if (heroTrigger) {
-        const triggers = ScrollTrigger.getAll();
-        for (const t of triggers) {
-          if (t.isActive) {
-            rafId = requestAnimationFrame(checkAndSnap);
-            return;
-          }
-        }
+      // Clamp index to valid range
+      if (index < 0) {
+        index = 0;
+      } else if (index >= sections.length) {
+        index = sections.length - 1;
       }
 
-      const currentScroll = lenis?.scroll ?? window.scrollY;
-      const viewport = window.innerHeight;
+      // ENFORCE: Only allow snapping to adjacent sections (never skip)
+      const indexDiff = index - currentIndex;
+      
+      if (indexDiff > 1) {
+        index = currentIndex + 1;
+        console.log(`⚠️ SectionSnap: Prevented skip forward, clamping to next section ${index}`);
+      } else if (indexDiff < -1) {
+        index = currentIndex - 1;
+        console.log(`⚠️ SectionSnap: Prevented skip backward, clamping to previous section ${index}`);
+      }
 
-      // Find the current section based on scroll position
-      let currentIndex = 0;
-      let minDistance = Infinity;
-
-      positions.forEach((pos, i) => {
-        const distance = Math.abs(currentScroll - pos);
-        if (distance < minDistance) {
-          minDistance = distance;
-          currentIndex = i;
-        }
-      });
-
-      const currentSectionTop = positions[currentIndex];
-      const progress = (currentScroll - currentSectionTop) / viewport;
-
-      // Determine scroll direction
-      const scrollDelta = currentScroll - lastScrollY;
-      const scrollDirection = scrollDelta > 0 ? 'down' : 'up';
-      lastScrollY = currentScroll;
-
-      // Calculate target section
-      let targetIndex = currentIndex;
-      const distanceFromCurrent = Math.abs(currentScroll - currentSectionTop);
-
-      // If we're not at a section boundary (within 10px), determine where to snap
-      if (distanceFromCurrent > 10) {
-        if (scrollDirection === 'down') {
-          // Scrolling down: if past threshold, go to next section
-          if (progress > threshold) {
-            targetIndex = Math.min(currentIndex + 1, sections.length - 1);
-          } else {
-            // Not past threshold, snap to current section
-            targetIndex = currentIndex;
+      // If already at target and aligned, don't animate
+      if (index === currentIndex) {
+        const currentSection = sections[index];
+        if (currentSection) {
+          const currentScroll = window.scrollY;
+          const targetPos = currentSection.offsetTop;
+          const distanceFromTarget = Math.abs(currentScroll - targetPos);
+          
+          if (distanceFromTarget <= 5) {
+            return; // Already aligned
           }
         } else {
-          // Scrolling up: if we've scrolled less than (1 - threshold), go to previous
-          if (progress < (1 - threshold) && progress >= 0) {
-            targetIndex = Math.max(currentIndex - 1, 0);
-          } else if (progress < 0) {
-            // Above current section, go to previous
-            targetIndex = Math.max(currentIndex - 1, 0);
-          } else {
-            // Not past threshold, snap to current section
-            targetIndex = currentIndex;
-          }
+          return;
         }
-      } else {
-        // Already at a section boundary, no snap needed
-        rafId = requestAnimationFrame(checkAndSnap);
+      }
+
+      const targetSection = sections[index];
+      if (!targetSection) {
         return;
       }
 
-      // Snap to target section
-      const targetPos = positions[targetIndex];
-      const distance = Math.abs(currentScroll - targetPos);
+      const targetPos = targetSection.offsetTop;
+      const currentPos = window.scrollY;
+      console.log(`📍 SectionSnap: Snapping from ${currentPos.toFixed(0)}px to section ${index} at ${targetPos}px`);
 
-      if (distance > 5 && targetPos !== undefined) {
-        snapping = true;
-        lenis.scrollTo(targetPos, {
-          duration: snapDuration,
-          easing: (t) => t * (2 - t), // easeOutQuad
-          onComplete: () => {
-            snapping = false;
-          },
-        });
+      animating = true;
+      currentIndex = index;
+
+      // Kill any existing scroll animation
+      if (scrollTimeline) {
+        scrollTimeline.kill();
+        scrollTimeline = null;
       }
 
-      rafId = requestAnimationFrame(checkAndSnap);
+      // Create a timeline for smooth, controlled scroll animation
+      scrollTimeline = gsap.timeline({
+        onComplete: () => {
+          console.log(`✅ SectionSnap: Snap complete, now at index ${index}`);
+          animating = false;
+          scrollTimeline = null;
+          // Release processing lock
+          if (typeof processingWheel !== 'undefined') {
+            processingWheel = false;
+          }
+        },
+      });
+
+      // Immediately stop any current scroll momentum
+      scrollTimeline.set(window, {
+        scrollTo: { y: currentPos, autoKill: false },
+        immediateRender: true,
+      });
+
+      // Then animate to target with smooth easing
+      scrollTimeline.to(window, {
+        scrollTo: {
+          y: targetPos,
+          autoKill: false,
+        },
+        duration: snapDuration,
+        ease: "power2.out",
+      });
     };
 
-    // Handle scroll events to track scrolling state
-    scrollListener = (e: any) => {
-      isScrolling = true;
+    // --- LISTEN TO WHEEL EVENTS ---
+    // This immediately hijacks scroll and animates with GSAP
+    let lastWheelTime = 0;
+    const wheelThrottle = 1200; // Increased throttle to prevent rapid firing
+    let lastProcessedIndex = -1; // Track the last section we processed to prevent double-processing
+
+    wheelListener = (e: WheelEvent) => {
+      // Always prevent default to stop natural scrolling
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Don't process if animating or already processing
+      if (animating || processingWheel) {
+        return;
+      }
+
+      const now = Date.now();
+      if (now - lastWheelTime < wheelThrottle) {
+        return;
+      }
+
+      // CRITICAL: Use the actual scroll position to determine current section, not currentIndex
+      // This prevents race conditions with ScrollTrigger callbacks
+      const currentScrollY = window.scrollY;
+      let actualCurrentIndex = 0;
+      let minDistance = Infinity;
       
-      if (scrollTimeout) clearTimeout(scrollTimeout);
+      // Find which section we're actually closest to
+      for (let i = 0; i < sections.length; i++) {
+        const sectionTop = sections[i].offsetTop;
+        const distance = Math.abs(currentScrollY - sectionTop);
+        if (distance < minDistance) {
+          minDistance = distance;
+          actualCurrentIndex = i;
+        }
+      }
+
+      // If we just processed this index, ignore (prevent double-processing)
+      if (actualCurrentIndex === lastProcessedIndex && now - lastWheelTime < wheelThrottle * 2) {
+        return;
+      }
+
+      // Set processing lock immediately
+      processingWheel = true;
+      lastWheelTime = now;
+      lastProcessedIndex = actualCurrentIndex;
+
+      // Determine scroll direction
+      const deltaY = e.deltaY;
+      const isScrollingDown = deltaY > 0;
+
+      // Don't process if at boundaries
+      if (isScrollingDown && actualCurrentIndex >= sections.length - 1) {
+        processingWheel = false;
+        return;
+      }
+      if (!isScrollingDown && actualCurrentIndex <= 0) {
+        processingWheel = false;
+        return;
+      }
+
+      // CRITICAL: Always go to exactly adjacent section, never skip
+      const targetIndex = isScrollingDown ? actualCurrentIndex + 1 : actualCurrentIndex - 1;
       
-      scrollTimeout = window.setTimeout(() => {
-        isScrolling = false;
-      }, 150);
+      // Double-check we're only going one section away
+      if (Math.abs(targetIndex - actualCurrentIndex) !== 1) {
+        console.warn(`⚠️ SectionSnap: Invalid target index ${targetIndex} from ${actualCurrentIndex}, aborting`);
+        processingWheel = false;
+        return;
+      }
+
+      // Immediately snap to adjacent section only
+      if (isScrollingDown) {
+        console.log(`⬇️ SectionSnap: Wheel down detected, snapping from section ${actualCurrentIndex} to ${targetIndex}`);
+      } else {
+        console.log(`⬆️ SectionSnap: Wheel up detected, snapping from section ${actualCurrentIndex} to ${targetIndex}`);
+      }
+      
+      gotoSection(targetIndex, isScrollingDown);
     };
 
-    lenis.on("scroll", scrollListener);
+    // --- LISTEN TO TOUCH EVENTS ---
+    let lastTouchTime = 0;
+    const touchThrottle = 800;
 
-    // Start continuous monitoring
-    rafId = requestAnimationFrame(checkAndSnap);
+    touchListener = (e: TouchEvent) => {
+      // Always prevent default
+      e.preventDefault();
+
+      if (animating || processingTouch) {
+        return;
+      }
+
+      if (e.type === "touchstart") {
+        touchStartY = e.touches[0].clientY;
+        return;
+      }
+
+      if (e.type === "touchmove") {
+        const now = Date.now();
+        if (now - lastTouchTime < touchThrottle) {
+          return;
+        }
+
+        const touchY = e.touches[0].clientY;
+        const deltaY = touchStartY - touchY;
+        const threshold = 30; // Minimum swipe distance
+
+        if (Math.abs(deltaY) < threshold) {
+          return;
+        }
+
+        const isScrollingDown = deltaY < 0;
+
+        // Don't process if at boundaries
+        if (isScrollingDown && currentIndex >= sections.length - 1) {
+          return;
+        }
+        if (!isScrollingDown && currentIndex <= 0) {
+          return;
+        }
+
+        // Set processing lock
+        processingTouch = true;
+        lastTouchTime = now;
+
+        // CRITICAL: Always go to exactly adjacent section
+        const targetIndex = isScrollingDown ? currentIndex + 1 : currentIndex - 1;
+        
+        // Double-check we're only going one section away
+        if (Math.abs(targetIndex - currentIndex) !== 1) {
+          console.warn(`⚠️ SectionSnap: Invalid touch target index ${targetIndex} from ${currentIndex}, aborting`);
+          processingTouch = false;
+          return;
+        }
+
+        // Immediately snap
+        if (isScrollingDown) {
+          console.log(`⬇️ SectionSnap: Touch swipe down detected, snapping to section ${targetIndex}`);
+        } else {
+          console.log(`⬆️ SectionSnap: Touch swipe up detected, snapping to section ${targetIndex}`);
+        }
+        
+        gotoSection(targetIndex, isScrollingDown);
+
+        touchStartY = touchY; // Update for next move
+      }
+    };
+
+    // Add event listeners with passive: false to allow preventDefault
+    window.addEventListener("wheel", wheelListener, { passive: false });
+    window.addEventListener("touchstart", touchListener, { passive: false });
+    window.addEventListener("touchmove", touchListener, { passive: false });
+
+    console.log("✅ SectionSnap: Wheel and touch listeners added");
+
+    // --- CREATE SCROLL TRIGGER TO TRACK CURRENT SECTION ---
+    const firstSection = sections[0];
+    
+    pinTrigger = ScrollTrigger.create({
+      trigger: firstSection,
+      start: "top top",
+      end: `bottom+=${(sections.length - 1) * window.innerHeight} top`,
+      pin: false,
+      onEnter: () => {
+        console.log("🚪 SectionSnap: Entered snap zone");
+        if (currentIndex !== 0 && !animating) {
+          gotoSection(0, true);
+        }
+      },
+      onLeave: () => {
+        console.log("🚪 SectionSnap: Left snap zone");
+      },
+      onEnterBack: () => {
+        console.log("🚪 SectionSnap: Entered back to snap zone");
+      },
+      onLeaveBack: () => {
+        console.log("🚪 SectionSnap: Left snap zone (back)");
+      },
+    });
+
+    console.log("✅ SectionSnap: Pin trigger created");
+
+    // Track current section with ScrollTriggers
+    sections.forEach((section, index) => {
+      ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: "bottom top",
+        onEnter: () => {
+          // Only update if not animating AND not processing wheel/touch events
+          // This prevents race conditions where ScrollTrigger updates during wheel processing
+          if (!animating && !processingWheel && !processingTouch) {
+            currentIndex = index;
+            console.log(`📍 SectionSnap: Current index updated to ${index}`);
+          }
+        },
+        onEnterBack: () => {
+          // Only update if not animating AND not processing wheel/touch events
+          if (!animating && !processingWheel && !processingTouch) {
+            currentIndex = index;
+            console.log(`📍 SectionSnap: Current index updated to ${index} (back)`);
+          }
+        },
+      });
+    });
 
     cleanupFn = () => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
+      if (wheelListener) {
+        window.removeEventListener("wheel", wheelListener);
+        wheelListener = null;
       }
-      if (scrollListener) {
-        lenis?.off("scroll", scrollListener);
-        scrollListener = null;
+      if (touchListener) {
+        window.removeEventListener("touchstart", touchListener);
+        window.removeEventListener("touchmove", touchListener);
+        touchListener = null;
       }
-      if (scrollTimeout) {
-        clearTimeout(scrollTimeout);
-        scrollTimeout = null;
+      if (scrollTimeline) {
+        scrollTimeline.kill();
+        scrollTimeline = null;
       }
-      window.removeEventListener("resize", resizeHandler);
+      if (pinTrigger) {
+        pinTrigger.kill();
+        pinTrigger = null;
+      }
+      ScrollTrigger.getAll().forEach((st) => {
+        if (st.vars?.trigger && sections.includes(st.vars.trigger as HTMLElement)) {
+          st.kill();
+        }
+      });
+      animating = false;
     };
   };
 
-  // Try to initialize immediately, or wait for Lenis
+  // Initialize when DOM is ready
   if (typeof window !== "undefined") {
-    if ((window as any).lenis) {
-      init();
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
     } else {
-      // Wait for Lenis to be ready
-      checkInterval = window.setInterval(() => {
-        if ((window as any).lenis) {
-          if (checkInterval) clearInterval(checkInterval);
-          checkInterval = null;
-          init();
-        }
-      }, 50);
-
-      // Timeout after 5 seconds
-      setTimeout(() => {
-        if (checkInterval) {
-          clearInterval(checkInterval);
-          checkInterval = null;
-        }
-        if (!lenis) {
-          console.warn("SectionSnap: Lenis not available after timeout");
-        }
-      }, 5000);
+      init();
     }
   }
 
   return () => {
     cleanupFn?.();
-    if (checkInterval) {
-      clearInterval(checkInterval);
-      checkInterval = null;
-    }
-    snapping = false;
   };
 }
 
-/**
- * Set animation active state (for compatibility with existing code)
- * Note: This is now handled automatically via ScrollTrigger detection
- */
 export function setSectionSnapAnimationActive(_active: boolean): void {
-  // No-op: handled automatically by ScrollTrigger.isActive check
+  // No-op: handled automatically by ScrollTrigger detection
 }
