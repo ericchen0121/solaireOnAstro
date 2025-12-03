@@ -11,6 +11,7 @@ export default {
       },
       fontFamily: {
         primary: ['Poppins', 'sans-serif'],
+        f37moon: ['F37Moon', 'sans-serif'],
       },
     },
   },

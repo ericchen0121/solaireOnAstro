@@ -88,28 +88,40 @@ export default function Odometer({
       triggerRef.current.kill();
     }
 
+    // Helper function to start the odometer animation
+    const startAnimation = () => {
+      const nodes = rootRef.current!.querySelectorAll("[data-odo-col]");
+      nodes.forEach((col: any) => {
+        const steps = col.children.length - 1;
+        const dist = steps * col.children[0].clientHeight;
+
+        // Kill any existing animation on this column
+        gsap.killTweensOf(col);
+
+        // Reset to start position
+        gsap.set(col, { y: 0 });
+
+        // Create new animation
+        const anim = gsap.to(col, {
+          y: -dist,
+          duration,
+          delay,
+          ease: "power2.out",
+        });
+        animationRefs.current.push(anim);
+      });
+    };
+
     const trigger = ScrollTrigger.create({
       trigger: rootRef.current,
       start: "top bottom", // Start when top of element enters bottom of viewport (for onLeaveBack to fire when completely above)
       end: "bottom top", // End when bottom of element passes top of viewport (completely out of view when scrolling down)
       onEnter: () => {
-        const nodes = rootRef.current!.querySelectorAll("[data-odo-col]");
-        nodes.forEach((col: any) => {
-          const steps = col.children.length - 1;
-          const dist = steps * col.children[0].clientHeight;
-
-          // Kill any existing animation on this column
-          gsap.killTweensOf(col);
-
-          // Create new animation
-          const anim = gsap.to(col, {
-            y: -dist,
-            duration,
-            delay,
-            ease: "power2.out",
-          });
-          animationRefs.current.push(anim);
-        });
+        startAnimation();
+      },
+      onEnterBack: () => {
+        // Restart animation when scrolling back up into the section
+        startAnimation();
       },
       onLeave: () => {
         // Reset all columns to 0 when completely out of viewport (scrolling down)

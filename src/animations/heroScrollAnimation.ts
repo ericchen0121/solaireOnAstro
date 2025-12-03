@@ -47,6 +47,7 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
   let timeline: gsap.core.Timeline | null = null;
   let phase3Timeline: gsap.core.Timeline | null = null;
   let mounted = true;
+  const startY = 120;
 
   const initAnimation = () => {
     const triggerElement = document.querySelector(triggerSelector) as HTMLElement;
@@ -139,12 +140,12 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
       }
       
       // Set initial state for company name section
-      // h2 container: y: 40 (will move up)
+      // h2 container: y: startY (will move up)
       // spans: opacity: 0 (will fade in)
       // Keep section background black
       if (companyNameH2) {
-        gsap.set(companyNameH2, { y: 40 });
-        console.log('🎨 Company name h2 initial state set (y: 40)');
+        gsap.set(companyNameH2, { y: startY });
+        console.log('🎨 Company name h2 initial state set (y: startY)');
       }
       if (companyNameSpans.length > 0) {
         companyNameSpans.forEach((span) => {
@@ -280,12 +281,12 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
             });
             
             // Reset company name section to initial state
-            // h2 container: y: 40
+            // h2 container: y: startY
             // spans: opacity: 0
             if (companyNameH2) {
               const h2Height = companyNameH2.offsetHeight;
               gsap.set(companyNameH2, { y: h2Height }); // set this to padding height
-              console.log('🔄 Reset company name h2 to initial state (y: 40)');
+              console.log(`🔄 Reset company name h2 to initial state (y: ${startY})`);
             }
             if (companyNameSpans.length > 0) {
               companyNameSpans.forEach((span) => {
@@ -467,19 +468,28 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
             },
             onEnterBack: () => {
               if (!scrubPhase3 && phase3Timeline) {
-                // Reverse the animation when scrolling back up into the section
-                // Only reverse if the timeline has progressed (not at the beginning)
-                if (phase3Timeline.progress() > 0) {
-                  phase3Timeline.reverse();
-                  console.log('🔄 Phase 3 reversing - Company name section animation reversing');
+                // Restart animation when scrolling back up into the section
+                // Reset to initial state first
+                if (companyNameH2) {
+                  gsap.set(companyNameH2, { y: startY });
                 }
+                if (companyNameSpans.length > 0) {
+                  companyNameSpans.forEach((span) => {
+                    gsap.set(span, { opacity: 0.05 });
+                  });
+                }
+                // Reset timeline and play from beginning
+                phase3Timeline.progress(0);
+                phase3Timeline.pause();
+                phase3Timeline.play();
+                console.log('🔄 Phase 3 restarting - Company name section animation restarting from beginning');
               }
             },
             onLeaveBack: () => {
               // When leaving the section going backwards (scrolling up past it), reset to initial state
               if (!scrubPhase3) {
                 if (companyNameH2) {
-                  gsap.set(companyNameH2, { y: 40 });
+                  gsap.set(companyNameH2, { y: startY });
                 }
                 if (companyNameSpans.length > 0) {
                   companyNameSpans.forEach((span) => {

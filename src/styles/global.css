@@ -1,3 +1,22 @@
+/* F37Moon Font Face Declarations */
+@font-face {
+  font-family: 'F37Moon';
+  src: url('/fonts/F37Moon-Light/F37Moon-Light.otf') format('opentype'),
+       url('/fonts/F37Moon-Light/F37Moon-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'F37Moon';
+  src: url('/fonts/F37Moon-Demi/F37Moon-Demi.otf') format('opentype'),
+       url('/fonts/F37Moon-Demi/F37Moon-Demi.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,8 +30,10 @@
     --color-solar-yellow: #ffd700;
     
     /* Typography */
-    --font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-hero: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-primary: 'F37Moon', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-hero: 'F37Moon', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    /* F37Moon font family - use with explicit font-weight (300 for Light, 600 for Demi) */
+    --font-f37moon: 'F37Moon', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   * {
@@ -51,6 +72,20 @@
 }
 
 @layer components {
+  /* F37Moon Light font class - explicitly sets font-weight: 300 */
+  .font-f37moon-light {
+    font-family: var(--font-f37moon-light);
+    font-weight: 300; /* Browser will use F37Moon-Light.otf/ttf */
+    font-style: normal;
+  }
+
+  /* F37Moon Demi font class - explicitly sets font-weight: 600 */
+  .font-f37moon-demi {
+    font-family: var(--font-f37moon-demi);
+    font-weight: 600; /* Browser will use F37Moon-Demi.otf/ttf */
+    font-style: normal;
+  }
+
   /* Big numerical stats utility class */
   .stat-number {
     @apply text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight;
