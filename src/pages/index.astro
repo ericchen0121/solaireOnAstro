@@ -152,6 +152,7 @@ import Odometer from "../components/react/Odometer.tsx";
 <!-- ====================== -->
 
 <script>
+  // @ts-nocheck
   import { initLetterReveal } from "../animations/letterReveal";
   import { initHeroScrollAnimation } from "../animations/heroScrollAnimation";
   import { initScrollLetterReveal } from "../animations/scrollLetterReveal";
@@ -159,46 +160,52 @@ import Odometer from "../components/react/Odometer.tsx";
     initSectionSnap,
     setSectionSnapAnimationActive,
   } from "../animations/sectionSnap";
-  import { initLenis } from "../animations/gsapLenis";
-  import { syncScrollTriggerWithLenis } from "../animations/scrollTriggerSync";
+
   // Lenis + ScrollTrigger are already initialized globally in BaseLayout
   // All we do here is initialize animations AFTER layout + Lenis
 
   if (typeof window !== "undefined") {
-    initLenis();
-    syncScrollTriggerWithLenis();
-    let cleanupScrollAnimation: (() => void) | null = null;
-    let cleanupSectionSnap: (() => void) | null = null;
-    const cleanupFunctions: (() => void)[] = [];
+    let cleanupScrollAnimation = null;
+    let cleanupSectionSnap = null;
+    const cleanupFunctions = [];
 
     function initAnimations() {
-      // 1. Letter reveal for hero
-      initLetterReveal(".hero-title", 0, 0.05);
+      console.log("🎬 initAnimations called");
+      // 1. Letter reveal for hero - MUST run first before any other animations
+      // Wait for next frame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          console.log("🎬 Calling initLetterReveal");
+          initLetterReveal(".hero-title", 0, 0.05);
 
-      // 2. Section snapping (automatically disabled during hero animation)
-      cleanupSectionSnap = initSectionSnap({
-        threshold: 0.15,
-        snapDuration: 0.35,
-        sections: [
-          "#hero-trigger",
-          ".company-name-section",
-          ".stats-section",
-          ".video-section",
-          ".why-solar-section",
-          ".why-us-section",
-          ".clients-section",
-        ],
-      });
+          // 2. Section snapping (automatically disabled during hero animation)
+          cleanupSectionSnap = initSectionSnap({
+            threshold: 0.15,
+            snapDuration: 0.35,
+            sections: [
+              "#hero-trigger",
+              ".company-name-section",
+              ".stats-section",
+              ".video-section",
+              ".why-solar-section",
+              ".why-us-section",
+              ".clients-section",
+            ],
+          });
 
-      // 3. Hero scroll animation
-      cleanupScrollAnimation = initHeroScrollAnimation({
-        triggerSelector: "#hero-trigger",
-        contentSelector: "#hero-content",
-        lastSpanSelector: "#last-span",
-        markers: false,
-        onHeroComplete: () => {
-          // Hero animation complete - snapping is now enabled automatically
-        },
+          // 3. Hero scroll animation - start after letter reveal is set up
+          setTimeout(() => {
+            cleanupScrollAnimation = initHeroScrollAnimation({
+              triggerSelector: "#hero-trigger",
+              contentSelector: "#hero-content",
+              lastSpanSelector: "#last-span",
+              markers: false,
+              onHeroComplete: () => {
+                // Hero animation complete - snapping is now enabled automatically
+              },
+            });
+          }, 200);
+        });
       });
 
       // 4. Scroll letter reveals

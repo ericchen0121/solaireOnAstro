@@ -8,61 +8,65 @@ interface Props {
 const { className = "", delay = 0, stagger = 0.05 } = Astro.props;
 ---
 
-<div class={`letter-reveal-container ${className}`} data-delay={delay} data-stagger={stagger}>
+<div
+  class={`letter-reveal-container ${className}`}
+  data-delay={delay}
+  data-stagger={stagger}
+>
   <slot />
 </div>
 
 <script>
-  import { gsap } from 'gsap';
-  import { SplitText } from 'gsap/SplitText';
-  
+  import { gsap } from "gsap";
+  import { SplitText } from "gsap/SplitText";
+
   gsap.registerPlugin(SplitText);
-  
+
   function initLetterReveal() {
-    const containers = document.querySelectorAll('.letter-reveal-container');
-    
+    const containers = document.querySelectorAll(".letter-reveal-container");
+
     containers.forEach((container) => {
-      const delay = parseFloat(container.getAttribute('data-delay') || '0');
-      const stagger = parseFloat(container.getAttribute('data-stagger') || '0.05');
-      const spans = container.querySelectorAll('span');
-      
+      const delay = parseFloat(container.getAttribute("data-delay") || "0");
+      const stagger = parseFloat(
+        container.getAttribute("data-stagger") || "0.05",
+      );
+      const spans = container.querySelectorAll("span");
+
       if (spans.length === 0) return;
-      
+
       const allChars: HTMLElement[] = [];
-      
+
       // Split every span into characters
       spans.forEach((span) => {
-        const split = new SplitText(span, { type: 'chars' });
-        allChars.push(...split.chars);
+        const split = new SplitText(span, { type: "chars" });
+        allChars.push(...(split.chars as HTMLElement[]));
       });
-      
+
       // Initial state: invisible + slight downward offset
       gsap.set(allChars, {
         opacity: 0.05,
         y: 1,
       });
-      
+
       // "Hard cut" typing — characters switch on instantly, one by one
       gsap.to(allChars, {
         opacity: 1,
         y: 0,
-        filter: 'blur(0px)',
+        filter: "blur(0px)",
         duration: 0, // instant pop
-        ease: 'none',
+        ease: "none",
         stagger,
         delay,
       });
     });
   }
-  
+
   // Initialize when DOM is ready
-  if (typeof window !== 'undefined') {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initLetterReveal);
+  if (typeof window !== "undefined") {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initLetterReveal);
     } else {
       initLetterReveal();
     }
   }
 </script>
-
-

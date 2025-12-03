@@ -1,13 +1,62 @@
 ---
-// This component initializes Lenis on page load
+/**
+ * GLOBAL LENIS PROVIDER
+ * Only runs once per page load.
+ * Integrates Lenis with GSAP ScrollTrigger.
+ */
 ---
 
 <script>
-  import { setupSmoothScroll } from '../animations/gsapLenis';
-  
-  // Initialize Lenis when the component mounts
-  if (typeof window !== 'undefined') {
-    setupSmoothScroll();
+  // @ts-nocheck
+  import Lenis from "lenis";
+  import gsap from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  if (typeof window !== "undefined") {
+    // Prevent double init if Astro hot-reloads or multiple mounts occur
+    if (!window.__lenis_initialized__) {
+      window.__lenis_initialized__ = true;
+
+      const lenis = new Lenis({
+        lerp: 0.08,
+        smoothWheel: true,
+      });
+
+      // Expose globally for debugging or other scripts
+      window.lenis = lenis;
+
+      // Sync ScrollTrigger with Lenis
+      ScrollTrigger.scrollerProxy(document.body, {
+        scrollTop(value) {
+          if (arguments.length && typeof value === "number") {
+            lenis.scrollTo(value, { immediate: true });
+          }
+          return lenis.scroll ?? window.scrollY;
+        },
+        getBoundingClientRect() {
+          return {
+            top: 0,
+            left: 0,
+            width: window.innerWidth,
+            height: window.innerHeight,
+          };
+        },
+        pinType: document.body.style.transform ? "transform" : "fixed",
+      });
+
+      lenis.on("scroll", () => {
+        ScrollTrigger.update();
+      });
+
+      function raf(time: number) {
+        lenis.raf(time);
+        requestAnimationFrame(raf);
+      }
+      requestAnimationFrame(raf);
+
+      console.log("🔥 Lenis initialized globally");
+    }
   }
 </script>
-

@@ -1,6 +1,5 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { setupSmoothScroll } from './gsapLenis';
 
 // Register ScrollTrigger plugin
 gsap.registerPlugin(ScrollTrigger);
