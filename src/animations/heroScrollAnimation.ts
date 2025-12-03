@@ -465,6 +465,34 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
             onLeave: () => {
               console.log('✅ Phase 3 completed - Company name section animation finished');
             },
+            onEnterBack: () => {
+              if (!scrubPhase3 && phase3Timeline) {
+                // Reverse the animation when scrolling back up into the section
+                // Only reverse if the timeline has progressed (not at the beginning)
+                if (phase3Timeline.progress() > 0) {
+                  phase3Timeline.reverse();
+                  console.log('🔄 Phase 3 reversing - Company name section animation reversing');
+                }
+              }
+            },
+            onLeaveBack: () => {
+              // When leaving the section going backwards (scrolling up past it), reset to initial state
+              if (!scrubPhase3) {
+                if (companyNameH2) {
+                  gsap.set(companyNameH2, { y: 40 });
+                }
+                if (companyNameSpans.length > 0) {
+                  companyNameSpans.forEach((span) => {
+                    gsap.set(span, { opacity: 0.05 });
+                  });
+                }
+                if (phase3Timeline) {
+                  phase3Timeline.progress(0);
+                  phase3Timeline.pause();
+                }
+                console.log('🔄 Phase 3 reset - Company name section reset to initial state');
+              }
+            },
           },
         });
 

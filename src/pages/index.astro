@@ -145,6 +145,31 @@ import Odometer from "../components/react/Odometer.tsx";
       Qui sont nos clients?
     </h2>
   </section>
+
+  <!-- Section 8: Projets -->
+  <section
+    class="projets-section h-screen w-screen flex items-center justify-center bg-black text-white"
+  >
+    <h2
+      id="projets-text"
+      class="text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-bold text-center px-4"
+    >
+      Projets
+    </h2>
+  </section>
+
+  <!-- Section 9: Contact -->
+  <section
+    class="contact-section h-screen w-screen flex items-center justify-center bg-black text-white"
+  >
+    <a
+      id="contact-text"
+      href="mailto:Info@rochatsolaire.ch"
+      class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4 hover:opacity-80 transition-opacity duration-300"
+    >
+      Contact
+    </a>
+  </section>
 </BaseLayout>
 
 <!-- ====================== -->
@@ -180,8 +205,8 @@ import Odometer from "../components/react/Odometer.tsx";
 
           // 2. Section snapping (automatically disabled during hero animation)
           cleanupSectionSnap = initSectionSnap({
-            threshold: 0.15,
-            snapDuration: 0.35,
+            threshold: 0.1,
+            snapDuration: 0.25,
             sections: [
               "#hero-trigger",
               ".company-name-section",
@@ -190,6 +215,8 @@ import Odometer from "../components/react/Odometer.tsx";
               ".why-solar-section",
               ".why-us-section",
               ".clients-section",
+              ".projets-section",
+              ".contact-section",
             ],
           });
 
@@ -209,9 +236,11 @@ import Odometer from "../components/react/Odometer.tsx";
       });
 
       // 4. Scroll letter reveals
-      cleanupFunctions.push(initScrollLetterReveal("#why-solar-text", 0.1));
-      cleanupFunctions.push(initScrollLetterReveal("#why-us-text", 0.1));
-      cleanupFunctions.push(initScrollLetterReveal("#clients-text", 0.1));
+      cleanupFunctions.push(initScrollLetterReveal("#why-solar-text", 0.07));
+      cleanupFunctions.push(initScrollLetterReveal("#why-us-text", 0.07));
+      cleanupFunctions.push(initScrollLetterReveal("#clients-text", 0.07));
+      cleanupFunctions.push(initScrollLetterReveal("#projets-text", 0.1));
+      cleanupFunctions.push(initScrollLetterReveal("#contact-text", 0.1));
     }
 
     if (document.readyState === "loading") {

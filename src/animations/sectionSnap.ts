@@ -8,6 +8,7 @@ interface SectionSnapOptions {
   threshold?: number; // scroll % before advancing (0–1)
   snapDuration?: number;
   sections?: string[];
+  ease?: string;
 }
 
 let currentIndex = -1;
@@ -23,6 +24,7 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
     threshold = 0.15,
     snapDuration = 0.35,
     sections: selectors,
+    ease = "power4.in",
   } = options;
 
   let cleanupFn: (() => void) | null = null;
@@ -135,7 +137,7 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
           autoKill: false,
         },
         duration: snapDuration,
-        ease: "power2.out",
+        ease,
       });
     };
 
