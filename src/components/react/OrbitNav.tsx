@@ -18,11 +18,11 @@ const sectionLabels: Record<string, string> = {
   '.company-name-section': '', // No text for section 1
   '.stats-section': '', // No text for section 2
   '.video-section': '',
-  '.why-solar-section': 'Pourquoi le solaire?',
-  '.why-us-section': 'Pourquoi travailler avec nous?',
-  '.clients-section': 'Qui sont nos clients?',
-  '.projets-section': 'Projets',
-  '.contact-section': 'Contact',
+  '.why-solar-section': 'le solaire?',
+  '.why-us-section': 'nous?',
+  '.clients-section': 'clients?',
+  '.projets-section': 'projets',
+  '.contact-section': 'contact',
 };
 
 export default function OrbitNav({ 
@@ -276,7 +276,7 @@ export default function OrbitNav({
       const bottomStraightEnd = (topStraightLength + rightSemicircleLength + bottomStraightLength) / totalLength;
       const leftSemicircleStart = bottomStraightEnd;
       
-      let section4And8X = 0.35; // Default fallback
+      let section4And8X = 0.15; // Default fallback
       
       // Check if section 4/8 position is on top straight
       if (section4And8Pos >= 0 && section4And8Pos <= topStraightEnd) {
@@ -420,16 +420,33 @@ export default function OrbitNav({
       previousSectionIndexRef.current = 0;
     }
     
-    // Helper function to handle text display
+    // Helper function to handle text display and positioning
     const handleTextDisplay = () => {
-      if (textRef.current) {
+      if (textRef.current && pathRef.current && circleRef.current) {
         const label = sectionLabels[sectionsRef.current[currentSectionIndex]] || '';
         if (label) {
-          const isOnRightSide = targetProgress > 0.5;
+          // Get the circle's current position on the path
+          const pathLength = pathRef.current.getTotalLength();
+          const circlePoint = pathRef.current.getPointAtLength(pathLength * targetProgress);
+          
+          // Position text to the left of circle center, vertically centered
+          const textOffset = label.length * 6 + 20; // Distance from circle center to text
+          const textX = circlePoint.x - textOffset; // Text to the left of circle
+          const textY = circlePoint.y; // Vertically centered with circle
+          
+          // Animate text in from the left
           gsap.fromTo(
             textRef.current,
-            { opacity: 0, x: isOnRightSide ? 10 : -10 },
-            { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out', delay: 0.1 }
+            { 
+              opacity: 0
+            },
+            { 
+              opacity: 1, 
+              x: textX,
+              y: textY,
+              duration: 0, 
+              ease: 'power2.out', 
+            }
           );
         } else {
           gsap.to(textRef.current, { opacity: 0, duration: 0.2 });
@@ -757,29 +774,24 @@ export default function OrbitNav({
     };
   }, [colorMode]);
 
-  // Update text when section changes
+  // Update text content when section changes
   useEffect(() => {
     if (!textRef.current) return;
 
     const label = sectionLabels[sectionsRef.current[currentSectionIndex]] || '';
     
     if (label) {
-      // Hide text first, then show with new label
-      gsap.to(textRef.current, {
-        opacity: 0,
-        duration: 0.2,
-        onComplete: () => {
-          if (textRef.current) {
-            textRef.current.textContent = label;
-          }
-        },
-      });
+      // Update text content (positioning is handled in handleTextDisplay)
+      textRef.current.textContent = label;
     } else {
       // Hide text for sections without labels
-      gsap.to(textRef.current, {
-        opacity: 0,
-        duration: 0.2,
-      });
+      if (textRef.current) {
+        textRef.current.textContent = '';
+        gsap.to(textRef.current, {
+          opacity: 0,
+          duration: 0.2,
+        });
+      }
     }
   }, [currentSectionIndex]);
 
@@ -789,7 +801,7 @@ export default function OrbitNav({
   return (
     <div 
       ref={containerRef}
-      className="orbit-nav-container fixed top-24 right-52 md:top-32 md:right-56 z-50"
+      className="orbit-nav-container fixed top-12 right-40 md:top-16 md:right-40 z-50"
       onMouseEnter={() => {
         if (areTargetSectionsInView) {
           setIsHovered(true);
@@ -885,8 +897,8 @@ export default function OrbitNav({
         ref={textRef}
         className={`${textColor} text-sm font-light lowercase tracking-wide absolute whitespace-nowrap`}
         style={{
-          top: '6px',
-          // Position will be set dynamically based on circle position
+          // Position will be set dynamically by GSAP based on circle position
+          pointerEvents: 'none',
         }}
       />
     </div>
