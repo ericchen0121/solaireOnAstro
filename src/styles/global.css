@@ -86,6 +86,79 @@
   .company-name-title {
     /* line-height: 1; */
   }
+
+  /* Hover flip effect for text sections - only on text hover */
+  .why-solar-section,
+  .why-us-section,
+  .clients-section {
+    transition: background-color 0.3s ease;
+  }
+
+  #why-solar-text,
+  #why-us-text,
+  #clients-text {
+    transition: color 0.3s ease;
+    cursor: pointer;
+  }
+
+  /* When hovering the text, change both text color and section background */
+  .why-solar-section:has(#why-solar-text:hover) {
+    background-color: white;
+  }
+
+  .why-us-section:has(#why-us-text:hover) {
+    background-color: white;
+  }
+
+  .clients-section:has(#clients-text:hover) {
+    background-color: white;
+  }
+
+  .why-solar-section:has(#why-solar-text:hover) #why-solar-text {
+    color: black;
+  }
+
+  .why-us-section:has(#why-us-text:hover) #why-us-text {
+    color: black;
+  }
+
+  .clients-section:has(#clients-text:hover) #clients-text {
+    color: black;
+  }
+
+  /* When nav is hovered, also flip the section colors */
+  body.nav-or-text-hovered .why-solar-section,
+  body.nav-or-text-hovered .why-us-section,
+  body.nav-or-text-hovered .clients-section {
+    background-color: white;
+  }
+
+  body.nav-or-text-hovered #why-solar-text,
+  body.nav-or-text-hovered #why-us-text,
+  body.nav-or-text-hovered #clients-text {
+    color: black;
+  }
+
+  /* Orbit nav color transition on text hover or nav hover */
+  /* Add transitions to nav elements */
+  .orbit-nav-container .bg-white,
+  .orbit-nav-container .bg-black {
+    transition: background-color 0.3s ease !important;
+  }
+
+  .orbit-nav-container .text-white,
+  .orbit-nav-container .text-black {
+    transition: color 0.3s ease !important;
+  }
+
+  /* When text sections are hovered, change nav colors to black - only if body has class */
+  body.nav-or-text-hovered .orbit-nav-container .bg-white {
+    background-color: #000000 !important;
+  }
+
+  body.nav-or-text-hovered .orbit-nav-container .text-white {
+    color: #000000 !important;
+  }
 }
 
 @layer utilities {
