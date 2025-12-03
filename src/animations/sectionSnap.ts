@@ -2,7 +2,7 @@ import { getLenis } from "./gsapLenis";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 interface SectionSnapOptions {
-  threshold?: number;         // scroll % before advancing (0–1)
+  threshold?: number; // scroll % before advancing (0–1)
   snapDuration?: number;
   sections?: string[];
 }
@@ -10,8 +10,8 @@ interface SectionSnapOptions {
 let sections: HTMLElement[] = [];
 let positions: number[] = [];
 let snapping = false;
-let lastScrollY = 0;
-let scrollDirection: 'up' | 'down' = 'down';
+let rafId: number | null = null;
+let scrollListener: ((e: any) => void) | null = null;
 
 export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
   const {
@@ -22,7 +22,6 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
 
   let lenis: ReturnType<typeof getLenis> = null;
   let cleanupFn: (() => void) | null = null;
-  let scrollEndTimeout: number | null = null;
   let checkInterval: number | null = null;
 
   const init = () => {
@@ -52,100 +51,138 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
       });
     };
     updatePositions();
-    
+
     const resizeHandler = () => {
       updatePositions();
       ScrollTrigger.refresh();
     };
     window.addEventListener("resize", resizeHandler);
 
-    // --- SNAP LOGIC ---
-    const onScroll = ({ scroll }: { scroll: number }) => {
-      if (snapping) return;
+    // --- CONTINUOUS SNAP MONITORING ---
+    let lastScrollY = lenis.scroll || window.scrollY;
+    let isScrolling = false;
+    let scrollTimeout: number | null = null;
+
+    const checkAndSnap = () => {
+      if (snapping) {
+        rafId = requestAnimationFrame(checkAndSnap);
+        return;
+      }
 
       // Don't snap while ScrollTrigger is active (hero animation)
       const heroTrigger = document.querySelector("#hero-trigger");
-      if (heroTrigger && ScrollTrigger.isInViewport(heroTrigger)) {
+      if (heroTrigger) {
         const triggers = ScrollTrigger.getAll();
         for (const t of triggers) {
-          if (t.isActive) return; // block snapping during active ScrollTrigger
-        }
-      }
-
-      // Track scroll direction
-      const scrollDelta = scroll - lastScrollY;
-      if (Math.abs(scrollDelta) > 1) {
-        scrollDirection = scrollDelta > 0 ? 'down' : 'up';
-      }
-      lastScrollY = scroll;
-
-      // debounce scroll end
-      if (scrollEndTimeout) clearTimeout(scrollEndTimeout);
-
-      scrollEndTimeout = window.setTimeout(() => {
-        const viewport = window.innerHeight;
-
-        // find closest section
-        let closestIndex = 0;
-        let closestDist = Infinity;
-
-        positions.forEach((p, i) => {
-          const dist = Math.abs(scroll - p);
-          if (dist < closestDist) {
-            closestDist = dist;
-            closestIndex = i;
+          if (t.isActive) {
+            rafId = requestAnimationFrame(checkAndSnap);
+            return;
           }
-        });
-
-        // directional threshold logic
-        const currentIndex = closestIndex;
-        const currentSectionTop = positions[currentIndex];
-        const progress = (scroll - currentSectionTop) / viewport;
-
-        let targetIndex = currentIndex;
-
-        // Scrolling down: if past threshold, go to next section
-        if (scrollDirection === 'down' && progress > threshold) {
-          targetIndex = Math.min(currentIndex + 1, sections.length - 1);
         }
-        // Scrolling up: if we've scrolled less than (1 - threshold) of the section, go to previous
-        // (e.g., if threshold is 0.15, and we're at 80% of section, go to previous)
-        else if (scrollDirection === 'up' && progress < 1 - threshold && progress >= 0) {
-          targetIndex = Math.max(currentIndex - 1, 0);
+      }
+
+      const currentScroll = lenis?.scroll ?? window.scrollY;
+      const viewport = window.innerHeight;
+
+      // Find the current section based on scroll position
+      let currentIndex = 0;
+      let minDistance = Infinity;
+
+      positions.forEach((pos, i) => {
+        const distance = Math.abs(currentScroll - pos);
+        if (distance < minDistance) {
+          minDistance = distance;
+          currentIndex = i;
         }
-        // If we're above the current section (negative progress), go to previous
-        else if (progress < 0 && currentIndex > 0) {
-          targetIndex = currentIndex - 1;
-        }
-        // Not past threshold - ensure we're aligned with current section
-        else if (Math.abs(progress) > 0.01) {
-          // Small misalignment - snap to current section
-          targetIndex = currentIndex;
+      });
+
+      const currentSectionTop = positions[currentIndex];
+      const progress = (currentScroll - currentSectionTop) / viewport;
+
+      // Determine scroll direction
+      const scrollDelta = currentScroll - lastScrollY;
+      const scrollDirection = scrollDelta > 0 ? 'down' : 'up';
+      lastScrollY = currentScroll;
+
+      // Calculate target section
+      let targetIndex = currentIndex;
+      const distanceFromCurrent = Math.abs(currentScroll - currentSectionTop);
+
+      // If we're not at a section boundary (within 10px), determine where to snap
+      if (distanceFromCurrent > 10) {
+        if (scrollDirection === 'down') {
+          // Scrolling down: if past threshold, go to next section
+          if (progress > threshold) {
+            targetIndex = Math.min(currentIndex + 1, sections.length - 1);
+          } else {
+            // Not past threshold, snap to current section
+            targetIndex = currentIndex;
+          }
         } else {
-          // Already aligned - no snap needed
-          return;
+          // Scrolling up: if we've scrolled less than (1 - threshold), go to previous
+          if (progress < (1 - threshold) && progress >= 0) {
+            targetIndex = Math.max(currentIndex - 1, 0);
+          } else if (progress < 0) {
+            // Above current section, go to previous
+            targetIndex = Math.max(currentIndex - 1, 0);
+          } else {
+            // Not past threshold, snap to current section
+            targetIndex = currentIndex;
+          }
         }
+      } else {
+        // Already at a section boundary, no snap needed
+        rafId = requestAnimationFrame(checkAndSnap);
+        return;
+      }
 
-        // Only snap if target is different or we need to realign
-        const targetPos = positions[targetIndex];
-        const distance = Math.abs(scroll - targetPos);
-        
-        if (distance > 5) {
-          snapping = true;
-          lenis.scrollTo(targetPos, {
-            duration: snapDuration,
-            easing: (t) => t * (2 - t),
-            onComplete: () => (snapping = false),
-          });
-        }
-      }, 120); // scroll-end threshold
+      // Snap to target section
+      const targetPos = positions[targetIndex];
+      const distance = Math.abs(currentScroll - targetPos);
+
+      if (distance > 5 && targetPos !== undefined) {
+        snapping = true;
+        lenis.scrollTo(targetPos, {
+          duration: snapDuration,
+          easing: (t) => t * (2 - t), // easeOutQuad
+          onComplete: () => {
+            snapping = false;
+          },
+        });
+      }
+
+      rafId = requestAnimationFrame(checkAndSnap);
     };
 
-    lenis.on("scroll", onScroll);
+    // Handle scroll events to track scrolling state
+    scrollListener = (e: any) => {
+      isScrolling = true;
+      
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      
+      scrollTimeout = window.setTimeout(() => {
+        isScrolling = false;
+      }, 150);
+    };
+
+    lenis.on("scroll", scrollListener);
+
+    // Start continuous monitoring
+    rafId = requestAnimationFrame(checkAndSnap);
 
     cleanupFn = () => {
-      lenis?.off("scroll", onScroll);
-      if (scrollEndTimeout) clearTimeout(scrollEndTimeout);
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      if (scrollListener) {
+        lenis?.off("scroll", scrollListener);
+        scrollListener = null;
+      }
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = null;
+      }
       window.removeEventListener("resize", resizeHandler);
     };
   };
@@ -183,6 +220,7 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
       clearInterval(checkInterval);
       checkInterval = null;
     }
+    snapping = false;
   };
 }
 
