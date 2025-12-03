@@ -421,6 +421,7 @@ export default function OrbitNav({
     }
     
     // Helper function to handle text display and positioning
+    // Called after circle animation completes
     const handleTextDisplay = () => {
       if (textRef.current && pathRef.current && circleRef.current) {
         const label = sectionLabels[sectionsRef.current[currentSectionIndex]] || '';
@@ -432,22 +433,15 @@ export default function OrbitNav({
           // Position text to the left of circle center, vertically centered
           const textOffset = label.length * 6 + 20; // Distance from circle center to text
           const textX = circlePoint.x - textOffset; // Text to the left of circle
-          const textY = circlePoint.y; // Vertically centered with circle
+          const textY = circlePoint.y-1; // Vertically centered with circle
           
-          // Animate text in from the left
-          gsap.fromTo(
-            textRef.current,
-            { 
-              opacity: 0
-            },
-            { 
-              opacity: 1, 
-              x: textX,
-              y: textY,
-              duration: 0, 
-              ease: 'power2.out', 
-            }
-          );
+          // Set position immediately, then fade in
+          gsap.set(textRef.current, { x: textX, y: textY });
+          gsap.to(textRef.current, {
+            opacity: 1,
+            duration: 0.3,
+            ease: 'power2.out',
+          });
         } else {
           gsap.to(textRef.current, { opacity: 0, duration: 0.2 });
         }
@@ -474,10 +468,11 @@ export default function OrbitNav({
           : startProgress + (1.0 - targetProgress); // Backward: distance to start + distance from end
         
         // Use a single animation with custom progress calculation
+        // Match duration with section snap animation (0.35s)
         const progressRef = { value: 0 };
         animationRef.current = gsap.to(progressRef, {
           value: 1,
-          duration: 0.35,
+          duration: 0.35, // Match sectionSnap snapDuration
           ease: ease,
           onUpdate: () => {
             const t = progressRef.value;
@@ -537,6 +532,7 @@ export default function OrbitNav({
         });
       } else {
         // No wrap needed - direct animation
+        // Match duration with section snap animation (0.35s)
         animationRef.current = gsap.to(circleRef.current, {
           motionPath: {
             path: pathRef.current,
@@ -544,7 +540,7 @@ export default function OrbitNav({
             start: startProgress,
             end: targetProgress,
           },
-          duration: 0.35,
+          duration: 0.35, // Match sectionSnap snapDuration
           ease: ease,
           onUpdate: () => {
             if (animationRef.current && 'progress' in animationRef.current) {
@@ -774,25 +770,27 @@ export default function OrbitNav({
     };
   }, [colorMode]);
 
-  // Update text content when section changes
+  // Update text content when section changes - hide immediately
+  // Text will be shown again in handleTextDisplay after circle animation completes
   useEffect(() => {
     if (!textRef.current) return;
 
-    const label = sectionLabels[sectionsRef.current[currentSectionIndex]] || '';
-    
-    if (label) {
-      // Update text content (positioning is handled in handleTextDisplay)
-      textRef.current.textContent = label;
-    } else {
-      // Hide text for sections without labels
-      if (textRef.current) {
-        textRef.current.textContent = '';
-        gsap.to(textRef.current, {
-          opacity: 0,
-          duration: 0.2,
-        });
-      }
-    }
+    // Immediately hide text when section changes (before circle animation starts)
+    // This ensures previous section text disappears as soon as swipe starts
+    gsap.to(textRef.current, {
+      opacity: 0,
+      duration: 0.1, // Quick fade out
+      onComplete: () => {
+        // Update text content after fade out (but keep it hidden)
+        // It will be shown in handleTextDisplay after circle animation completes
+        if (textRef.current) {
+          const label = sectionLabels[sectionsRef.current[currentSectionIndex]] || '';
+          textRef.current.textContent = label;
+          // Keep opacity at 0 - handleTextDisplay will fade it in after circle animation
+          gsap.set(textRef.current, { opacity: 0 });
+        }
+      },
+    });
   }, [currentSectionIndex]);
 
   const circleColor = (isHovered && areTargetSectionsInView) ? 'bg-black' : (isDark || isInverted ? 'bg-black' : 'bg-white');
