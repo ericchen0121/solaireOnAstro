@@ -7,74 +7,76 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   isDark={false}
   orbitNavColorMode="dark"
 >
-  <main
-    class="why-solar-page min-h-screen bg-white text-black flex items-end justify-center pt-64"
-  >
-    <div class="container mx-auto px-4 pb-20">
-      <!-- Content Sections -->
-      <div class="content-sections relative">
-        <!-- Rentabilité Section -->
-        <div class="content-item rentabilite-section">
-          <h2
-            class="section-title text-5xl md:text-6xl lg:text-7xl font-light mb-2"
-          >
-            Rentabilité
-          </h2>
-          <div class="section-detail">
-            <p class="text-lg md:text-xl leading-relaxed max-w-2xl">
-              Si le projet est bien situé, bien conçu et réalisé au bon moment,
-              il peut être rentable. Notre logiciel exclusif calcule la
-              rentabilité; critère prédominant pour investisseurs.
-            </p>
+  <main class="why-solar-page">
+    <section
+      class="why-solar-section min-h-screen bg-white text-black flex items-end justify-center pt-64"
+    >
+      <div class="container mx-auto px-4 pb-20">
+        <div class="content-sections">
+          <!-- Rentabilité -->
+          <div class="content-item">
+            <h2
+              class="section-title text-5xl md:text-6xl lg:text-7xl font-light"
+            >
+              Rentabilité
+            </h2>
+            <div class="section-detail">
+              <p class="text-lg md:text-xl leading-relaxed max-w-2xl">
+                Si le projet est bien situé, bien conçu et réalisé au bon
+                moment, il peut être rentable. Notre logiciel exclusif calcule
+                la rentabilité; critère prédominant pour investisseurs.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <!-- Ecologie Section -->
-        <div class="content-item ecologie-section">
-          <h2
-            class="section-title text-5xl md:text-6xl lg:text-7xl font-light mb-2"
-          >
-            Ecologie
-          </h2>
-          <div class="section-detail">
-            <p class="text-lg md:text-xl leading-relaxed max-w-2xl">
-              Un module photovoltaïque produit dix à quinze fois plus d'énergie
-              durant sa vie qu'il n'en faut pour le produire et le transporter.
-            </p>
+          <!-- Ecologie -->
+          <div class="content-item">
+            <h2
+              class="section-title text-5xl md:text-6xl lg:text-7xl font-light"
+            >
+              Ecologie
+            </h2>
+            <div class="section-detail">
+              <p class="text-lg md:text-xl leading-relaxed max-w-2xl">
+                Un module photovoltaïque produit dix à quinze fois plus
+                d'énergie durant sa vie qu'il n'en faut pour le produire et le
+                transporter.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <!-- Fiabilité et Securité Section -->
-        <div class="content-item fiabilite-section">
-          <h2
-            class="section-title text-5xl md:text-6xl lg:text-7xl font-light mb-2"
-          >
-            Fiabilité et Securité
-          </h2>
-          <div class="section-detail">
-            <p class="text-lg md:text-xl leading-relaxed max-w-2xl">
-              Dans une centrale photovoltaïque il n'y a aucune partie mobile,
-              donc guère d'usure, et peu de frais d'entretien.
-            </p>
+          <!-- Fiabilité -->
+          <div class="content-item">
+            <h2
+              class="section-title text-5xl md:text-6xl lg:text-7xl font-light"
+            >
+              Fiabilité et Sécurité
+            </h2>
+            <div class="section-detail">
+              <p class="text-lg md:text-xl leading-relaxed max-w-2xl">
+                Dans une centrale photovoltaïque il n'y a aucune partie mobile,
+                donc guère d'usure, et peu de frais d'entretien.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <!-- Esthétique Section -->
-        <div class="content-item esthetique-section">
-          <h2
-            class="section-title text-5xl md:text-6xl lg:text-7xl font-light mb-2"
-          >
-            Esthétique
-          </h2>
-          <div class="section-detail">
-            <p class="text-lg md:text-xl leading-relaxed max-w-2xl">
-              Bien étudiée, une installation photovoltaïque peut être belle et
-              peut enrichir la valeur architecturale d'un immeuble.
-            </p>
+          <!-- Esthétique -->
+          <div class="content-item">
+            <h2
+              class="section-title text-5xl md:text-6xl lg:text-7xl font-light"
+            >
+              Esthétique
+            </h2>
+            <div class="section-detail">
+              <p class="text-lg md:text-xl leading-relaxed max-w-2xl">
+                Bien étudiée, une installation photovoltaïque peut être belle et
+                peut enrichir la valeur architecturale d'un immeuble.
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   </main>
 </BaseLayout>
 
@@ -83,42 +85,52 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     font-family: var(--font-primary);
   }
 
+  /* Vertical stacking */
   .content-sections {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 2rem;
   }
 
+  /* Title + detail stay aligned top-to-bottom */
   .content-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     position: relative;
   }
 
-  .section-detail {
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    transition:
-      max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-      opacity 0.3s ease-out;
+  .section-title {
+    margin: 0;
+    padding: 0;
+    z-index: 1;
   }
 
-  .section-title:hover ~ .section-detail,
+  /* Collapsed by default */
+  .section-detail {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+
+    transition:
+      max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.3s ease-out,
+      margin-top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Expand downward only */
   .content-item:hover .section-detail {
     max-height: 500px;
     opacity: 1;
-  }
-
-  .section-detail p {
-    padding-top: 1rem;
+    margin-top: 1rem;
   }
 
   .section-detail p {
     color: rgba(0, 0, 0, 0.8);
-  }
-
-  @media (min-width: 768px) {
-    .content-sections {
-      gap: 1rem;
-    }
+    margin: 0 auto;
   }
 </style>

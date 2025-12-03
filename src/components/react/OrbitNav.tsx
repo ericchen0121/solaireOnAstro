@@ -20,7 +20,7 @@ const sectionLabels: Record<string, string> = {
   '.video-section': '',
   '.why-solar-section': 'le solaire?',
   '.why-us-section': 'nous?',
-  '.clients-section': 'clients?',
+  '.clients-section': 'clients',
   '.projets-section': 'projets',
   '.contact-section': 'contact',
 };
@@ -36,6 +36,7 @@ export default function OrbitNav({
   const containerRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const currentSectionSelectorRef = useRef<string>(''); // Track actual section selector
   const [isInverted, setIsInverted] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [areTargetSectionsInView, setAreTargetSectionsInView] = useState(false);
@@ -62,6 +63,45 @@ export default function OrbitNav({
   `;
 
   return path;
+  };
+
+  // Utility function to measure actual text width
+  const measureTextWidth = (text: string, element: HTMLElement): number => {
+    // First try to use the element's actual rendered width (most accurate)
+    // This works even if opacity is 0, as long as the element is in the DOM
+    if (element.textContent === text && element.offsetWidth > 0) {
+      return element.offsetWidth;
+    }
+    
+    // Fallback to Canvas API measurement
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) return text.length * 8; // Final fallback if canvas not available
+    
+    // Get computed styles from the text element
+    const computedStyle = window.getComputedStyle(element);
+    const fontFamily = computedStyle.fontFamily || 'system-ui';
+    const fontSize = computedStyle.fontSize || '14px';
+    const fontWeight = computedStyle.fontWeight || '300';
+    const fontStyle = computedStyle.fontStyle || 'normal';
+    const letterSpacing = computedStyle.letterSpacing || 'normal';
+    
+    // Set font on canvas context
+    context.font = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
+    
+    // Measure text width
+    const metrics = context.measureText(text);
+    let width = metrics.width;
+    
+    // Account for letter spacing if it's not 'normal'
+    if (letterSpacing !== 'normal') {
+      const letterSpacingValue = parseFloat(letterSpacing);
+      if (!isNaN(letterSpacingValue)) {
+        width += letterSpacingValue * (text.length - 1);
+      }
+    }
+    
+    return width;
   };
 
   // Utility function to calculate positions along the path based on actual geometry
@@ -150,31 +190,47 @@ export default function OrbitNav({
 
     // Listen for section changes via custom event or scroll position
     const handleSectionChange = () => {
-      const sections = sectionsRef.current.map(sel => document.querySelector(sel)).filter(Boolean) as HTMLElement[];
+      // Map selectors to their elements
+      const sectionMap = sectionsRef.current.map(sel => ({
+        selector: sel,
+        element: document.querySelector(sel) as HTMLElement | null
+      })).filter(item => item.element !== null);
       
-      if (sections.length === 0) return;
+      if (sectionMap.length === 0) return;
 
       // Find which section is currently in view (center of viewport)
       const viewportCenter = window.innerHeight / 2;
-      let currentIndex = 0;
+      let currentSection = sectionMap[0];
       let minDistance = Infinity;
 
-      sections.forEach((section, index) => {
-        const rect = section.getBoundingClientRect();
+      sectionMap.forEach(({ selector, element }) => {
+        if (!element) return;
+        const rect = element.getBoundingClientRect();
         const sectionCenter = rect.top + rect.height / 2;
         const distance = Math.abs(sectionCenter - viewportCenter);
         
         if (distance < minDistance && rect.top < viewportCenter && rect.bottom > viewportCenter) {
           minDistance = distance;
-          currentIndex = index;
+          currentSection = { selector, element };
         }
       });
 
-      setCurrentSectionIndex(currentIndex);
+      // Find the index in the original array for backward compatibility
+      const originalIndex = sectionsRef.current.indexOf(currentSection.selector);
+      setCurrentSectionIndex(originalIndex >= 0 ? originalIndex : 0);
+      currentSectionSelectorRef.current = currentSection.selector;
     };
 
     // Initial check
     handleSectionChange();
+    
+    // Initialize selector ref
+    if (sectionsRef.current.length > 0 && currentSectionSelectorRef.current === '') {
+      const firstExisting = sectionsRef.current.find(sel => document.querySelector(sel));
+      if (firstExisting) {
+        currentSectionSelectorRef.current = firstExisting;
+      }
+    }
 
     // Check on scroll
     let scrollTimeout: NodeJS.Timeout;
@@ -424,16 +480,22 @@ export default function OrbitNav({
     // Called after circle animation completes
     const handleTextDisplay = () => {
       if (textRef.current && pathRef.current && circleRef.current) {
-        const label = sectionLabels[sectionsRef.current[currentSectionIndex]] || '';
+        // Use the actual selector if available, otherwise fall back to index
+        const selector = currentSectionSelectorRef.current || sectionsRef.current[currentSectionIndex];
+        const label = sectionLabels[selector] || '';
         if (label) {
           // Get the circle's current position on the path
           const pathLength = pathRef.current.getTotalLength();
           const circlePoint = pathRef.current.getPointAtLength(pathLength * targetProgress);
           
+          // Measure actual text width
+          const textWidth = measureTextWidth(label, textRef.current);
+          
           // Position text to the left of circle center, vertically centered
-          const textOffset = label.length * 6 + 20; // Distance from circle center to text
+          // Add padding (32px) between circle and text
+          const textOffset = textWidth + 12; // Half text width + padding to circle center
           const textX = circlePoint.x - textOffset; // Text to the left of circle
-          const textY = circlePoint.y-1; // Vertically centered with circle
+          const textY = circlePoint.y-2; // Vertically centered with circle
           
           // Set position immediately, then fade in
           gsap.set(textRef.current, { x: textX, y: textY });
@@ -784,7 +846,9 @@ export default function OrbitNav({
         // Update text content after fade out (but keep it hidden)
         // It will be shown in handleTextDisplay after circle animation completes
         if (textRef.current) {
-          const label = sectionLabels[sectionsRef.current[currentSectionIndex]] || '';
+          // Use the actual selector if available, otherwise fall back to index
+          const selector = currentSectionSelectorRef.current || sectionsRef.current[currentSectionIndex];
+          const label = sectionLabels[selector] || '';
           textRef.current.textContent = label;
           // Keep opacity at 0 - handleTextDisplay will fade it in after circle animation
           gsap.set(textRef.current, { opacity: 0 });
