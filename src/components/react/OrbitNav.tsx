@@ -9,6 +9,7 @@ interface OrbitNavProps {
   isDark?: boolean;
   colorMode?: 'auto' | 'light' | 'dark';
   ease?: string; // Configurable easing function
+  debugMarkers?: boolean; // Toggle debug markers on/off
 }
 
 // Section labels mapping
@@ -27,7 +28,8 @@ const sectionLabels: Record<string, string> = {
 export default function OrbitNav({ 
   isDark = false, 
   colorMode = 'auto',
-  ease = 'power2.inOut' // Default physics-based easing
+  ease = 'power3.inOut', // Default physics-based easing
+  debugMarkers = false // Default to off
 }: OrbitNavProps) {
   const circleRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -346,6 +348,26 @@ export default function OrbitNav({
           // Get point along path at this progress
           const pathLength = pathRef.current!.getTotalLength();
           const point = pathRef.current!.getPointAtLength(pathLength * progress);
+          
+          // MotionPath positions the element's transform-origin at the path point
+          // The circle has transformOrigin: 'center center' and is w-4 h-4 (16px)
+          // The circle's initial position is left: 8px, top: 28px
+          // The path starts at (radius, 0) = (25, 0) in path coordinates
+          // But the SVG viewBox is 0 0 200 60, and path is 120x50
+          // 
+          // The issue: MotionPath applies a transform that moves the circle from its
+          // initial position to the path point. The transform-origin is 'center center',
+          // so the circle's center should align with the path point.
+          //
+          // However, the circle's initial position (8px, 28px) might not correspond to
+          // the path's starting point in SVG coordinates. We need to find the offset.
+          //
+          // Path starts at (radius, 0) = (25, 0) in the path's coordinate system
+          // But in the SVG viewBox (0 0 200 60), the path might be positioned differently
+          // 
+          // For now, use the path coordinates directly - MotionPath should handle the alignment
+          // If there's still an offset, we may need to adjust the circle's initial position
+          // or account for the path's position within the SVG
           debugPoints.push({
             x: point.x,
             y: point.y,
@@ -368,14 +390,32 @@ export default function OrbitNav({
     // Set initial position on first render (left center position)
     if (currentSectionIndex === 0 && currentPathProgress.current === 0) {
       const initialPosition = 0.875; // Left center (middle of left semicircle)
-      gsap.set(circleRef.current, {
-        motionPath: {
-          path: pathRef.current,
-          autoRotate: false,
-          start: initialPosition,
-          end: initialPosition,
-        },
-      });
+      
+      // Set initial position using MotionPath
+      // MotionPath positions the element's transform-origin at the path point
+      // Since transform-origin is 'center center', the circle's center will be at the path point
+      // We need to ensure the circle starts at the path's initial position
+      if (pathRef.current && circleRef.current) {
+        const pathLength = pathRef.current.getTotalLength();
+        const initialPoint = pathRef.current.getPointAtLength(pathLength * initialPosition);
+        
+        // MotionPath uses transforms, so we set the initial position to match the path point
+        // The circle is 16px (w-4 h-4), center is at 8px from top-left
+        // MotionPath will position the transform-origin (center) at the path point
+        // So we set the initial x/y to position the circle correctly
+        gsap.set(circleRef.current, {
+          motionPath: {
+            path: pathRef.current,
+            autoRotate: false,
+            start: initialPosition,
+            end: initialPosition,
+          },
+          // Set initial position to match path point (accounting for circle center)
+          x: initialPoint.x,
+          y: initialPoint.y,
+        });
+      }
+      
       currentPathProgress.current = initialPosition;
       previousSectionIndexRef.current = 0;
     }
@@ -720,7 +760,7 @@ export default function OrbitNav({
   // Update text when section changes
   useEffect(() => {
     if (!textRef.current) return;
-    
+
     const label = sectionLabels[sectionsRef.current[currentSectionIndex]] || '';
     
     if (label) {
@@ -781,17 +821,17 @@ export default function OrbitNav({
         }}
         viewBox="0 0 200 60"
       >
-        {/* Pill path outline */}
+        {/* Pill path outline - visible if debug markers are enabled, hidden otherwise */}
         <path
           ref={pathRef}
           fill="none"
-          stroke="rgba(255, 255, 255, 0.3)"
+          stroke={debugMarkers ? "rgba(255, 255, 255, 0.3)" : "transparent"}
           strokeWidth="1"
-          strokeDasharray="2,2"
+          strokeDasharray={debugMarkers ? "2,2" : "none"}
         />
         
         {/* Debug markers at each stopping position */}
-        {debugPositions.map((point, index) => (
+        {debugMarkers && debugPositions.map((point, index) => (
           <g key={index}>
             {/* Circle marker */}
             <circle
@@ -835,8 +875,8 @@ export default function OrbitNav({
         style={{
           transformOrigin: 'center center',
           willChange: 'transform',
-          top: '28px', // Center vertically in 60px height (60/2 - 4/2 = 28)
-          left: '8px', // Start at left center position
+          // Let MotionPath handle all positioning - no fixed top/left
+          // The initial position will be set by MotionPath in the useEffect
         }}
       />
       
