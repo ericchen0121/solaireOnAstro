@@ -22,6 +22,10 @@ interface HeroScrollAnimationOptions {
    * This is independent of scrubPhase12, so you can have different scrub modes for different phases.
    */
   scrubPhase3?: boolean;
+  /**
+   * Callback when Phase 2 (hero animation) completes
+   */
+  onHeroComplete?: () => void;
 }
 
 /**
@@ -37,6 +41,7 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
     markers = false,
     scrubPhase12 = false,
     scrubPhase3 = false,
+    onHeroComplete,
   } = options;
 
   let timeline: gsap.core.Timeline | null = null;
@@ -432,6 +437,11 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
             });
           }
           console.log(`📜 Scrolled to 100vh (${viewportHeightPx}px) - next section in view`);
+          
+          // Call completion callback if provided
+          if (onHeroComplete) {
+            onHeroComplete();
+          }
         },
       });
 

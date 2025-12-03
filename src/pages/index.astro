@@ -7,7 +7,7 @@ import Odometer from "../components/react/Odometer.tsx";
   <!-- Section 1: Headline -->
   <section
     id="hero-trigger"
-    class="hero min-h-screen flex items-center justify-center bg-black text-white"
+    class="hero h-screen flex items-center justify-center bg-black text-white"
   >
     <div id="hero-content" class="container mx-auto px-4">
       <h1 class="hero-title text-left max-w-6xl">
@@ -20,7 +20,7 @@ import Odometer from "../components/react/Odometer.tsx";
 
   <!-- Section 2: Company Name -->
   <section
-    class="company-name-section min-h-screen flex items-end justify-center bg-black text-white pb-8 md:pb-12 lg:pb-16"
+    class="company-name-section h-screen flex items-end justify-center bg-black text-white pb-8 md:pb-12 lg:pb-16"
   >
     <div class="container mx-auto w-full">
       <h2
@@ -34,7 +34,7 @@ import Odometer from "../components/react/Odometer.tsx";
 
   <!-- Section 3: Stats -->
   <section
-    class="stats-section min-h-screen flex items-center justify-center bg-black text-white py-20"
+    class="stats-section h-screen flex items-center justify-center bg-black text-white py-20"
   >
     <div class="container mx-auto px-4">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16 max-w-7xl">
@@ -86,11 +86,10 @@ import Odometer from "../components/react/Odometer.tsx";
     </div>
   </section>
 
-  <!-- Section 4: Video Background with Text Overlay -->
+  <!-- Section 4: Video Background -->
   <section
-    class="video-section relative min-h-screen flex items-center justify-center overflow-hidden"
+    class="video-section relative h-screen flex items-center justify-center overflow-hidden"
   >
-    <!-- Video Background -->
     <video
       autoplay
       loop
@@ -101,7 +100,6 @@ import Odometer from "../components/react/Odometer.tsx";
       <source src="/romande_r1.mp4" type="video/mp4" />
     </video>
 
-    <!-- Text Overlay -->
     <div class="relative z-10 text-center px-4">
       <h2
         class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-white leading-tight"
@@ -112,7 +110,7 @@ import Odometer from "../components/react/Odometer.tsx";
     </div>
   </section>
 
-  <!-- Section 5: Pourquoi le solaire? -->
+  <!-- Section 5 -->
   <section
     class="why-solar-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
@@ -124,7 +122,7 @@ import Odometer from "../components/react/Odometer.tsx";
     </h2>
   </section>
 
-  <!-- Section 6: Pourquoi travailler avec nous? -->
+  <!-- Section 6 -->
   <section
     class="why-us-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
@@ -136,7 +134,7 @@ import Odometer from "../components/react/Odometer.tsx";
     </h2>
   </section>
 
-  <!-- Section 7: Qui sont nos clients? -->
+  <!-- Section 7 -->
   <section
     class="clients-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
@@ -149,53 +147,76 @@ import Odometer from "../components/react/Odometer.tsx";
   </section>
 </BaseLayout>
 
+<!-- ====================== -->
+<!--  STABLE LENIS VERSION  -->
+<!-- ====================== -->
+
 <script>
   import { initLetterReveal } from "../animations/letterReveal";
   import { initHeroScrollAnimation } from "../animations/heroScrollAnimation";
   import { initScrollLetterReveal } from "../animations/scrollLetterReveal";
+  import {
+    initSectionSnap,
+    setSectionSnapAnimationActive,
+  } from "../animations/sectionSnap";
+  import { initLenis } from "../animations/gsapLenis";
+  import { syncScrollTriggerWithLenis } from "../animations/scrollTriggerSync";
+  // Lenis + ScrollTrigger are already initialized globally in BaseLayout
+  // All we do here is initialize animations AFTER layout + Lenis
 
-  // Initialize animations when DOM is ready
   if (typeof window !== "undefined") {
+    initLenis();
+    syncScrollTriggerWithLenis();
     let cleanupScrollAnimation: (() => void) | null = null;
+    let cleanupSectionSnap: (() => void) | null = null;
     const cleanupFunctions: (() => void)[] = [];
 
     function initAnimations() {
-      // Letter reveal for hero title
+      // 1. Letter reveal for hero
       initLetterReveal(".hero-title", 0, 0.05);
 
-      // Initialize hero scroll animation with two-phase motion
+      // 2. Section snapping (automatically disabled during hero animation)
+      cleanupSectionSnap = initSectionSnap({
+        threshold: 0.15,
+        snapDuration: 0.35,
+        sections: [
+          "#hero-trigger",
+          ".company-name-section",
+          ".stats-section",
+          ".video-section",
+          ".why-solar-section",
+          ".why-us-section",
+          ".clients-section",
+        ],
+      });
+
+      // 3. Hero scroll animation
       cleanupScrollAnimation = initHeroScrollAnimation({
         triggerSelector: "#hero-trigger",
         contentSelector: "#hero-content",
         lastSpanSelector: "#last-span",
-        markers: true, // Set to true for debugging
-        // scrubPhase12: true,
+        markers: false,
+        onHeroComplete: () => {
+          // Hero animation complete - snapping is now enabled automatically
+        },
       });
 
-      // Scroll-triggered letter reveal for new sections
-      const cleanup1 = initScrollLetterReveal("#why-solar-text", 0.1);
-      const cleanup2 = initScrollLetterReveal("#why-us-text", 0.1);
-      const cleanup3 = initScrollLetterReveal("#clients-text", 0.1);
-
-      cleanupFunctions.push(cleanup1, cleanup2, cleanup3);
-
-      // Letter reveal for company name (optional)
-      // initLetterReveal('.company-name-section h2', 0, 0.03);
+      // 4. Scroll letter reveals
+      cleanupFunctions.push(initScrollLetterReveal("#why-solar-text", 0.1));
+      cleanupFunctions.push(initScrollLetterReveal("#why-us-text", 0.1));
+      cleanupFunctions.push(initScrollLetterReveal("#clients-text", 0.1));
     }
 
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initAnimations);
     } else {
-      // Small delay to ensure Lenis is ready
-      setTimeout(initAnimations, 300);
+      initAnimations();
     }
 
-    // Cleanup on page unload
     window.addEventListener("beforeunload", () => {
-      if (cleanupScrollAnimation) {
-        cleanupScrollAnimation();
-      }
-      cleanupFunctions.forEach((cleanup) => cleanup());
+      cleanupScrollAnimation?.();
+      cleanupSectionSnap?.();
+      cleanupFunctions.forEach((fn) => fn());
     });
   }
 </script>
