@@ -42,6 +42,7 @@ export default function OrbitNav({
   const [isHovered, setIsHovered] = useState(false);
   const [isDropdownHovered, setIsDropdownHovered] = useState(false);
   const [areTargetSectionsInView, setAreTargetSectionsInView] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const animationRef = useRef<gsap.core.Tween | gsap.core.Timeline | null>(null);
   const sectionsRef = useRef<string[]>([]);
   const currentPathProgress = useRef<number>(0); // Track current position along path
@@ -485,11 +486,12 @@ export default function OrbitNav({
         // Use the actual selector if available, otherwise fall back to index
         const selector = currentSectionSelectorRef.current || sectionsRef.current[currentSectionIndex];
         const label = sectionLabels[selector] || '';
+        
+        // Get the circle's current position on the path
+        const pathLength = pathRef.current.getTotalLength();
+        const circlePoint = pathRef.current.getPointAtLength(pathLength * targetProgress);
+        
         if (label) {
-          // Get the circle's current position on the path
-          const pathLength = pathRef.current.getTotalLength();
-          const circlePoint = pathRef.current.getPointAtLength(pathLength * targetProgress);
-          
           // Measure actual text width
           const textWidth = measureTextWidth(label, textRef.current);
           
@@ -507,6 +509,24 @@ export default function OrbitNav({
             ease: 'power2.out',
           });
         } else {
+          // For sections without labels, position container to the left of circle for dropdown
+          // Use a fixed offset similar to sections with labels
+          const textOffset = 72; // Fixed offset to position dropdown to the left
+          const textX = circlePoint.x - textOffset; // To the left of circle
+          const textY = circlePoint.y - 20; // Vertically centered with circle
+          console.log('📍 handleTextDisplay: Positioning container for section without label', {
+            textX,
+            textY,
+            circlePoint: { x: circlePoint.x, y: circlePoint.y },
+            currentSectionIndex,
+          });
+          // Position container and ensure it's visible for hover detection
+          gsap.set(textContainerRef.current, { 
+            x: textX, 
+            y: textY,
+            opacity: 1, // Keep container visible for hover
+            visibility: 'visible',
+          });
           gsap.to(textRef.current, { opacity: 0, duration: 0.2 });
         }
       }
@@ -868,6 +888,7 @@ export default function OrbitNav({
     { label: 'nous?', href: '/why-work-with-us/', selector: '.why-us-section' },
     { label: 'clients', href: '/clients/', selector: '.clients-section' },
     { label: 'projets', href: '/projets/', selector: '.projets-section' },
+    { label: 'home', href: '/', selector: '#hero-trigger' },
   ];
 
   // Get current section label
@@ -1021,22 +1042,121 @@ export default function OrbitNav({
       {/* Circle that moves along path */}
       <div
         ref={circleRef}
-        className={`${circleColor} w-4 h-4 rounded-full absolute`}
+        className={`${circleColor} w-4 h-4 rounded-full absolute cursor-pointer`}
         style={{
           transformOrigin: 'center center',
           willChange: 'transform',
           // Let MotionPath handle all positioning - no fixed top/left
           // The initial position will be set by MotionPath in the useEffect
         }}
+        onMouseEnter={(e) => {
+          const currentLabel = getCurrentSectionLabel();
+          console.log('🖱️ Circle onMouseEnter', {
+            x: e.clientX,
+            y: e.clientY,
+            hasLabel: !!currentLabel,
+            currentLabel,
+            currentSectionIndex,
+            isDropdownHovered,
+            textContainerPosition: textContainerRef.current ? {
+              x: gsap.getProperty(textContainerRef.current, 'x'),
+              y: gsap.getProperty(textContainerRef.current, 'y'),
+            } : 'not positioned',
+          });
+          // Show dropdown when hovering circle, especially for sections without labels
+          setIsDropdownHovered(true);
+          console.log('🖱️ Circle: Set isDropdownHovered to true');
+          // Only change background color if we're on a section with a label and target sections are in view
+          if (currentLabel && areTargetSectionsInView) {
+            setIsHovered(true);
+            document.body.classList.add('nav-or-text-hovered');
+            console.log('🖱️ Circle: Also set isHovered to true (has label)');
+          } else {
+            console.log('🖱️ Circle: Not setting isHovered (no label or target sections not in view)');
+          }
+        }}
+        onMouseLeave={(e) => {
+          const relatedTarget = e.relatedTarget as HTMLElement | null;
+          const isValidNode = relatedTarget && relatedTarget instanceof Node;
+          const isMovingToTextContainer = isValidNode && textContainerRef.current && textContainerRef.current.contains(relatedTarget);
+          const isMovingToDropdown = relatedTarget && relatedTarget instanceof Element && relatedTarget.closest('.dropdown-items');
+          const isMovingToContainer = isValidNode && containerRef.current && containerRef.current.contains(relatedTarget);
+          
+          // Also check if we're moving to any child of the text container (which includes dropdown)
+          const isMovingToTextContainerChild = relatedTarget && textContainerRef.current && (
+            textContainerRef.current.contains(relatedTarget) ||
+            relatedTarget.closest('.dropdown-items') ||
+            relatedTarget.parentElement === textContainerRef.current
+          );
+          
+          console.log('🖱️ Circle onMouseLeave', {
+            x: e.clientX,
+            y: e.clientY,
+            relatedTarget: relatedTarget?.tagName,
+            relatedTargetClass: relatedTarget?.className,
+            isMovingToTextContainer,
+            isMovingToDropdown: !!isMovingToDropdown,
+            isMovingToContainer,
+            isMovingToTextContainerChild: !!isMovingToTextContainerChild,
+          });
+          
+          // Only clear hover if we're truly leaving the nav area
+          // Keep hover active if moving to dropdown or text container
+          if (!isMovingToTextContainer && !isMovingToDropdown && !isMovingToContainer && !isMovingToTextContainerChild) {
+            console.log('🖱️ Circle: Will clear hover state (with delay)');
+            // Clear any existing timeout
+            if (hoverTimeoutRef.current) {
+              clearTimeout(hoverTimeoutRef.current);
+            }
+            // Use a small delay to allow dropdown's onMouseEnter to fire first
+            hoverTimeoutRef.current = setTimeout(() => {
+              // Check current state - if dropdown is hovered, don't clear
+              setIsDropdownHovered((current) => {
+                if (!current) {
+                  console.log('🖱️ Circle: Actually clearing hover state');
+                  setIsHovered(false);
+                  if (!getCurrentSectionLabel() || !areTargetSectionsInView) {
+                    document.body.classList.remove('nav-or-text-hovered');
+                  }
+                  return false;
+                } else {
+                  console.log('🖱️ Circle: Keeping hover state (dropdown is hovered)');
+                  return true;
+                }
+              });
+              hoverTimeoutRef.current = null;
+            }, 100);
+          } else {
+            console.log('🖱️ Circle: Keeping hover state (moving within nav)');
+            // Cancel any pending clear
+            if (hoverTimeoutRef.current) {
+              clearTimeout(hoverTimeoutRef.current);
+              hoverTimeoutRef.current = null;
+            }
+            // Explicitly maintain isDropdownHovered when moving to dropdown
+            if (isMovingToDropdown || isMovingToTextContainerChild) {
+              setIsDropdownHovered(true);
+            }
+          }
+        }}
       />
       
       {/* Text container - positioned relative to circle, contains text and dropdown */}
+      {/* For sections without labels, this container is still positioned and visible to allow hover */}
       <div
         ref={textContainerRef}
         className="absolute flex flex-col items-start"
         style={{
           // Position will be set dynamically by GSAP based on circle position
           pointerEvents: 'auto',
+          visibility: 'visible', // Always visible to receive mouse events
+          // Add padding to create a hover area even when there's no label
+          // This creates a "bridge" between circle and dropdown for easier hover
+          padding: getCurrentSectionLabel() ? '0' : '12px',
+          minWidth: getCurrentSectionLabel() ? 'auto' : '120px', // Ensure hover area for non-labeled sections
+          minHeight: getCurrentSectionLabel() ? 'auto' : '40px',
+          // Negative margin to extend hover area closer to circle
+          marginLeft: getCurrentSectionLabel() ? '0' : '-20px',
         }}
         onMouseEnter={(e) => {
           console.log('🖱️ TextContainer onMouseEnter', {
@@ -1104,8 +1224,8 @@ export default function OrbitNav({
         )}
         
         {/* Dropdown items - stacked vertically below current text */}
-        {/* Only show dropdown if current section has a label (is one of the navigable sections) */}
-        {getCurrentSectionLabel() && (
+        {/* Show dropdown if current section has a label OR if circle is hovered (for sections without labels) */}
+        {(getCurrentSectionLabel() || isDropdownHovered) && (
           <div
             className={`dropdown-items flex flex-col transition-all duration-300 ease-in-out ${
               isHovered || isDropdownHovered
@@ -1117,12 +1237,57 @@ export default function OrbitNav({
               marginTop: '0.5rem',
               gap: '0.25rem',
             }}
+            onMouseEnter={(e) => {
+              console.log('🖱️ Dropdown container onMouseEnter', {
+                x: e.clientX,
+                y: e.clientY,
+                isHovered,
+                isDropdownHovered,
+                hasLabel: !!getCurrentSectionLabel(),
+              });
+              // Cancel any pending hover clear from circle's onMouseLeave
+              if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current);
+                hoverTimeoutRef.current = null;
+                console.log('🖱️ Dropdown: Cancelled pending hover clear');
+              }
+              // Keep hover state active when entering dropdown
+              // This is critical for sections without labels - must set immediately
+              setIsDropdownHovered(true);
+              console.log('🖱️ Dropdown: Set isDropdownHovered to true');
+              if (getCurrentSectionLabel() && areTargetSectionsInView) {
+                setIsHovered(true);
+              }
+            }}
+            onMouseLeave={(e) => {
+              const relatedTarget = e.relatedTarget as HTMLElement | null;
+              const isValidNode = relatedTarget && relatedTarget instanceof Node;
+              const isMovingToCircle = isValidNode && circleRef.current && circleRef.current.contains(relatedTarget);
+              const isMovingToTextContainer = isValidNode && textContainerRef.current && textContainerRef.current.contains(relatedTarget);
+              const isMovingToContainer = isValidNode && containerRef.current && containerRef.current.contains(relatedTarget);
+              
+              console.log('🖱️ Dropdown container onMouseLeave', {
+                isMovingToCircle,
+                isMovingToTextContainer,
+                isMovingToContainer,
+              });
+              
+              // Only hide dropdown if not moving to circle, text container, or main container
+              if (!isMovingToCircle && !isMovingToTextContainer && !isMovingToContainer) {
+                setIsHovered(false);
+                setIsDropdownHovered(false);
+              }
+            }}
           >
             {dropdownItems
               .filter((item) => {
                 const currentLabel = getCurrentSectionLabel();
-                // Don't show the current section in the dropdown
-                return item.label !== currentLabel && currentLabel !== '';
+                // Don't show the current section in the dropdown (only if it has a label)
+                // For sections without labels, show all items
+                if (currentLabel === '') {
+                  return true; // Show all items for sections without labels
+                }
+                return item.label !== currentLabel;
               })
               .map((item) => (
                 <a
