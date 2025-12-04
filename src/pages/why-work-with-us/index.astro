@@ -1,33 +1,320 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
+import BaseLayout from "../../layouts/BaseLayout.astro";
 ---
 
-<BaseLayout title="Why Work With Us - Rochat Solaire">
-  <!-- Hero Section -->
-  <section class="hero min-h-screen flex items-center justify-center bg-white">
-    <div class="container mx-auto px-4">
-      <h1 class="text-5xl md:text-7xl font-bold text-charcoal mb-4">
-        Why Work With Us?
-      </h1>
-      <p class="text-xl md:text-2xl text-charcoal/70">
-        Experience and expertise you can trust
-      </p>
-    </div>
-  </section>
+<BaseLayout
+  title="Pourquoi travailler avec nous? - Rochat Solaire"
+  isDark={false}
+  orbitNavColorMode="dark"
+>
+  <main class="why-us-page">
+    <!-- Top Section - 100vh -->
+    <section
+      class="why-us-section h-screen bg-white text-black flex items-center justify-center"
+    >
+      <div class="top-section-content">
+        <!-- Main Title -->
+        <div class="top-section-content-text mb-6">
+          Des partenaires dynamiques, en mesure de réaliser tous les projets
+          photovoltaïques.
+        </div>
 
-  <!-- Content Section -->
-  <section class="content-section min-h-screen flex items-center justify-center bg-charcoal text-white">
-    <div class="container mx-auto px-4">
-      <div class="max-w-4xl">
-        <h2 class="text-4xl md:text-5xl font-bold mb-8">Your Trusted Solar Partner</h2>
-        <p class="text-lg leading-relaxed">
-          With over 18 years of experience and 640+ completed projects, 
-          we bring unmatched expertise and commitment to every solar installation. 
-          Our award-winning team ensures quality, reliability, and exceptional service.
-        </p>
+        <!-- Affiliated Companies -->
+        <div class="top-section-content-text mb-6">
+          Sociétés affiliées: Palézieux Solaire SA, Bettens Solaire Sàrl.
+        </div>
+
+        <!-- Motto -->
+        <div class="top-section-content-text mb-6">
+          On fait ce que l'on dit, et disons ce que l'on fait!
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <!-- Numbered List Section -->
+    <section class="numbered-list-section bg-white text-black py-20 md:py-32">
+      <div class="numbered-list-content">
+        <!-- Numbered List -->
+        <ol class="numbered-list space-y-8 md:space-y-12">
+          <li class="numbered-item">
+            <div class="number-container">
+              <span class="number">1</span>
+            </div>
+            <p class="numbered-text">
+              Nous gérons 9 centrales photovoltaïques propres qui produisent 2.4
+              millions de kWh par année.
+            </p>
+          </li>
+
+          <li class="numbered-item">
+            <div class="number-container">
+              <span class="number">2</span>
+            </div>
+            <p class="numbered-text">
+              Membre de Swissolar, RochatSolaire fait partie des Pros du
+              Solaire.
+            </p>
+          </li>
+
+          <li class="numbered-item">
+            <div class="number-container">
+              <span class="number">3</span>
+            </div>
+            <p class="numbered-text">
+              Elle exécute des mandats pour des collectivités publiques, ou des
+              privés, étude du projet photovoltaïque, optimisation, rédaction du
+              cahier des charges de l'appel d'offres, choix des fournisseurs,
+              surveillance des travaux et contrôle de la performance.
+            </p>
+          </li>
+
+          <li class="numbered-item">
+            <div class="number-container">
+              <span class="number">4</span>
+            </div>
+            <p class="numbered-text">
+              Elle offre des opportunités de placement financier à des
+              investisseurs.
+            </p>
+          </li>
+
+          <li class="numbered-item">
+            <div class="number-container">
+              <span class="number">5</span>
+            </div>
+            <p class="numbered-text">
+              Nous cherchons à bien comprendre les besoins du client, ses
+              objectifs et ses ressources.
+            </p>
+          </li>
+
+          <li class="numbered-item">
+            <div class="number-container">
+              <span class="number">6</span>
+            </div>
+            <p class="numbered-text">
+              Notre logiciel financier exclusif permet de calculer tous les
+              paramètres du projet et son rendement.
+            </p>
+          </li>
+
+          <li class="numbered-item">
+            <div class="number-container">
+              <span class="number">7</span>
+            </div>
+            <p class="numbered-text">
+              Nous pouvons aider le client à financer son investissement auprès
+              d'une banque.
+            </p>
+          </li>
+
+          <li class="numbered-item">
+            <div class="number-container">
+              <span class="number">8</span>
+            </div>
+            <p class="numbered-text">
+              Nous effectuons ou faisons effectuer les démarches auprès des
+              entités officielles, communes, cantons, Swissgrid, Office Fédéral
+              du Courant Fort (ESTI), distributeur local d'électricité.
+            </p>
+          </li>
+        </ol>
+      </div>
+    </section>
+  </main>
 </BaseLayout>
 
+<style>
+  .why-us-page {
+    font-family: var(--font-primary);
+  }
 
+  .why-us-section {
+    /* Normal scrolling - no section snap */
+    scroll-behavior: smooth;
+  }
+
+  /* Top Section Content Container */
+  .top-section-content {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .top-section-content {
+      max-width: 1400px;
+      padding: 0 4rem;
+    }
+  }
+
+  .top-section-content-text {
+    font-size: 2.25rem;
+    font-weight: 300;
+    line-height: 1.2;
+    margin-bottom: 3rem;
+  }
+
+  @media (min-width: 768px) {
+    .top-section-content-text {
+      font-size: 3rem;
+      margin-bottom: 4rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .top-section-content-text {
+      font-size: 4rem;
+      margin-bottom: 5rem;
+    }
+  }
+
+  /* Numbered List Content Container */
+  .numbered-list-content {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .numbered-list-content {
+      max-width: 1400px;
+      padding: 0 4rem;
+    }
+  }
+
+  .numbered-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .numbered-item {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 3rem;
+    margin-bottom: 4rem;
+  }
+
+  @media (min-width: 768px) {
+    .numbered-item {
+      gap: 4rem;
+      margin-bottom: 5rem;
+    }
+  }
+
+  .number-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 60px;
+    flex-shrink: 0;
+    padding-top: 0;
+    margin-top: 0;
+    align-self: flex-start;
+  }
+
+  @media (min-width: 768px) {
+    .number-container {
+      width: 60px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .number-container {
+      width: 60px;
+    }
+  }
+
+  .number {
+    font-family:
+      "F37Moon",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+    font-weight: 300;
+    font-style: normal;
+    font-size: 115px;
+    line-height: 1;
+    letter-spacing: 0.01em; /* 1% */
+    text-align: center;
+    width: 100%;
+    leading-trim: none;
+    padding-top: 0;
+    margin-top: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    display: block;
+  }
+
+  .numbered-text {
+    width: 50%;
+    text-align: left;
+    margin: 0;
+    padding-top: 0;
+    margin-top: 0;
+  }
+
+  .detail-text {
+    font-family:
+      "F37Moon",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+    font-weight: 300;
+    font-style: normal;
+    font-size: 18px;
+    line-height: 24px;
+    letter-spacing: 0.01em; /* 1% */
+  }
+
+  @media (min-width: 768px) {
+    .detail-text {
+      font-size: 24px;
+      line-height: 32px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .detail-text {
+      font-size: 30px;
+      line-height: 40px;
+    }
+  }
+
+  .numbered-text {
+    font-family:
+      "F37Moon",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+    font-weight: 300;
+    font-style: normal;
+    font-size: 18px;
+    line-height: 24px;
+    letter-spacing: 0.01em; /* 1% */
+  }
+
+  @media (min-width: 768px) {
+    .numbered-text {
+      font-size: 24px;
+      line-height: 32px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .numbered-text {
+      font-size: 30px;
+      line-height: 40px;
+    }
+  }
+</style>
