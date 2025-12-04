@@ -1,0 +1,145 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Projets - Rochat Solaire"
+  isDark={false}
+  orbitNavColorMode="light"
+>
+  <main class="projets-page">
+    <section
+      class="projets-section h-screen w-screen bg-black overflow-hidden relative"
+    >
+      <video
+        id="projets-video"
+        autoplay
+        loop
+        muted
+        playsinline
+        class="absolute inset-0 w-full h-full object-cover"
+      >
+        <source src="/projets.mp4" type="video/mp4" />
+      </video>
+      <div id="projets-text-overlay" class="projets-text-overlay">
+        <span class="projets-text active">Industriel</span>
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .projets-page {
+    font-family: var(--font-primary);
+  }
+
+  .projets-section {
+    position: relative;
+  }
+
+  .projets-text-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .projets-text {
+    font-family: 'F37Moon', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 600;
+    font-style: normal;
+    font-size: 240px;
+    line-height: 115px;
+    letter-spacing: 0.02em; /* 2% */
+    color: white;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  .projets-text.active {
+    opacity: 1;
+  }
+
+  @media (max-width: 1024px) {
+    .projets-text {
+      font-size: 120px;
+      line-height: 60px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .projets-text {
+      font-size: 80px;
+      line-height: 40px;
+    }
+  }
+</style>
+
+<script>
+  const texts = ['Industriel', 'Résidentiel', 'École', 'Rural', 'Hôpital'];
+  let currentIndex = 0;
+  let videoDuration = 0;
+  let intervalDuration = 0;
+
+  const video = document.getElementById('projets-video');
+  const textElement = document.querySelector('.projets-text');
+
+  function updateText(index) {
+    if (textElement) {
+      textElement.classList.remove('active');
+      setTimeout(() => {
+        if (textElement) {
+          textElement.textContent = texts[index];
+          textElement.classList.add('active');
+        }
+      }, 300); // Fade out, then change text and fade in
+    }
+  }
+
+  function syncTextWithVideo() {
+    if (!video || videoDuration === 0) return;
+
+    const currentTime = video.currentTime;
+    const segmentIndex = Math.floor((currentTime % videoDuration) / intervalDuration);
+    const newIndex = Math.min(segmentIndex, texts.length - 1);
+
+    if (newIndex !== currentIndex) {
+      currentIndex = newIndex;
+      updateText(currentIndex);
+    }
+  }
+
+  if (video) {
+    video.addEventListener('loadedmetadata', () => {
+      videoDuration = video.duration;
+      intervalDuration = videoDuration / 5; // 1/5 of video duration
+      currentIndex = 0;
+      updateText(0);
+      
+      // Sync every frame
+      video.addEventListener('timeupdate', syncTextWithVideo);
+      
+      // Reset to first text when video loops
+      video.addEventListener('ended', () => {
+        currentIndex = 0;
+        updateText(0);
+      });
+    });
+
+    // Initial display if video is already loaded
+    if (video.readyState >= 2) {
+      videoDuration = video.duration;
+      intervalDuration = videoDuration / 5;
+      updateText(0);
+      video.addEventListener('timeupdate', syncTextWithVideo);
+    }
+  }
+</script>
+
