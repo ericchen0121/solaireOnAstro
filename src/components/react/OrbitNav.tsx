@@ -32,13 +32,15 @@ export default function OrbitNav({
   debugMarkers = false // Default to off
 }: OrbitNavProps) {
   const circleRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement | HTMLAnchorElement>(null);
+  const textContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const currentSectionSelectorRef = useRef<string>(''); // Track actual section selector
   const [isInverted, setIsInverted] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isDropdownHovered, setIsDropdownHovered] = useState(false);
   const [areTargetSectionsInView, setAreTargetSectionsInView] = useState(false);
   const animationRef = useRef<gsap.core.Tween | gsap.core.Timeline | null>(null);
   const sectionsRef = useRef<string[]>([]);
@@ -479,7 +481,7 @@ export default function OrbitNav({
     // Helper function to handle text display and positioning
     // Called after circle animation completes
     const handleTextDisplay = () => {
-      if (textRef.current && pathRef.current && circleRef.current) {
+      if (textContainerRef.current && textRef.current && pathRef.current && circleRef.current) {
         // Use the actual selector if available, otherwise fall back to index
         const selector = currentSectionSelectorRef.current || sectionsRef.current[currentSectionIndex];
         const label = sectionLabels[selector] || '';
@@ -491,14 +493,14 @@ export default function OrbitNav({
           // Measure actual text width
           const textWidth = measureTextWidth(label, textRef.current);
           
-          // Position text to the left of circle center, vertically centered
+          // Position text container to the left of circle center, vertically centered
           // Add padding (32px) between circle and text
           const textOffset = textWidth + 12; // Half text width + padding to circle center
           const textX = circlePoint.x - textOffset; // Text to the left of circle
-          const textY = circlePoint.y-2; // Vertically centered with circle
+          const textY = circlePoint.y - 2; // Vertically centered with circle
           
           // Set position immediately, then fade in
-          gsap.set(textRef.current, { x: textX, y: textY });
+          gsap.set(textContainerRef.current, { x: textX, y: textY });
           gsap.to(textRef.current, {
             opacity: 1,
             duration: 0.3,
@@ -860,27 +862,101 @@ export default function OrbitNav({
   const circleColor = (isHovered && areTargetSectionsInView) ? 'bg-black' : (isDark || isInverted ? 'bg-black' : 'bg-white');
   const textColor = (isHovered && areTargetSectionsInView) ? 'text-black' : (isDark || isInverted ? 'text-black' : 'text-white');
 
+  // Dropdown menu items - all navigation sections
+  const dropdownItems = [
+    { label: 'le solaire?', href: '/why-solar/', selector: '.why-solar-section' },
+    { label: 'nous?', href: '/why-work-with-us/', selector: '.why-us-section' },
+    { label: 'clients', href: '/clients/', selector: '.clients-section' },
+    { label: 'projets', href: '/projets/', selector: '.projets-section' },
+  ];
+
+  // Get current section label
+  const getCurrentSectionLabel = () => {
+    const selector = currentSectionSelectorRef.current || sectionsRef.current[currentSectionIndex];
+    const label = sectionLabels[selector] || '';
+    // Return empty string if no label (for sections without text)
+    return label;
+  };
+
+  // Get current section href
+  const getCurrentSectionHref = () => {
+    const currentLabel = getCurrentSectionLabel();
+    const currentItem = dropdownItems.find(item => item.label === currentLabel);
+    return currentItem?.href || '#';
+  };
+
   return (
     <div 
       ref={containerRef}
       className="orbit-nav-container fixed top-12 right-40 md:top-16 md:right-40 z-50"
-      onMouseEnter={() => {
+      style={{
+        padding: '20px', // Add padding to create larger hover zone
+        margin: '-20px', // Negative margin to keep positioning the same
+      }}
+      onMouseEnter={(e) => {
+        console.log('🖱️ Container onMouseEnter', {
+          x: e.clientX,
+          y: e.clientY,
+          target: (e.target as HTMLElement)?.tagName,
+          currentTarget: (e.currentTarget as HTMLElement)?.className,
+        });
+        setIsHovered(true);
+        setIsDropdownHovered(true);
         if (areTargetSectionsInView) {
-          setIsHovered(true);
           document.body.classList.add('nav-or-text-hovered');
         }
       }}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        const whySolarText = document.querySelector('#why-solar-text');
-        const whyUsText = document.querySelector('#why-us-text');
-        const clientsText = document.querySelector('#clients-text');
-        const isTextHovered = 
-          (whySolarText && whySolarText.matches(':hover')) ||
-          (whyUsText && whyUsText.matches(':hover')) ||
-          (clientsText && clientsText.matches(':hover'));
-        if (!isTextHovered) {
-          document.body.classList.remove('nav-or-text-hovered');
+      onMouseLeave={(e) => {
+        const relatedTarget = e.relatedTarget as HTMLElement | null;
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        
+        // Check if we're moving to any part of the nav (circle, text, or dropdown)
+        // Ensure relatedTarget is a Node before calling contains()
+        const isValidNode = relatedTarget && relatedTarget instanceof Node;
+        const isMovingToContainer = isValidNode && containerRef.current && containerRef.current.contains(relatedTarget);
+        const isMovingToTextContainer = isValidNode && textContainerRef.current && textContainerRef.current.contains(relatedTarget);
+        const isMovingToCircle = isValidNode && circleRef.current && circleRef.current.contains(relatedTarget);
+        const isMovingToDropdown = relatedTarget && relatedTarget instanceof Element && relatedTarget.closest('.dropdown-items');
+        const isMovingToNavContainer = relatedTarget && relatedTarget instanceof Element && relatedTarget.closest('.orbit-nav-container');
+        
+        const isMovingWithinNav = isMovingToContainer || isMovingToTextContainer || isMovingToCircle || isMovingToDropdown || isMovingToNavContainer;
+        
+        console.log('🖱️ Container onMouseLeave', {
+          x: mouseX,
+          y: mouseY,
+          relatedTarget: relatedTarget?.tagName,
+          relatedTargetClass: relatedTarget?.className,
+          isMovingToContainer,
+          isMovingToTextContainer,
+          isMovingToCircle,
+          isMovingToDropdown: !!isMovingToDropdown,
+          isMovingToNavContainer: !!isMovingToNavContainer,
+          isMovingWithinNav,
+          containerBounds: containerRef.current ? {
+            top: containerRef.current.getBoundingClientRect().top,
+            left: containerRef.current.getBoundingClientRect().left,
+            right: containerRef.current.getBoundingClientRect().right,
+            bottom: containerRef.current.getBoundingClientRect().bottom,
+          } : null,
+        });
+        
+        if (!isMovingWithinNav) {
+          console.log('🖱️ Container: Setting hover to false');
+          setIsHovered(false);
+          setIsDropdownHovered(false);
+          const whySolarText = document.querySelector('#why-solar-text');
+          const whyUsText = document.querySelector('#why-us-text');
+          const clientsText = document.querySelector('#clients-text');
+          const isTextHovered = 
+            (whySolarText && whySolarText.matches(':hover')) ||
+            (whyUsText && whyUsText.matches(':hover')) ||
+            (clientsText && clientsText.matches(':hover'));
+          if (!isTextHovered) {
+            document.body.classList.remove('nav-or-text-hovered');
+          }
+        } else {
+          console.log('🖱️ Container: Keeping hover true (moving within nav)');
         }
       }}
     >
@@ -954,15 +1030,159 @@ export default function OrbitNav({
         }}
       />
       
-      {/* Text label - positioned relative to circle */}
+      {/* Text container - positioned relative to circle, contains text and dropdown */}
       <div
-        ref={textRef}
-        className={`${textColor} text-sm font-light lowercase tracking-wide absolute whitespace-nowrap`}
+        ref={textContainerRef}
+        className="absolute flex flex-col items-start"
         style={{
           // Position will be set dynamically by GSAP based on circle position
-          pointerEvents: 'none',
+          pointerEvents: 'auto',
         }}
-      />
+        onMouseEnter={(e) => {
+          console.log('🖱️ TextContainer onMouseEnter', {
+            x: e.clientX,
+            y: e.clientY,
+            target: (e.target as HTMLElement)?.tagName,
+          });
+          setIsHovered(true);
+          setIsDropdownHovered(true);
+        }}
+        onMouseLeave={(e) => {
+          const relatedTarget = e.relatedTarget as HTMLElement | null;
+          const mouseX = e.clientX;
+          const mouseY = e.clientY;
+          
+          // Check if we're moving to another part of the nav (circle or container)
+          // Ensure relatedTarget is a Node before calling contains()
+          const isValidNode = relatedTarget && relatedTarget instanceof Node;
+          const isMovingToContainer = isValidNode && containerRef.current && containerRef.current.contains(relatedTarget);
+          const isMovingToCircle = isValidNode && circleRef.current && circleRef.current.contains(relatedTarget);
+          const isMovingToNavContainer = relatedTarget && relatedTarget instanceof Element && relatedTarget.closest('.orbit-nav-container');
+          const isMovingToDropdown = relatedTarget && relatedTarget instanceof Element && relatedTarget.closest('.dropdown-items');
+          
+          const isMovingWithinNav = isMovingToContainer || isMovingToCircle || isMovingToNavContainer || isMovingToDropdown;
+          
+          console.log('🖱️ TextContainer onMouseLeave', {
+            x: mouseX,
+            y: mouseY,
+            relatedTarget: relatedTarget?.tagName,
+            relatedTargetClass: relatedTarget?.className,
+            isMovingToContainer,
+            isMovingToCircle,
+            isMovingToNavContainer: !!isMovingToNavContainer,
+            isMovingToDropdown: !!isMovingToDropdown,
+            isMovingWithinNav,
+          });
+          
+          if (!isMovingWithinNav) {
+            console.log('🖱️ TextContainer: Setting hover to false');
+            setIsHovered(false);
+            setIsDropdownHovered(false);
+          } else {
+            console.log('🖱️ TextContainer: Keeping hover true (moving within nav)');
+          }
+        }}
+      >
+        {/* Current section text - clickable */}
+        {getCurrentSectionLabel() ? (
+          <a
+            ref={textRef as React.RefObject<HTMLAnchorElement>}
+            href={getCurrentSectionHref()}
+            className={`${textColor} text-sm font-light lowercase tracking-wide whitespace-nowrap block transition-opacity duration-200 hover:opacity-60 cursor-pointer`}
+            style={{
+              pointerEvents: 'auto',
+            }}
+          />
+        ) : (
+          <div
+            ref={textRef as React.RefObject<HTMLDivElement>}
+            className={`${textColor} text-sm font-light lowercase tracking-wide whitespace-nowrap block`}
+            style={{
+              pointerEvents: 'auto',
+            }}
+          />
+        )}
+        
+        {/* Dropdown items - stacked vertically below current text */}
+        {/* Only show dropdown if current section has a label (is one of the navigable sections) */}
+        {getCurrentSectionLabel() && (
+          <div
+            className={`dropdown-items flex flex-col transition-all duration-300 ease-in-out ${
+              isHovered || isDropdownHovered
+                ? 'opacity-100 visible translate-y-0'
+                : 'opacity-0 invisible -translate-y-2'
+            }`}
+            style={{
+              pointerEvents: isHovered || isDropdownHovered ? 'auto' : 'none',
+              marginTop: '0.5rem',
+              gap: '0.25rem',
+            }}
+          >
+            {dropdownItems
+              .filter((item) => {
+                const currentLabel = getCurrentSectionLabel();
+                // Don't show the current section in the dropdown
+                return item.label !== currentLabel && currentLabel !== '';
+              })
+              .map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className={`${textColor} text-sm font-light lowercase tracking-wide transition-opacity duration-200 hover:opacity-60 whitespace-nowrap block`}
+                  onMouseEnter={(e) => {
+                    console.log('🖱️ DropdownItem onMouseEnter', {
+                      x: e.clientX,
+                      y: e.clientY,
+                      label: item.label,
+                    });
+                    setIsHovered(true);
+                    setIsDropdownHovered(true);
+                  }}
+                  onMouseLeave={(e) => {
+                    const relatedTarget = e.relatedTarget as HTMLElement | null;
+                    const mouseX = e.clientX;
+                    const mouseY = e.clientY;
+                    
+                    // Check if we're moving to another part of the nav
+                    // Ensure relatedTarget is a Node before calling contains()
+                    const isValidNode = relatedTarget && relatedTarget instanceof Node;
+                    const isMovingToContainer = isValidNode && containerRef.current && containerRef.current.contains(relatedTarget);
+                    const isMovingToTextContainer = isValidNode && textContainerRef.current && textContainerRef.current.contains(relatedTarget);
+                    const isMovingToCircle = isValidNode && circleRef.current && circleRef.current.contains(relatedTarget);
+                    const isMovingToNavContainer = relatedTarget && relatedTarget instanceof Element && relatedTarget.closest('.orbit-nav-container');
+                    const isMovingToAnotherItem = relatedTarget && relatedTarget instanceof Element && relatedTarget.closest('.dropdown-items');
+                    
+                    const isMovingWithinNav = isMovingToContainer || isMovingToTextContainer || isMovingToCircle || isMovingToNavContainer || isMovingToAnotherItem;
+                    
+                    console.log('🖱️ DropdownItem onMouseLeave', {
+                      x: mouseX,
+                      y: mouseY,
+                      label: item.label,
+                      relatedTarget: relatedTarget?.tagName,
+                      relatedTargetClass: relatedTarget?.className,
+                      isMovingToContainer,
+                      isMovingToTextContainer,
+                      isMovingToCircle,
+                      isMovingToNavContainer: !!isMovingToNavContainer,
+                      isMovingToAnotherItem: !!isMovingToAnotherItem,
+                      isMovingWithinNav,
+                    });
+                    
+                    if (!isMovingWithinNav) {
+                      console.log('🖱️ DropdownItem: Setting hover to false');
+                      setIsHovered(false);
+                      setIsDropdownHovered(false);
+                    } else {
+                      console.log('🖱️ DropdownItem: Keeping hover true (moving within nav)');
+                    }
+                  }}
+                >
+                  {item.label}
+                </a>
+              ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
