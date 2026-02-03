@@ -17,19 +17,19 @@ A modern marketing website built with Astro, featuring smooth scroll animations 
 ├── public/              # Static assets (favicon, images, etc.)
 ├── src/
 │   ├── animations/     # GSAP animation files
-│   │   ├── gsapLenis.ts         # GSAP + Lenis integration
-│   │   ├── heroAnimation.ts     # Example animation (disabled by default)
-│   │   ├── letterReveal.ts      # Letter-by-letter reveal animation
-│   │   └── pageTransitions.ts  # Page transition utilities
+│   │   ├── letterReveal.ts      # Letter-by-letter reveal
+│   │   ├── heroScrollAnimation.ts
+│   │   ├── scrollLetterReveal.ts
+│   │   └── sectionSnap.ts
 │   ├── components/     # Components (Astro + React)
 │   │   ├── LenisProvider.astro  # Lenis smooth scroll provider
-│   │   ├── OrbitNav.tsx         # Orbiting navigation (React)
-│   │   ├── TumblerText.tsx      # Tumbler typography animation (React)
-│   │   ├── Odometer.tsx         # Odometer number animation (React)
-│   │   ├── EmailMask.tsx        # Email masking component (React)
-│   │   └── LetterReveal.astro  # Letter reveal component (Astro)
-│   ├── layouts/        # Page layouts
-│   │   └── BaseLayout.astro
+│   │   └── react/               # React islands
+│   │       ├── OrbitNav.tsx     # Orbiting navigation
+│   │       ├── Odometer.tsx     # Scroll-triggered number animation
+│   │       └── EmailMask.tsx    # Email masking, click-to-copy
+│   ├── layouts/
+│   │   ├── BaseLayout.astro
+│   │   └── LenisLayout.astro
 │   ├── pages/          # Route pages
 │   │   ├── index.astro
 │   │   ├── why-solar/
@@ -68,26 +68,14 @@ A modern marketing website built with Astro, featuring smooth scroll animations 
 
 ## Animations
 
-### Three Custom Micro-Animations
-
-The site includes three custom animation types as specified:
+### Custom Micro-Animations
 
 1. **Orbiting Navigation** - Physics-based orbiting nav in upper right corner
-2. **Tumbler Typography** - Character-by-character reveal with 3D rotation
-3. **Odometer Numbers** - Scroll-triggered number counting animation
+2. **Odometer Numbers** - Scroll-triggered number counting animation
 
 ### GSAP + Lenis Integration
 
-The smooth scroll and animation setup is handled in `src/animations/gsapLenis.ts`. 
-
-To use it in any component:
-
-```typescript
-import { setupSmoothScroll } from '../animations/gsapLenis';
-
-// This is automatically called by LenisProvider.astro
-setupSmoothScroll();
-```
+Smooth scroll and ScrollTrigger sync are set up in `LenisProvider.astro`. Pages that need Lenis use `LenisLayout.astro`; others use `BaseLayout.astro`.
 
 ### 1. OrbitNav Component
 
@@ -100,51 +88,24 @@ The orbiting navigation appears in the upper right corner of all pages. It autom
 - Smooth acceleration/deceleration
 
 **Usage:**
-Already included in `BaseLayout.astro`. To customize navigation items, edit `src/utils/navigation.ts`.
+Already included in both layouts. To customize navigation items, edit `src/utils/navigation.ts`.
 
 ```astro
 ---
-import OrbitNav from '../components/OrbitNav.tsx';
-import { navigationItems } from '../utils/navigation';
+import OrbitNav from '../components/react/OrbitNav.tsx';
 ---
 
-<OrbitNav client:load items={navigationItems} isDark={false} />
+<OrbitNav client:only="react" isDark={false} />
 ```
 
-### 2. TumblerText Component
-
-Typography transition with 3D rotation effect (tumbler style).
-
-**Usage:**
-```astro
----
-import TumblerText from '../components/TumblerText.tsx';
----
-
-<TumblerText 
-  client:load
-  text="Your text here"
-  className="text-4xl font-bold"
-  delay={0}
-  duration={0.8}
-/>
-```
-
-Or use the utility function:
-```typescript
-import { initTumblerReveal } from '../animations/pageTransitions';
-
-initTumblerReveal('.your-selector', 0, 0.03);
-```
-
-### 3. Odometer Component
+### 2. Odometer Component
 
 Scroll-triggered number animation that counts up to the target value.
 
 **Usage:**
 ```astro
 ---
-import Odometer from '../components/Odometer.tsx';
+import Odometer from '../components/react/Odometer.tsx';
 ---
 
 <Odometer 
@@ -168,16 +129,14 @@ import Odometer from '../components/Odometer.tsx';
 
 ### Creating Animations
 
-Animations are located in `src/animations/`. Example animations are provided but disabled by default.
-
-To enable an animation:
+Animations are in `src/animations/` (e.g. `letterReveal.ts`, `heroScrollAnimation.ts`, `scrollLetterReveal.ts`, `sectionSnap.ts`).
 
 1. Import GSAP and ScrollTrigger in your component
 2. Register ScrollTrigger plugin
 3. Create your timeline with ScrollTrigger configuration
 4. Ensure animations trigger on scroll (not autoplay)
 
-Example (from `src/animations/heroAnimation.ts`):
+Example pattern:
 
 ```typescript
 import { gsap } from 'gsap';
@@ -185,7 +144,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-export function initHeroAnimation() {
+export function initMyAnimation() {
   const tl = gsap.timeline({
     scrollTrigger: {
       trigger: '.hero',
@@ -194,7 +153,6 @@ export function initHeroAnimation() {
       scrub: true,
     },
   });
-
   tl.from('.hero-title', { opacity: 0, y: 80 });
 }
 ```
@@ -234,11 +192,8 @@ export function initHeroAnimation() {
 - `/projects/` - Project portfolio
 - `/contact/` - Contact form
 
-All pages use the `BaseLayout.astro` which includes:
-- TailwindCSS base styles
-- SEO meta tags
-- LenisProvider for smooth scroll
-- Google Fonts (Poppins)
+Most pages use `BaseLayout.astro`; `why-work-with-us` uses `LenisLayout.astro` (adds Lenis smooth scroll). Both include:
+- TailwindCSS base styles, SEO meta tags, OrbitNav, Google Fonts (Poppins)
 
 ### Email Masking
 
@@ -247,7 +202,7 @@ The `EmailMask` component displays "contact" instead of the actual email address
 **Usage:**
 ```astro
 ---
-import EmailMask from '../components/EmailMask.tsx';
+import EmailMask from '../components/react/EmailMask.tsx';
 ---
 
 <EmailMask 
@@ -266,21 +221,8 @@ import EmailMask from '../components/EmailMask.tsx';
 
 ### Letter Reveal Animation
 
-Character-by-character reveal animation using GSAP SplitText (free plugin included with GSAP).
+Character-by-character reveal using GSAP SplitText. Use the utility in a script (e.g. on the homepage):
 
-**Usage:**
-```astro
----
-import LetterReveal from '../components/LetterReveal.astro';
----
-
-<LetterReveal className="hero-title" delay={0} stagger={0.05}>
-  <span>First line</span>
-  <span>Second line</span>
-</LetterReveal>
-```
-
-Or use the utility function:
 ```typescript
 import { initLetterReveal } from '../animations/letterReveal';
 
