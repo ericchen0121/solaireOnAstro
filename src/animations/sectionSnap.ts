@@ -117,10 +117,9 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
           console.log(`✅ SectionSnap: Snap complete, now at index ${index}`);
           animating = false;
           scrollTimeline = null;
-          // Release processing lock
-          if (typeof processingWheel !== 'undefined') {
-            processingWheel = false;
-          }
+          // Release processing locks
+          processingWheel = false;
+          processingTouch = false;
         },
       });
 
@@ -148,7 +147,7 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
     let lastProcessedIndex = -1; // Track the last section we processed to prevent double-processing
 
     wheelListener = (e: WheelEvent) => {
-      // Always prevent default to stop natural scrolling
+      // Always prevent default to stop natural scrolling (desktop behavior)
       e.preventDefault();
       e.stopPropagation();
 
@@ -227,9 +226,6 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
     const touchThrottle = 800;
 
     touchListener = (e: TouchEvent) => {
-      // Always prevent default
-      e.preventDefault();
-
       if (animating || processingTouch) {
         return;
       }
@@ -255,11 +251,30 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
 
         const isScrollingDown = deltaY < 0;
 
+        // Always prevent default to enable snap scrolling on mobile
+        e.preventDefault();
+
+        // CRITICAL: Use the actual scroll position to determine current section, not currentIndex
+        // This prevents race conditions with ScrollTrigger callbacks
+        const currentScrollY = window.scrollY;
+        let actualCurrentIndex = 0;
+        let minDistance = Infinity;
+        
+        // Find which section we're actually closest to
+        for (let i = 0; i < sections.length; i++) {
+          const sectionTop = sections[i].offsetTop;
+          const distance = Math.abs(currentScrollY - sectionTop);
+          if (distance < minDistance) {
+            minDistance = distance;
+            actualCurrentIndex = i;
+          }
+        }
+
         // Don't process if at boundaries
-        if (isScrollingDown && currentIndex >= sections.length - 1) {
+        if (isScrollingDown && actualCurrentIndex >= sections.length - 1) {
           return;
         }
-        if (!isScrollingDown && currentIndex <= 0) {
+        if (!isScrollingDown && actualCurrentIndex <= 0) {
           return;
         }
 
@@ -268,20 +283,20 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
         lastTouchTime = now;
 
         // CRITICAL: Always go to exactly adjacent section
-        const targetIndex = isScrollingDown ? currentIndex + 1 : currentIndex - 1;
+        const targetIndex = isScrollingDown ? actualCurrentIndex + 1 : actualCurrentIndex - 1;
         
         // Double-check we're only going one section away
-        if (Math.abs(targetIndex - currentIndex) !== 1) {
-          console.warn(`⚠️ SectionSnap: Invalid touch target index ${targetIndex} from ${currentIndex}, aborting`);
+        if (Math.abs(targetIndex - actualCurrentIndex) !== 1) {
+          console.warn(`⚠️ SectionSnap: Invalid touch target index ${targetIndex} from ${actualCurrentIndex}, aborting`);
           processingTouch = false;
           return;
         }
 
         // Immediately snap
         if (isScrollingDown) {
-          console.log(`⬇️ SectionSnap: Touch swipe down detected, snapping to section ${targetIndex}`);
+          console.log(`⬇️ SectionSnap: Touch swipe down detected, snapping from section ${actualCurrentIndex} to ${targetIndex}`);
         } else {
-          console.log(`⬆️ SectionSnap: Touch swipe up detected, snapping to section ${targetIndex}`);
+          console.log(`⬆️ SectionSnap: Touch swipe up detected, snapping from section ${actualCurrentIndex} to ${targetIndex}`);
         }
         
         gotoSection(targetIndex, isScrollingDown);
