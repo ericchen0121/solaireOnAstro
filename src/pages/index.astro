@@ -10,10 +10,17 @@ import Odometer from "../components/react/Odometer.tsx";
     class="hero h-screen flex items-center justify-center bg-black text-white"
   >
     <div id="hero-content" class="container mx-auto px-4">
-      <h1 class="font-f37moon-light hero-title text-left max-w-6xl">
-        <span>Le soleil produit en une</span><br />
-        <span>heure ce que l'humanité</span><br />
-        <span id="last-span" class="last-span">consomme en un an.</span>
+      <h1 class="font-f37moon-light hero-title text-left max-w-6xl md:max-w-6xl max-w-none">
+        <!-- Desktop version -->
+        <span class="hidden md:inline">Le soleil produit en une</span><br class="hidden md:block" />
+        <span class="hidden md:inline">heure ce que l'humanité</span><br class="hidden md:block" />
+        <span id="last-span" class="last-span hidden md:inline">consomme en un an.</span>
+        
+        <!-- Mobile version with better line breaks -->
+        <span class="md:hidden">Le soleil produit</span><br class="md:hidden" />
+        <span class="md:hidden">en une heure ce que</span><br class="md:hidden" />
+        <span class="md:hidden">l'humanité consomme</span><br class="md:hidden" />
+        <span id="last-span-mobile" class="last-span md:hidden">en un an.</span>
       </h1>
     </div>
   </section>
@@ -235,7 +242,7 @@ import Odometer from "../components/react/Odometer.tsx";
             cleanupScrollAnimation = initHeroScrollAnimation({
               triggerSelector: "#hero-trigger",
               contentSelector: "#hero-content",
-              lastSpanSelector: "#last-span",
+              lastSpanSelector: "#last-span, #last-span-mobile", // Target both desktop and mobile
               markers: false,
               onHeroComplete: () => {
                 // Hero animation complete - snapping is now enabled automatically

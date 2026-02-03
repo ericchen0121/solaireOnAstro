@@ -19,6 +19,11 @@ let pinTrigger: ScrollTrigger | null = null;
 let processingWheel = false; // Lock to prevent multiple wheel events
 let processingTouch = false; // Lock to prevent multiple touch events
 
+function isMobile(): boolean {
+  if (typeof window === "undefined") return false;
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+}
+
 export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
   const {
     threshold = 0.15,
@@ -221,94 +226,85 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
       gotoSection(targetIndex, isScrollingDown);
     };
 
-    // --- LISTEN TO TOUCH EVENTS ---
-    let lastTouchTime = 0;
-    const touchThrottle = 800;
+    // --- TOUCH EVENTS: Disable snapping entirely on mobile ---
+    // Mobile gets natural scroll with Lenis; desktop gets wheel-based snapping
+    if (!isMobile()) {
+      let lastTouchTime = 0;
+      const touchThrottle = 800;
 
-    touchListener = (e: TouchEvent) => {
-      if (animating || processingTouch) {
-        return;
-      }
-
-      if (e.type === "touchstart") {
-        touchStartY = e.touches[0].clientY;
-        return;
-      }
-
-      if (e.type === "touchmove") {
-        const now = Date.now();
-        if (now - lastTouchTime < touchThrottle) {
+      touchListener = (e: TouchEvent) => {
+        if (animating || processingTouch) {
           return;
         }
 
-        const touchY = e.touches[0].clientY;
-        const deltaY = touchStartY - touchY;
-        const threshold = 30; // Minimum swipe distance
-
-        if (Math.abs(deltaY) < threshold) {
+        if (e.type === "touchstart") {
+          touchStartY = e.touches[0].clientY;
           return;
         }
 
-        const isScrollingDown = deltaY < 0;
-
-        // Always prevent default to enable snap scrolling on mobile
-        e.preventDefault();
-
-        // CRITICAL: Use the actual scroll position to determine current section, not currentIndex
-        // This prevents race conditions with ScrollTrigger callbacks
-        const currentScrollY = window.scrollY;
-        let actualCurrentIndex = 0;
-        let minDistance = Infinity;
-        
-        // Find which section we're actually closest to
-        for (let i = 0; i < sections.length; i++) {
-          const sectionTop = sections[i].offsetTop;
-          const distance = Math.abs(currentScrollY - sectionTop);
-          if (distance < minDistance) {
-            minDistance = distance;
-            actualCurrentIndex = i;
+        if (e.type === "touchmove") {
+          const now = Date.now();
+          if (now - lastTouchTime < touchThrottle) {
+            return;
           }
+
+          const touchY = e.touches[0].clientY;
+          const deltaY = touchStartY - touchY;
+          const minSwipePx = 30;
+          if (Math.abs(deltaY) < minSwipePx) {
+            return;
+          }
+
+          const isScrollingDown = deltaY < 0;
+          e.preventDefault();
+
+          // Use closest section logic (desktop behavior)
+          const currentScrollY = window.scrollY;
+          let actualCurrentIndex = 0;
+          let minDistance = Infinity;
+          for (let i = 0; i < sections.length; i++) {
+            const sectionTop = sections[i].offsetTop;
+            const distance = Math.abs(currentScrollY - sectionTop);
+            if (distance < minDistance) {
+              minDistance = distance;
+              actualCurrentIndex = i;
+            }
+          }
+
+          // Don't process if at boundaries
+          if (isScrollingDown && actualCurrentIndex >= sections.length - 1) {
+            return;
+          }
+          if (!isScrollingDown && actualCurrentIndex <= 0) {
+            return;
+          }
+
+          processingTouch = true;
+          lastTouchTime = now;
+
+          const targetIndex = isScrollingDown ? actualCurrentIndex + 1 : actualCurrentIndex - 1;
+          
+          if (Math.abs(targetIndex - actualCurrentIndex) !== 1) {
+            console.warn(`⚠️ SectionSnap: Invalid touch target index ${targetIndex} from ${actualCurrentIndex}, aborting`);
+            processingTouch = false;
+            return;
+          }
+
+          console.log(`📱 SectionSnap: Touch snap from section ${actualCurrentIndex} to ${targetIndex} (desktop/trackpad)`);
+          gotoSection(targetIndex, isScrollingDown);
+          touchStartY = touchY;
         }
+      };
 
-        // Don't process if at boundaries
-        if (isScrollingDown && actualCurrentIndex >= sections.length - 1) {
-          return;
-        }
-        if (!isScrollingDown && actualCurrentIndex <= 0) {
-          return;
-        }
+      // Add touch listeners only on non-mobile (desktop trackpad/touchscreen)
+      window.addEventListener("touchstart", touchListener, { passive: false });
+      window.addEventListener("touchmove", touchListener, { passive: false });
+    } else {
+      console.log("📱 SectionSnap: Mobile detected - touch snapping disabled, using natural scroll");
+    }
 
-        // Set processing lock
-        processingTouch = true;
-        lastTouchTime = now;
-
-        // CRITICAL: Always go to exactly adjacent section
-        const targetIndex = isScrollingDown ? actualCurrentIndex + 1 : actualCurrentIndex - 1;
-        
-        // Double-check we're only going one section away
-        if (Math.abs(targetIndex - actualCurrentIndex) !== 1) {
-          console.warn(`⚠️ SectionSnap: Invalid touch target index ${targetIndex} from ${actualCurrentIndex}, aborting`);
-          processingTouch = false;
-          return;
-        }
-
-        // Immediately snap
-        if (isScrollingDown) {
-          console.log(`⬇️ SectionSnap: Touch swipe down detected, snapping from section ${actualCurrentIndex} to ${targetIndex}`);
-        } else {
-          console.log(`⬆️ SectionSnap: Touch swipe up detected, snapping from section ${actualCurrentIndex} to ${targetIndex}`);
-        }
-        
-        gotoSection(targetIndex, isScrollingDown);
-
-        touchStartY = touchY; // Update for next move
-      }
-    };
-
-    // Add event listeners with passive: false to allow preventDefault
+    // Add wheel listener (desktop only behavior, but works on all devices that have wheel)
     window.addEventListener("wheel", wheelListener, { passive: false });
-    window.addEventListener("touchstart", touchListener, { passive: false });
-    window.addEventListener("touchmove", touchListener, { passive: false });
 
     console.log("✅ SectionSnap: Wheel and touch listeners added");
 
@@ -322,7 +318,9 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
       pin: false,
       onEnter: () => {
         console.log("🚪 SectionSnap: Entered snap zone");
-        if (currentIndex !== 0 && !animating) {
+        // Desktop only: snap back to first section when re-entering zone (e.g. scroll up).
+        // On mobile this causes unwanted pull-back to RochatSolaire when user intended to scroll down.
+        if (!isMobile() && currentIndex !== 0 && !animating) {
           gotoSection(0, true);
         }
       },
@@ -368,7 +366,7 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
         window.removeEventListener("wheel", wheelListener);
         wheelListener = null;
       }
-      if (touchListener) {
+      if (touchListener && !isMobile()) {
         window.removeEventListener("touchstart", touchListener);
         window.removeEventListener("touchmove", touchListener);
         touchListener = null;
