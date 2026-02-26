@@ -1,4 +1,4 @@
-# Rochat Solaire - Marketing Site
+# Rochat Solaire - Switzerland Solar Brand Site
 
 A modern marketing website built with Astro, featuring smooth scroll animations powered by GSAP and Lenis.
 
