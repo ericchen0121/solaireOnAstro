@@ -9,7 +9,7 @@ import { gsap } from 'gsap';
  */
 
 const DOT_SIZE = 24; // px diameter, developer discretion for crisp rendering
-const INNER_BOUNDARY_RATIO = 0.76; // line stays inside this (offset concentric) - more spacing from edge
+const INNER_BOUNDARY_RATIO = 0.9; // line stays inside this (offset concentric) - more spacing from edge
 const RECT_WIDTH_RATIO = 0.2; // rectangle width vs circle diameter
 
 const center = DOT_SIZE / 2;
@@ -44,24 +44,25 @@ export default function OrbitNavDot({
     const y0 = center - rectFullHeight / 2;
 
     const durationTravel = .6;   // time to travel to boundary (2x slower)
-    const durationCompress = .8;  // compression in thirds + accel (2x slower)
-    const durationReturn = .8;    // return to center (2x slower)
+    const durationMultiplier = 1.5;
+    const durationCompress = 1 * durationMultiplier;  // compression in thirds + accel (2x slower)
+    const durationReturn = .8 * durationMultiplier;    // return to center (2x slower)
     const easeTravel = 'power2.inOut';
-    const compressAmount = (innerRadius * 2) * (1 / 5);
-    const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.1 });
+    const compressAmount = (innerRadius * 2) * (1 / 4);
+    const tl = gsap.timeline({ repeat: -1 });
 
     // ---- BOUNCE UP (simplified) ----
-    // 1. Travel up to top boundary
-    tl.to(rect, {
-      attr: {
-        y: topBoundary,
-        height: rectFullHeight,
-        x: rectX,
-        width: rectFullWidth,
-      },
-      duration: durationTravel,
-      // ease: easeTravel,
-    });
+    // // 1. Travel up to top boundary
+    // tl.to(rect, {
+    //   attr: {
+    //     y: topBoundary,
+    //     height: rectFullHeight,
+    //     x: rectX,
+    //     width: rectFullWidth,
+    //   },
+    //   duration: durationTravel,
+    //   // ease: easeTravel,
+    // });
     // 2. Compress smoothly to compressAmount (top edge stays at boundary)
     tl.to(rect, {
       attr: {
@@ -71,27 +72,27 @@ export default function OrbitNavDot({
         width: rectFullWidth,
       },
       duration: durationCompress,
-      // ease: 'power2.in', // accelerate into compression
+      // ease: 'power3.in', // accelerate into compression
     });
     // 3. Decompress smoothly back to full height at center
     tl.to(rect, {
       attr: { y: y0, height: rectFullHeight, x: rectX, width: rectFullWidth },
       duration: durationReturn,
-      // ease: 'power2.out', // decelerate out of compression
+      // ease: 'power3.out', // decelerate out of compression
     });
 
     // ---- BOUNCE DOWN (simplified, symmetrical) ----
     // 1. Travel down to bottom boundary
-    tl.to(rect, {
-      attr: {
-        y: bottomBoundary - rectFullHeight,
-        height: rectFullHeight,
-        x: rectX,
-        width: rectFullWidth,
-      },
-      duration: durationTravel,
-      // ease: easeTravel,
-    });
+    // tl.to(rect, {
+    //   attr: {
+    //     y: bottomBoundary - rectFullHeight,
+    //     height: rectFullHeight,
+    //     x: rectX,
+    //     width: rectFullWidth,
+    //   },
+    //   duration: durationTravel,
+    //   // ease: easeTravel,
+    // });
     // 2. Compress smoothly to compressAmount (bottom edge stays at boundary)
     tl.to(rect, {
       attr: {
@@ -101,13 +102,13 @@ export default function OrbitNavDot({
         width: rectFullWidth,
       },
       duration: durationCompress,
-      // ease: 'power2.in', // accelerate into compression
+      // ease: 'power3.in', // accelerate into compression
     });
     // 3. Decompress smoothly back to full height at center
     tl.to(rect, {
       attr: { y: y0, height: rectFullHeight, x: rectX, width: rectFullWidth },
       duration: durationReturn,
-      // ease: 'power2.out', // decelerate out of compression
+      // ease: 'power3.out', // decelerate out of compression
     });
 
     timelineRef.current = tl;
