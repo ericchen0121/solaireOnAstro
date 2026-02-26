@@ -3,6 +3,7 @@ import { gsap } from 'gsap';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { DEBUG_SETTINGS } from '../../orbit-nav-config';
+import OrbitNavDot from './OrbitNavDot';
 
 gsap.registerPlugin(MotionPathPlugin, ScrollTrigger);
 
@@ -379,11 +380,6 @@ export default function OrbitNav({
     }
   };
 
-  // V2: Always white circle (no color inversion)
-  const circleColorClass = 'bg-white';
-  const hoverColorClass = 'hover:bg-gray-100';
-  const circleBorderClass = 'border-white';
-
   return (
     <div
       ref={containerRef}
@@ -419,20 +415,25 @@ export default function OrbitNav({
         ))}
       </svg>
 
-      {/* Circle moves along path (position set by GSAP motionPath, same as V1) */}
+      {/* Dot (circle + animating rectangle) moves along path via GSAP motionPath */}
       <div
         ref={circleRef}
-        className={`
-          w-4 h-4 rounded-full absolute cursor-pointer border-2 border-white
-          ${circleColorClass} ${hoverColorClass}
-          ${isHovered ? 'shadow-lg' : ''}
-        `}
+        className="absolute cursor-pointer flex items-center justify-center"
         style={{
+          width: 24,
+          height: 24,
           transformOrigin: 'center center',
           willChange: 'transform',
         }}
         title="Navigation"
-      />
+      >
+        <OrbitNavDot
+          circleFill="white"
+          rectFill="black"
+          running={true}
+          className={isHovered ? 'drop-shadow-md' : ''}
+        />
+      </div>
     </div>
   );
 }
