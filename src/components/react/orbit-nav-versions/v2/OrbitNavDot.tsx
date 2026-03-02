@@ -10,7 +10,7 @@ import { gsap } from 'gsap';
 
 const DOT_SIZE = 24; // px diameter, developer discretion for crisp rendering
 const INNER_BOUNDARY_RATIO = 0.9; // line stays inside this (offset concentric) - more spacing from edge
-const RECT_WIDTH_RATIO = 0.2; // rectangle width vs circle diameter
+const RECT_WIDTH_RATIO = 0.18; // rectangle width vs circle diameter
 
 const center = DOT_SIZE / 2;
 const outerRadius = DOT_SIZE / 2; // 12px

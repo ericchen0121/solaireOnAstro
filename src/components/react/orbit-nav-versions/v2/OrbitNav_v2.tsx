@@ -275,27 +275,30 @@ export default function OrbitNav({
     };
   }, [currentSectionIndex, ease]);
 
-  // Color inversion based on page background
+  // Color inversion: light page = black circle + white line, dark page = white circle + black line
   useEffect(() => {
     const updateColors = () => {
-      const background = detectPageBackground();
-      const shouldInvert = (background === 'light' && !isDark) || (background === 'dark' && isDark);
-      
-      if (DEBUG_SETTINGS.logColorDetection) {
-        console.log('🎨 OrbitNav V2 Color Detection:', {
-          detectedBackground: background,
-          isDark: isDark,
-          shouldInvert: shouldInvert,
-          willShowAs: shouldInvert ? 'black circle' : 'white circle'
-        });
+      let shouldInvert: boolean;
+      if (colorMode === 'dark') {
+        // Page explicitly asked for dark nav = light page background → black circle
+        shouldInvert = true;
+      } else if (colorMode === 'light') {
+        // Page explicitly asked for light nav = dark page background → white circle
+        shouldInvert = false;
+      } else {
+        // Auto: detect from DOM
+        const background = detectPageBackground();
+        shouldInvert = (background === 'light' && !isDark) || (background === 'dark' && isDark);
       }
-      
+
+      if (DEBUG_SETTINGS.logColorDetection) {
+        console.log('🎨 OrbitNav V2 Color:', { colorMode, shouldInvert, willShow: shouldInvert ? 'black circle' : 'white circle' });
+      }
       setIsInverted(shouldInvert);
     };
 
     updateColors();
-    
-    // Watch for background changes
+
     const observer = new MutationObserver(updateColors);
     observer.observe(document.body, {
       attributes: true,
@@ -303,7 +306,6 @@ export default function OrbitNav({
       childList: true,
       subtree: true
     });
-
     return () => observer.disconnect();
   }, [isDark, colorMode]);
 
@@ -428,8 +430,8 @@ export default function OrbitNav({
         title="Navigation"
       >
         <OrbitNavDot
-          circleFill="white"
-          rectFill="black"
+          circleFill={isInverted ? "black" : "white"}
+          rectFill={isInverted ? "white" : "black"}
           running={true}
           className={isHovered ? 'drop-shadow-md' : ''}
         />
