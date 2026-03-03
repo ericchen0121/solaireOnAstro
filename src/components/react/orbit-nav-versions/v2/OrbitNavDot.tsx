@@ -4,24 +4,17 @@ import { ORBIT_NAV_LAYOUT } from '../../orbit-nav-config';
 
 /**
  * OrbitNavDot - Circle with animating rectangle inside (design spec).
- * Proportions: rectangle height ~70% of circle diameter, width ~18%.
- * Inner boundary (racetrack): line travels to offset concentric boundary (~85% of radius).
- * Bounce: line travels up to top boundary, compresses in thirds with accel at peak, returns; same down.
+ * Proportions: rectangle height ~inner radius, width ~18% of diameter.
+ * Inner boundary (racetrack): line travels to offset concentric boundary (~90% of radius).
+ * Scales with size prop (32 desktop, 24 tablet, 20 mobile); inner line thickness scales proportionally.
  */
 
-const DOT_SIZE = ORBIT_NAV_LAYOUT.DOT_SIZE;
-const INNER_BOUNDARY_RATIO = 0.9; // line stays inside this (offset concentric) - more spacing from edge
-const RECT_WIDTH_RATIO = 0.18; // rectangle width vs circle diameter
-
-const center = DOT_SIZE / 2;
-const outerRadius = DOT_SIZE / 2;
-const innerRadius = outerRadius * INNER_BOUNDARY_RATIO;
-const rectFullHeight = innerRadius;
-const rectFullWidth = DOT_SIZE * RECT_WIDTH_RATIO;
-const topBoundary = center - innerRadius;
-const bottomBoundary = center + innerRadius;
+const INNER_BOUNDARY_RATIO = 0.9;
+const RECT_WIDTH_RATIO = 0.18;
+const INNER_STROKE_SCALE = 0.3 / 32; // stroke 0.3 at 32px → proportional
 
 interface OrbitNavDotProps {
+  size?: number;
   className?: string;
   circleFill?: string;
   rectFill?: string;
@@ -29,6 +22,7 @@ interface OrbitNavDotProps {
 }
 
 export default function OrbitNavDot({
+  size = ORBIT_NAV_LAYOUT.DOT_SIZE_DESKTOP,
   className = '',
   circleFill = 'white',
   rectFill = 'black',
@@ -37,6 +31,15 @@ export default function OrbitNavDot({
   const rectRef = useRef<SVGRectElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
 
+  const center = size / 2;
+  const outerRadius = size / 2;
+  const innerRadius = outerRadius * INNER_BOUNDARY_RATIO;
+  const rectFullHeight = innerRadius;
+  const rectFullWidth = size * RECT_WIDTH_RATIO;
+  const topBoundary = center - innerRadius;
+  const bottomBoundary = center + innerRadius;
+  const innerStrokeWidth = Math.max(0.2, size * INNER_STROKE_SCALE);
+
   useEffect(() => {
     const rect = rectRef.current;
     if (!rect || !running) return;
@@ -44,11 +47,9 @@ export default function OrbitNavDot({
     const rectX = center - rectFullWidth / 2;
     const y0 = center - rectFullHeight / 2;
 
-    const durationTravel = .6;   // time to travel to boundary (2x slower)
     const durationMultiplier = 1.5;
-    const durationCompress = 1 * durationMultiplier;  // compression in thirds + accel (2x slower)
-    const durationReturn = .8 * durationMultiplier;    // return to center (2x slower)
-    const easeTravel = 'power2.inOut';
+    const durationCompress = 1 * durationMultiplier;
+    const durationReturn = .8 * durationMultiplier;
     const compressAmount = (innerRadius * 2) * (1 / 4);
     const tl = gsap.timeline({ repeat: -1 });
 
@@ -117,13 +118,13 @@ export default function OrbitNavDot({
       tl.kill();
       timelineRef.current = null;
     };
-  }, [running]);
+  }, [running, size, center, rectFullWidth, rectFullHeight, topBoundary, bottomBoundary, innerRadius]);
 
   return (
     <svg
-      width={DOT_SIZE}
-      height={DOT_SIZE}
-      viewBox={`0 0 ${DOT_SIZE} ${DOT_SIZE}`}
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
       className={className}
       style={{ display: 'block', overflow: 'visible' }}
     >
@@ -131,18 +132,18 @@ export default function OrbitNavDot({
       <circle
         cx={center}
         cy={center}
-        r={DOT_SIZE / 2}
+        r={outerRadius}
         fill={circleFill}
         style={{ shapeRendering: 'geometricPrecision' }}
       />
-      {/* Inner boundary (racetrack) - line travels to this offset, not to outer edge */}
+      {/* Inner boundary (racetrack) - line travels to this offset; stroke scales with size */}
       <circle
         cx={center}
         cy={center}
         r={innerRadius}
         fill="none"
         stroke={circleFill}
-        strokeWidth={0.3}
+        strokeWidth={innerStrokeWidth}
         strokeDasharray="1.5 1.5"
         opacity={0.12}
         style={{ pointerEvents: 'none' }}

@@ -54,16 +54,31 @@ if (typeof window !== 'undefined') {
 // Layout: dot/orbit position and size (V2)
 // Spec: 2.5X = viewport top to center of circle; 1.5X = viewport right to center of circle (1X = dot diameter).
 // Container offsets from viewport: top = 2× dot, right = 1× dot (right edge of orbit).
+// Dot scales by breakpoint: desktop ≥1024px, tablet 768–1023px, mobile <768px.
 export const ORBIT_NAV_LAYOUT = {
-  DOT_SIZE: 32,
+  DOT_SIZE_DESKTOP: 32,
+  DOT_SIZE_TABLET: 24,
+  DOT_SIZE_MOBILE: 20,
   TOP_OFFSET_RATIO: 2,    // container top from viewport (2× dot)
   RIGHT_OFFSET_RATIO: 1,  // container right from viewport, to right edge of orbit (1× dot)
-  ORBIT_WIDTH: 160,
-  ORBIT_HEIGHT: 80,
-  ORBIT_WIDTH_MOBILE: 120,
-  ORBIT_HEIGHT_MOBILE: 60,
+  ORBIT_WIDTH_DESKTOP: 160,
+  ORBIT_HEIGHT_DESKTOP: 80,
+  ORBIT_WIDTH_TABLET: 140,
+  ORBIT_HEIGHT_TABLET: 70,
+  ORBIT_WIDTH_MOBILE: 100,
+  ORBIT_HEIGHT_MOBILE: 50,
+  TABLET_BREAKPOINT_PX: 1024,
   MOBILE_BREAKPOINT_PX: 768,
 } as const;
+
+/** Dot size by viewport: desktop ≥1024 → 32px, tablet 768–1023 → 24px, mobile <768 → 20px */
+export function getDotSize(): number {
+  if (typeof window === 'undefined') return ORBIT_NAV_LAYOUT.DOT_SIZE_DESKTOP;
+  const w = window.innerWidth;
+  if (w >= ORBIT_NAV_LAYOUT.TABLET_BREAKPOINT_PX) return ORBIT_NAV_LAYOUT.DOT_SIZE_DESKTOP;
+  if (w >= ORBIT_NAV_LAYOUT.MOBILE_BREAKPOINT_PX) return ORBIT_NAV_LAYOUT.DOT_SIZE_TABLET;
+  return ORBIT_NAV_LAYOUT.DOT_SIZE_MOBILE;
+}
 
 // Temporary debug settings for V2 development
 export const DEBUG_SETTINGS = {

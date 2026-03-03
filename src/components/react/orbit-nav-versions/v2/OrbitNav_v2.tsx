@@ -2,14 +2,37 @@ import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { DEBUG_SETTINGS, ORBIT_NAV_LAYOUT } from '../../orbit-nav-config';
+import { DEBUG_SETTINGS, getDotSize, ORBIT_NAV_LAYOUT } from '../../orbit-nav-config';
 import OrbitNavDot from './OrbitNavDot';
 
 const getPathDimensions = () => {
-  if (typeof window === 'undefined') return { w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH, h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT };
-  return window.innerWidth < ORBIT_NAV_LAYOUT.MOBILE_BREAKPOINT_PX
-    ? { w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH_MOBILE, h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT_MOBILE }
-    : { w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH, h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT };
+  if (typeof window === 'undefined') {
+    return {
+      w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH_DESKTOP,
+      h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT_DESKTOP,
+    };
+  }
+
+  const viewportWidth = window.innerWidth;
+
+  if (viewportWidth >= ORBIT_NAV_LAYOUT.TABLET_BREAKPOINT_PX) {
+    return {
+      w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH_DESKTOP,
+      h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT_DESKTOP,
+    };
+  }
+
+  if (viewportWidth >= ORBIT_NAV_LAYOUT.MOBILE_BREAKPOINT_PX) {
+    return {
+      w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH_TABLET,
+      h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT_TABLET,
+    };
+  }
+
+  return {
+    w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH_MOBILE,
+    h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT_MOBILE,
+  };
 };
 
 gsap.registerPlugin(MotionPathPlugin, ScrollTrigger);
@@ -50,10 +73,28 @@ export default function OrbitNav({
   const isAnimatingRef = useRef<boolean>(false);
   const [debugPositions, setDebugPositions] = useState<Array<{x: number, y: number, label: string}>>([]);
   const [pathDimensions, setPathDimensions] = useState(() => getPathDimensions());
+  const [dotSize, setDotSize] = useState(() => getDotSize());
+  const [offsets, setOffsets] = useState(() => {
+    const initialDot = getDotSize();
+    return {
+      top: ORBIT_NAV_LAYOUT.TOP_OFFSET_RATIO * initialDot,
+      right: ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 2 * initialDot,
+    };
+  });
 
-  // Responsive orbit size: 160×80 desktop, 120×60 mobile
+  // Responsive orbit and dot size
   useEffect(() => {
-    const update = () => setPathDimensions(getPathDimensions());
+    const update = () => {
+      const newPathDimensions = getPathDimensions();
+      const newDotSize = getDotSize();
+
+      setPathDimensions(newPathDimensions);
+      setDotSize(newDotSize);
+      setOffsets({
+        top: ORBIT_NAV_LAYOUT.TOP_OFFSET_RATIO * newDotSize,
+        right: ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 2 * newDotSize,
+      });
+    };
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
@@ -61,11 +102,6 @@ export default function OrbitNav({
 
   const PATH_WIDTH = pathDimensions.w;
   const PATH_HEIGHT = pathDimensions.h;
-  const dotSize = ORBIT_NAV_LAYOUT.DOT_SIZE;
-  // Spec: 2.5X = viewport top to center of dot; 1.5X = viewport right to center of dot.
-  // Container offsets: top = 2× dot (viewport to top of orbit), right = 1× dot (viewport to right edge of orbit).
-  const topOffset = ORBIT_NAV_LAYOUT.TOP_OFFSET_RATIO * dotSize;
-  const rightOffset = ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 2 * dotSize;
 
   const createPillPath = (width: number, height: number) => {
     const radius = height / 2;
@@ -407,8 +443,8 @@ export default function OrbitNav({
       ref={containerRef}
       className="orbit-nav-container fixed z-50"
       style={{
-        top: topOffset,
-        right: rightOffset,
+        top: offsets.top,
+        right: offsets.right,
         width: PATH_WIDTH,
         height: PATH_HEIGHT,
       }}
@@ -455,6 +491,7 @@ export default function OrbitNav({
         title="Navigation"
       >
         <OrbitNavDot
+          size={dotSize}
           circleFill={isInverted ? "black" : "white"}
           rectFill={isInverted ? "white" : "black"}
           running={true}
