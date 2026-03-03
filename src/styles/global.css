@@ -95,12 +95,40 @@
 
   /* Hero title styling - F37 Moon style */
   .hero-title {
+    position: relative;
     font-family: var(--font-hero);
     font-weight: 300;
     font-size: 80px;
     line-height: 80px;
     letter-spacing: 0.02em; /* 2% */
     margin-left: 10vw;
+  }
+
+  /* Blinking cursor – thin, tall, 0.5s on / 0.5s off like real text editors */
+  .hero-cursor {
+    position: absolute;
+    display: none; /* shown by letterReveal when ready */
+    left: 0;
+    top: 0;
+    width: 2px;
+    min-width: 2px;
+    height: 1em;
+    margin-right: 0.05em;
+    background: currentColor;
+    pointer-events: none;
+    animation: hero-cursor-blink 1s step-end infinite;
+    animation-delay: -0.45s; /* JS will reset to 0s when typing ends for precise blink start */
+  }
+
+  /* Solid (no blink) while "typing" – like a real text editor */
+  .hero-cursor.hero-cursor-typing {
+    animation: none;
+    opacity: 1;
+  }
+
+  @keyframes hero-cursor-blink {
+    0%, 100% { opacity: 1; }  /* 0.5s on */
+    50% { opacity: 0; }       /* 0.5s off */
   }
 
   /* Mobile: larger font, no left margin, proper padding, prevent word breaks */
