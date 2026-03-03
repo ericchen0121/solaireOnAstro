@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
+import { ORBIT_NAV_LAYOUT } from '../../orbit-nav-config';
 
 /**
  * OrbitNavDot - Circle with animating rectangle inside (design spec).
@@ -8,17 +9,17 @@ import { gsap } from 'gsap';
  * Bounce: line travels up to top boundary, compresses in thirds with accel at peak, returns; same down.
  */
 
-const DOT_SIZE = 24; // px diameter, developer discretion for crisp rendering
+const DOT_SIZE = ORBIT_NAV_LAYOUT.DOT_SIZE;
 const INNER_BOUNDARY_RATIO = 0.9; // line stays inside this (offset concentric) - more spacing from edge
 const RECT_WIDTH_RATIO = 0.18; // rectangle width vs circle diameter
 
 const center = DOT_SIZE / 2;
-const outerRadius = DOT_SIZE / 2; // 12px
-const innerRadius = outerRadius * INNER_BOUNDARY_RATIO; // 8.64px
-const rectFullHeight = innerRadius
+const outerRadius = DOT_SIZE / 2;
+const innerRadius = outerRadius * INNER_BOUNDARY_RATIO;
+const rectFullHeight = innerRadius;
 const rectFullWidth = DOT_SIZE * RECT_WIDTH_RATIO;
-const topBoundary = center - innerRadius;   // y of top boundary
-const bottomBoundary = center + innerRadius; // y of bottom boundary
+const topBoundary = center - innerRadius;
+const bottomBoundary = center + innerRadius;
 
 interface OrbitNavDotProps {
   className?: string;

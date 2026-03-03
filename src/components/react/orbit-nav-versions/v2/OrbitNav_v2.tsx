@@ -2,8 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { DEBUG_SETTINGS } from '../../orbit-nav-config';
+import { DEBUG_SETTINGS, ORBIT_NAV_LAYOUT } from '../../orbit-nav-config';
 import OrbitNavDot from './OrbitNavDot';
+
+const getPathDimensions = () => {
+  if (typeof window === 'undefined') return { w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH, h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT };
+  return window.innerWidth < ORBIT_NAV_LAYOUT.MOBILE_BREAKPOINT_PX
+    ? { w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH_MOBILE, h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT_MOBILE }
+    : { w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH, h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT };
+};
 
 gsap.registerPlugin(MotionPathPlugin, ScrollTrigger);
 
@@ -42,10 +49,23 @@ export default function OrbitNav({
   const previousSectionIndexRef = useRef<number>(0);
   const isAnimatingRef = useRef<boolean>(false);
   const [debugPositions, setDebugPositions] = useState<Array<{x: number, y: number, label: string}>>([]);
+  const [pathDimensions, setPathDimensions] = useState(() => getPathDimensions());
 
-  // Pill-shaped path (same as V1) - circle moves to positions along this path per section
-  const PATH_WIDTH = 120;
-  const PATH_HEIGHT = 50;
+  // Responsive orbit size: 160×80 desktop, 120×60 mobile
+  useEffect(() => {
+    const update = () => setPathDimensions(getPathDimensions());
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const PATH_WIDTH = pathDimensions.w;
+  const PATH_HEIGHT = pathDimensions.h;
+  const dotSize = ORBIT_NAV_LAYOUT.DOT_SIZE;
+  // Spec: 2.5X = viewport top to center of dot; 1.5X = viewport right to center of dot.
+  // Container offsets: top = 2× dot (viewport to top of orbit), right = 1× dot (viewport to right edge of orbit).
+  const topOffset = ORBIT_NAV_LAYOUT.TOP_OFFSET_RATIO * dotSize;
+  const rightOffset = ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 2 * dotSize;
 
   const createPillPath = (width: number, height: number) => {
     const radius = height / 2;
@@ -168,7 +188,7 @@ export default function OrbitNav({
       });
       setDebugPositions(pts);
     }
-  }, [debugMarkers]);
+  }, [debugMarkers, PATH_WIDTH, PATH_HEIGHT]);
 
   // Move circle to section position on section change (same as V1: forward = clockwise, backward = counterclockwise)
   useEffect(() => {
@@ -385,8 +405,13 @@ export default function OrbitNav({
   return (
     <div
       ref={containerRef}
-      className="orbit-nav-container fixed top-12 right-40 md:top-16 md:right-40 z-50"
-      style={{ width: PATH_WIDTH, height: PATH_HEIGHT }}
+      className="orbit-nav-container fixed z-50"
+      style={{
+        top: topOffset,
+        right: rightOffset,
+        width: PATH_WIDTH,
+        height: PATH_HEIGHT,
+      }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -422,8 +447,8 @@ export default function OrbitNav({
         ref={circleRef}
         className="absolute cursor-pointer flex items-center justify-center"
         style={{
-          width: 24,
-          height: 24,
+          width: dotSize,
+          height: dotSize,
           transformOrigin: 'center center',
           willChange: 'transform',
         }}

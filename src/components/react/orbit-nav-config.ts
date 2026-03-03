@@ -51,6 +51,20 @@ if (typeof window !== 'undefined') {
   console.log(`🎯 OrbitNav Version: ${ACTIVE_VERSION}`, getCurrentVersionInfo());
 }
 
+// Layout: dot/orbit position and size (V2)
+// Spec: 2.5X = viewport top to center of circle; 1.5X = viewport right to center of circle (1X = dot diameter).
+// Container offsets from viewport: top = 2× dot, right = 1× dot (right edge of orbit).
+export const ORBIT_NAV_LAYOUT = {
+  DOT_SIZE: 32,
+  TOP_OFFSET_RATIO: 2,    // container top from viewport (2× dot)
+  RIGHT_OFFSET_RATIO: 1,  // container right from viewport, to right edge of orbit (1× dot)
+  ORBIT_WIDTH: 160,
+  ORBIT_HEIGHT: 80,
+  ORBIT_WIDTH_MOBILE: 120,
+  ORBIT_HEIGHT_MOBILE: 60,
+  MOBILE_BREAKPOINT_PX: 768,
+} as const;
+
 // Temporary debug settings for V2 development
 export const DEBUG_SETTINGS = {
   showDebugMarkers: false,
