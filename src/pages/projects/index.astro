@@ -1,8 +1,12 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import BaseLayout from "../../layouts/BaseLayout.astro";
 ---
 
-<BaseLayout title="Our Projects - Rochat Solaire">
+<BaseLayout
+  title="Our Projects - Rochat Solaire"
+  isDark={false}
+  orbitNavColorMode="dark"
+>
   <!-- Hero Section -->
   <section class="hero min-h-screen flex items-center justify-center bg-white">
     <div class="container mx-auto px-4">
@@ -16,10 +20,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   </section>
 
   <!-- Projects Section -->
-  <section class="projects-section min-h-screen flex items-center justify-center bg-charcoal text-white">
+  <section
+    class="projects-section min-h-screen flex items-center justify-center bg-charcoal text-white"
+  >
     <div class="container mx-auto px-4">
       <div class="max-w-6xl">
-        <h2 class="text-4xl md:text-5xl font-bold mb-12 text-center">Featured Installations</h2>
+        <h2 class="text-4xl md:text-5xl font-bold mb-12 text-center">
+          Featured Installations
+        </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <!-- Project cards will be added here -->
           <div class="bg-white/10 p-8 rounded-lg">
@@ -31,5 +39,3 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </div>
   </section>
 </BaseLayout>
-
-

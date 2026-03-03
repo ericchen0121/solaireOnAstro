@@ -138,6 +138,7 @@ import Odometer from "../components/react/Odometer.tsx";
 
   <!-- Section 5 -->
   <section
+    id="why-solar-section"
     class="why-solar-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
     <a href="/why-solar">
@@ -152,6 +153,7 @@ import Odometer from "../components/react/Odometer.tsx";
 
   <!-- Section 6 -->
   <section
+    id="why-us-section"
     class="why-us-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
     <a href="/why-work-with-us">
@@ -166,6 +168,7 @@ import Odometer from "../components/react/Odometer.tsx";
 
   <!-- Section 7 -->
   <section
+    id="clients-section"
     class="clients-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
     <a href="/clients">
@@ -180,6 +183,7 @@ import Odometer from "../components/react/Odometer.tsx";
 
   <!-- Section 8: Projets -->
   <section
+    id="projets-section"
     class="projets-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
     <a href="/projets">
@@ -194,6 +198,7 @@ import Odometer from "../components/react/Odometer.tsx";
 
   <!-- Section 9: Contact -->
   <section
+    id="contact-section"
     class="contact-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
     <a
@@ -228,6 +233,26 @@ import Odometer from "../components/react/Odometer.tsx";
     let cleanupSectionSnap = null;
     const cleanupFunctions = [];
 
+    function scrollToHashSectionIfNeeded() {
+      const { hash } = window.location;
+      if (!hash) return;
+
+      try {
+        const target = document.querySelector(hash);
+        if (!(target instanceof HTMLElement)) return;
+
+        // Defer to ensure layout is ready before scrolling
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: target.offsetTop,
+            behavior: "auto",
+          });
+        });
+      } catch (err) {
+        console.warn("Hash scroll failed for", hash, err);
+      }
+    }
+
     function initAnimations() {
       console.log("🎬 initAnimations called");
       // 1. Letter reveal for hero - MUST run first before any other animations
@@ -253,6 +278,10 @@ import Odometer from "../components/react/Odometer.tsx";
               ".contact-section",
             ],
           });
+
+          // If we arrived with a hash (e.g. from OrbitNav "back"),
+          // gently correct the initial scroll position to that section.
+          scrollToHashSectionIfNeeded();
 
           // 3. Hero scroll animation - start after letter reveal is set up
           setTimeout(() => {

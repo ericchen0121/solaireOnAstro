@@ -40,6 +40,8 @@ gsap.registerPlugin(MotionPathPlugin, ScrollTrigger);
 interface OrbitNavProps {
   isDark?: boolean;
   colorMode?: 'auto' | 'light' | 'dark';
+  /** When true, show "back" on non-home even when nav is not inverted (e.g. light dot on dark page). */
+  showBack?: boolean;
   ease?: string;
   debugMarkers?: boolean;
 }
@@ -57,6 +59,7 @@ interface OrbitNavProps {
 export default function OrbitNav({ 
   isDark = false, 
   colorMode = 'auto',
+  showBack: showBackOverride = false,
   ease = 'power3.inOut',
   debugMarkers = DEBUG_SETTINGS.showDebugMarkers // Use debug setting
 }: OrbitNavProps) {
@@ -81,6 +84,24 @@ export default function OrbitNav({
       right: ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 2 * initialDot,
     };
   });
+  const [isHomePage, setIsHomePage] = useState(true);
+  const [backTarget, setBackTarget] = useState<string | null>(null);
+  const [dotCenter, setDotCenter] = useState<{ x: number; y: number } | null>(null);
+  const syncDotCenterRef = useRef<() => void>(() => {});
+
+  const syncDotCenter = () => {
+    if (!pathRef.current || !containerRef.current) return;
+    const path = pathRef.current;
+    const progress = currentPathProgress.current;
+    const totalLength = path.getTotalLength();
+    const pt = path.getPointAtLength(progress * totalLength);
+    const rect = containerRef.current.getBoundingClientRect();
+    setDotCenter({ x: rect.left + pt.x, y: rect.top + pt.y });
+  };
+
+  useEffect(() => {
+    syncDotCenterRef.current = syncDotCenter;
+  });
 
   // Responsive orbit and dot size
   useEffect(() => {
@@ -94,10 +115,46 @@ export default function OrbitNav({
         top: ORBIT_NAV_LAYOUT.TOP_OFFSET_RATIO * newDotSize,
         right: ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 2 * newDotSize,
       });
+      requestAnimationFrame(() => syncDotCenterRef.current());
     };
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
+  }, []);
+
+  // Determine if we're on the homepage and what the "back" target should be
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const rawPath = window.location.pathname;
+    const normalisedPath = rawPath.replace(/\/+$/, '') || '/';
+
+    setIsHomePage(normalisedPath === '/');
+
+    let target: string | null = null;
+    switch (normalisedPath) {
+      case '/why-solar':
+        target = '/#why-solar-section';
+        break;
+      case '/why-work-with-us':
+        target = '/#why-us-section';
+        break;
+      case '/clients':
+        target = '/#clients-section';
+        break;
+      case '/projets':
+      case '/projects':
+        target = '/#projets-section';
+        break;
+      case '/contact':
+        target = '/#contact-section';
+        break;
+      default:
+        target = '/';
+        break;
+    }
+
+    setBackTarget(target);
   }, []);
 
   const PATH_WIDTH = pathDimensions.w;
@@ -224,6 +281,7 @@ export default function OrbitNav({
       });
       setDebugPositions(pts);
     }
+    requestAnimationFrame(() => syncDotCenterRef.current());
   }, [debugMarkers, PATH_WIDTH, PATH_HEIGHT]);
 
   // Move circle to section position on section change (same as V1: forward = clockwise, backward = counterclockwise)
@@ -258,6 +316,7 @@ export default function OrbitNav({
           end: p,
         },
       });
+      requestAnimationFrame(() => syncDotCenterRef.current());
     };
 
     const animateToTarget = () => {
@@ -415,90 +474,97 @@ export default function OrbitNav({
     };
   }, []);
 
-  // Hover handlers
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    if (circleRef.current) {
-      gsap.to(circleRef.current, {
-        scale: 1.2,
-        duration: 0.3,
-        ease: 'power2.out'
-      });
-    }
-  };
+  // Hover handlers (no scale effect; kept for potential drop-shadow / future use)
+  const handleMouseEnter = () => setIsHovered(true);
+  const handleMouseLeave = () => setIsHovered(false);
 
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (circleRef.current) {
-      gsap.to(circleRef.current, {
-        scale: 1,
-        duration: 0.3,
-        ease: 'power2.out'
-      });
-    }
-  };
+  const shouldShowBack = (isInverted || showBackOverride) && !isHomePage && !!backTarget && dotCenter;
+  const backTextLight = showBackOverride && !isInverted;
+
+  // Minimum touch target (px); dot hit area extends by this much on each side
+  const HIT_AREA_PADDING = 20;
 
   return (
-    <div
-      ref={containerRef}
-      className="orbit-nav-container fixed z-50"
-      style={{
-        top: offsets.top,
-        right: offsets.right,
-        width: PATH_WIDTH,
-        height: PATH_HEIGHT,
-      }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      <svg
-        width={PATH_WIDTH}
-        height={PATH_HEIGHT}
-        className="absolute top-0 left-0 pointer-events-none"
-        style={{ overflow: 'visible' }}
-        viewBox={`0 0 ${PATH_WIDTH} ${PATH_HEIGHT}`}
-      >
-        <path
-          ref={pathRef}
-          fill="none"
-          stroke={debugMarkers ? 'rgba(255,255,255,0.3)' : 'transparent'}
-          strokeWidth="1"
-          strokeDasharray={debugMarkers ? '2,2' : 'none'}
-        />
-        {debugMarkers && debugPositions.map((pos, i) => (
-          <circle
-            key={i}
-            cx={pos.x}
-            cy={pos.y}
-            r="4"
-            fill={i === currentSectionIndex ? '#00ff00' : 'rgba(255,255,255,0.6)'}
-            stroke="rgba(255,255,255,0.8)"
-            strokeWidth="1"
-          />
-        ))}
-      </svg>
+    <>
+      {shouldShowBack && dotCenter && (
+        <button
+          type="button"
+          className={`fixed z-[60] text-xs md:text-sm lg:text-base font-bold hover:opacity-70 transition-opacity pointer-events-auto py-3 px-4 min-h-[44px] min-w-[44px] flex items-center justify-end ${backTextLight ? 'text-white' : 'text-black'}`}
+          style={{
+            right: `calc(100vw - ${dotCenter.x}px + ${dotSize/2}px - ${HIT_AREA_PADDING*2}px)`,
+            top: dotCenter.y + dotSize/2 + HIT_AREA_PADDING,
+            transform: 'translateY(-50%)',
+          }}
+          onClick={() => {
+            if (!backTarget) return;
+            window.location.href = backTarget;
+          }}
+        >
+          back
+        </button>
+      )}
 
-      {/* Dot (circle + animating rectangle) moves along path via GSAP motionPath */}
       <div
-        ref={circleRef}
-        className="absolute cursor-pointer flex items-center justify-center"
+        ref={containerRef}
+        className="orbit-nav-container fixed z-50 pointer-events-none"
         style={{
-          width: dotSize,
-          height: dotSize,
-          transformOrigin: 'center center',
-          willChange: 'transform',
+          top: offsets.top,
+          right: offsets.right,
+          width: PATH_WIDTH,
+          height: PATH_HEIGHT,
         }}
-        title="Navigation"
       >
-        <OrbitNavDot
-          size={dotSize}
-          circleFill={isInverted ? "black" : "white"}
-          rectFill={isInverted ? "white" : "black"}
-          running={true}
-          className={isHovered ? 'drop-shadow-md' : ''}
-        />
+        <svg
+          width={PATH_WIDTH}
+          height={PATH_HEIGHT}
+          className="absolute top-0 left-0 pointer-events-none"
+          style={{ overflow: 'visible' }}
+          viewBox={`0 0 ${PATH_WIDTH} ${PATH_HEIGHT}`}
+        >
+          <path
+            ref={pathRef}
+            fill="none"
+            stroke={debugMarkers ? 'rgba(255,255,255,0.3)' : 'transparent'}
+            strokeWidth="1"
+            strokeDasharray={debugMarkers ? '2,2' : 'none'}
+          />
+          {debugMarkers && debugPositions.map((pos, i) => (
+            <circle
+              key={i}
+              cx={pos.x}
+              cy={pos.y}
+              r="4"
+              fill={i === currentSectionIndex ? '#00ff00' : 'rgba(255,255,255,0.6)'}
+              stroke="rgba(255,255,255,0.8)"
+              strokeWidth="1"
+            />
+          ))}
+        </svg>
+
+        {/* Dot: larger hit area (HIT_AREA_PADDING on each side), visual dot centered */}
+        <div
+          ref={circleRef}
+          className="absolute cursor-pointer flex items-center justify-center pointer-events-auto"
+          style={{
+            width: dotSize + HIT_AREA_PADDING * 2,
+            height: dotSize + HIT_AREA_PADDING * 2,
+            transformOrigin: 'center center',
+            willChange: 'transform',
+          }}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          title="Navigation"
+        >
+          <OrbitNavDot
+            size={dotSize}
+            circleFill={isInverted ? "black" : "white"}
+            rectFill={isInverted ? "white" : "black"}
+            running={true}
+            className={isHovered ? 'drop-shadow-md' : ''}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

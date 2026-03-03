@@ -8,6 +8,8 @@ interface Props {
   description?: string;
   isDark?: boolean;
   orbitNavColorMode?: "auto" | "light" | "dark";
+  /** Show "back" on non-home even when nav is light (e.g. projets: light dot, dark bg, white back text). */
+  showBack?: boolean;
 }
 
 const {
@@ -15,6 +17,7 @@ const {
   description = "Leading solar energy solutions for sustainable power generation.",
   isDark = false,
   orbitNavColorMode = "auto",
+  showBack = false,
 } = Astro.props;
 ---
 
@@ -54,6 +57,7 @@ const {
       client:only="react"
       isDark={isDark}
       colorMode={orbitNavColorMode}
+      showBack={showBack}
     />
     <slot />
   </body>
