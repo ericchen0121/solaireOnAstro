@@ -27,9 +27,9 @@ function isMobile(): boolean {
 export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
   const {
     threshold = 0.15,
-    snapDuration = 0.35,
+    snapDuration = 0.65,
     sections: selectors,
-    ease = "power2.out",
+    ease = "expo.inOut",
   } = options;
 
   let cleanupFn: (() => void) | null = null;

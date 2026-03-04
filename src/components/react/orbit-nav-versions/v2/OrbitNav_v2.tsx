@@ -114,7 +114,7 @@ export default function OrbitNav({
     const initialDot = getDotSize();
     return {
       top: ORBIT_NAV_LAYOUT.TOP_OFFSET_RATIO * initialDot,
-      right: ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 2 * initialDot,
+      right: ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 3 * initialDot,
     };
   });
   const [isHomePage, setIsHomePage] = useState(true);
@@ -149,7 +149,7 @@ export default function OrbitNav({
       setDotSize(newDotSize);
       setOffsets({
         top: ORBIT_NAV_LAYOUT.TOP_OFFSET_RATIO * newDotSize,
-        right: ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 2 * newDotSize,
+        right: ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 3 * newDotSize,
       });
       requestAnimationFrame(() => syncDotCenterRef.current());
     };
