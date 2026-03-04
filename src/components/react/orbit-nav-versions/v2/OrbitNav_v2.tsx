@@ -56,6 +56,38 @@ interface OrbitNavProps {
  * - Prepared for new circle animation
  * - ScrollTrigger integration (preserved from v1)
  */
+function getBackTargetFromPath(normalisedPath: string): string | null {
+  switch (normalisedPath) {
+    case '/why-solar': return '/#why-solar-section';
+    case '/why-work-with-us': return '/#why-us-section';
+    case '/clients': return '/#clients-section';
+    case '/projets':
+    case '/projects': return '/#projets-section';
+    case '/contact': return '/#contact-section';
+    default: return '/';
+  }
+}
+
+/** Fallback orbit nav config by path when dataset is missing (e.g. before-swap not yet run). */
+function getOrbitNavConfigFromPath(path: string): { colorMode: 'auto' | 'light' | 'dark'; showBack: boolean; isDark: boolean } {
+  switch (path) {
+    case '/why-solar':
+      return { colorMode: 'dark', showBack: false, isDark: false };
+    case '/why-work-with-us':
+      return { colorMode: 'dark', showBack: false, isDark: false };
+    case '/clients':
+      return { colorMode: 'dark', showBack: false, isDark: false };
+    case '/projets':
+      return { colorMode: 'light', showBack: true, isDark: false };
+    case '/projects':
+      return { colorMode: 'dark', showBack: false, isDark: false };
+    case '/contact':
+      return { colorMode: 'dark', showBack: false, isDark: true };
+    default:
+      return { colorMode: 'auto', showBack: false, isDark: false };
+  }
+}
+
 export default function OrbitNav({ 
   isDark = false, 
   colorMode = 'auto',
@@ -74,6 +106,7 @@ export default function OrbitNav({
   const currentPathProgress = useRef<number>(0);
   const previousSectionIndexRef = useRef<number>(0);
   const isAnimatingRef = useRef<boolean>(false);
+  const hasInitializedPosition = useRef<boolean>(false);
   const [debugPositions, setDebugPositions] = useState<Array<{x: number, y: number, label: string}>>([]);
   const [pathDimensions, setPathDimensions] = useState(() => getPathDimensions());
   const [dotSize, setDotSize] = useState(() => getDotSize());
@@ -86,6 +119,9 @@ export default function OrbitNav({
   });
   const [isHomePage, setIsHomePage] = useState(true);
   const [backTarget, setBackTarget] = useState<string | null>(null);
+  const [colorModeState, setColorModeState] = useState(colorMode);
+  const [showBackState, setShowBackState] = useState(showBackOverride);
+  const [isDarkState, setIsDarkState] = useState(isDark);
   const [dotCenter, setDotCenter] = useState<{ x: number; y: number } | null>(null);
   const syncDotCenterRef = useRef<() => void>(() => {});
 
@@ -122,39 +158,66 @@ export default function OrbitNav({
     return () => window.removeEventListener('resize', update);
   }, []);
 
-  // Determine if we're on the homepage and what the "back" target should be
-  useEffect(() => {
+  const syncFromDocument = () => {
     if (typeof window === 'undefined') return;
-
     const rawPath = window.location.pathname;
     const normalisedPath = rawPath.replace(/\/+$/, '') || '/';
+    const newIsHome = normalisedPath === '/';
+    const newBackTarget = getBackTargetFromPath(normalisedPath);
+    
+    const d = document.documentElement.dataset;
+    const fallback = getOrbitNavConfigFromPath(normalisedPath);
+    const newColorMode = (d.orbitNavColorMode as 'auto' | 'light' | 'dark') || fallback.colorMode;
+    const newShowBack = d.orbitShowBack !== undefined ? d.orbitShowBack === 'true' : fallback.showBack;
+    const newIsDark = d.orbitIsDark !== undefined ? d.orbitIsDark === 'true' : fallback.isDark;
 
-    setIsHomePage(normalisedPath === '/');
+    console.log('🔄 syncFromDocument:', {
+      path: normalisedPath,
+      isHome: newIsHome,
+      dataset: { mode: d.orbitNavColorMode, showBack: d.orbitShowBack, isDark: d.orbitIsDark },
+      fallback,
+      final: { colorMode: newColorMode, showBack: newShowBack, isDark: newIsDark }
+    });
 
-    let target: string | null = null;
-    switch (normalisedPath) {
-      case '/why-solar':
-        target = '/#why-solar-section';
-        break;
-      case '/why-work-with-us':
-        target = '/#why-us-section';
-        break;
-      case '/clients':
-        target = '/#clients-section';
-        break;
-      case '/projets':
-      case '/projects':
-        target = '/#projets-section';
-        break;
-      case '/contact':
-        target = '/#contact-section';
-        break;
-      default:
-        target = '/';
-        break;
-    }
+    setIsHomePage(newIsHome);
+    setBackTarget(newBackTarget);
+    setColorModeState(newColorMode);
+    setShowBackState(newShowBack);
+    setIsDarkState(newIsDark);
+  };
 
-    setBackTarget(target);
+  useEffect(() => {
+    syncFromDocument();
+
+    // Copy incoming page's orbit-nav data attributes onto current document (body swap doesn't replace html, so scripts in new body may not run)
+    const onBeforeSwap = (ev: Event) => {
+      const e = ev as CustomEvent<{ newDocument: Document }>;
+      const newDoc = e.detail?.newDocument;
+      if (!newDoc) return;
+      const newRoot = newDoc.documentElement;
+      const cur = document.documentElement;
+      const mode = newRoot.getAttribute('data-orbit-nav-color-mode');
+      const showBackAttr = newRoot.getAttribute('data-orbit-show-back');
+      const isDarkAttr = newRoot.getAttribute('data-orbit-is-dark');
+      if (mode != null) cur.dataset.orbitNavColorMode = mode;
+      if (showBackAttr != null) cur.dataset.orbitShowBack = showBackAttr;
+      if (isDarkAttr != null) cur.dataset.orbitIsDark = isDarkAttr;
+      console.log('🔄 OrbitNav before-swap:', { mode, showBackAttr, isDarkAttr, path: window.location.pathname });
+    };
+
+    const onAfterNavigate = () => {
+      console.log('🔄 OrbitNav after navigate event, will sync');
+      requestAnimationFrame(() => syncFromDocument());
+    };
+
+    document.addEventListener('astro:before-swap', onBeforeSwap);
+    document.addEventListener('astro:page-load', onAfterNavigate);
+    document.addEventListener('astro:after-swap', onAfterNavigate);
+    return () => {
+      document.removeEventListener('astro:before-swap', onBeforeSwap);
+      document.removeEventListener('astro:page-load', onAfterNavigate);
+      document.removeEventListener('astro:after-swap', onAfterNavigate);
+    };
   }, []);
 
   const PATH_WIDTH = pathDimensions.w;
@@ -201,8 +264,8 @@ export default function OrbitNav({
 
   // Auto color detection based on page background
   const detectPageBackground = (): 'light' | 'dark' => {
-    if (colorMode === 'light') return 'light';
-    if (colorMode === 'dark') return 'dark';
+    if (colorModeState === 'light') return 'light';
+    if (colorModeState === 'dark') return 'dark';
 
     // Auto-detect from page sections
     const sections = document.querySelectorAll('section, main, body');
@@ -270,8 +333,27 @@ export default function OrbitNav({
       leftCenter, leftCenter, leftCenter, leftCenter,
       section4TopX, section5TopX, rightCenter, section7BottomX, section8BottomX,
     ];
-    currentPathProgress.current = leftCenter;
-    previousSectionIndexRef.current = 0;
+    
+    // Only initialize position on first mount, preserve it across navigation/resize
+    if (!hasInitializedPosition.current) {
+      console.log('🎬 Initializing dot position at leftCenter:', leftCenter);
+      currentPathProgress.current = leftCenter;
+      previousSectionIndexRef.current = 0;
+      hasInitializedPosition.current = true;
+    } else if (circleRef.current) {
+      // Path dimensions changed (e.g. resize), reposition circle at current progress
+      const circle = circleRef.current;
+      const progress = currentPathProgress.current;
+      console.log('📐 Path changed, repositioning at current progress:', progress);
+      gsap.set(circle, {
+        motionPath: {
+          path: path,
+          autoRotate: false,
+          start: progress,
+          end: progress,
+        },
+      });
+    }
 
     if (debugMarkers && pathRef.current) {
       const pts: Array<{ x: number; y: number; label: string }> = [];
@@ -284,8 +366,14 @@ export default function OrbitNav({
     requestAnimationFrame(() => syncDotCenterRef.current());
   }, [debugMarkers, PATH_WIDTH, PATH_HEIGHT]);
 
-  // Move circle to section position on section change (same as V1: forward = clockwise, backward = counterclockwise)
+  // Move circle to section position on section change (only active on homepage)
   useEffect(() => {
+    console.log('🔄 Movement effect triggered:', { isHomePage, currentSectionIndex });
+    // Only move dot based on section changes when on homepage
+    if (!isHomePage) {
+      console.log('⏸️ Movement skipped - not on homepage');
+      return;
+    }
     if (!circleRef.current || !pathRef.current || sectionPositionsRef.current.length === 0) return;
 
     const circle = circleRef.current;
@@ -293,6 +381,8 @@ export default function OrbitNav({
     const positions = sectionPositionsRef.current;
     const targetProgress = positions[currentSectionIndex] ?? 0;
     const startProgress = currentPathProgress.current;
+    
+    console.log('🎯 Moving dot:', { from: startProgress, to: targetProgress, section: currentSectionIndex });
 
     if (animationRef.current) {
       animationRef.current.kill();
@@ -388,26 +478,26 @@ export default function OrbitNav({
     return () => {
       if (animationRef.current) animationRef.current.kill();
     };
-  }, [currentSectionIndex, ease]);
+  }, [isHomePage, currentSectionIndex, ease]);
 
   // Color inversion: light page = black circle + white line, dark page = white circle + black line
   useEffect(() => {
     const updateColors = () => {
       let shouldInvert: boolean;
-      if (colorMode === 'dark') {
+      if (colorModeState === 'dark') {
         // Page explicitly asked for dark nav = light page background → black circle
         shouldInvert = true;
-      } else if (colorMode === 'light') {
+      } else if (colorModeState === 'light') {
         // Page explicitly asked for light nav = dark page background → white circle
         shouldInvert = false;
       } else {
         // Auto: detect from DOM
         const background = detectPageBackground();
-        shouldInvert = (background === 'light' && !isDark) || (background === 'dark' && isDark);
+        shouldInvert = (background === 'light' && !isDarkState) || (background === 'dark' && isDarkState);
       }
 
       if (DEBUG_SETTINGS.logColorDetection) {
-        console.log('🎨 OrbitNav V2 Color:', { colorMode, shouldInvert, willShow: shouldInvert ? 'black circle' : 'white circle' });
+        console.log('🎨 OrbitNav V2 Color:', { colorMode: colorModeState, shouldInvert, willShow: shouldInvert ? 'black circle' : 'white circle' });
       }
       setIsInverted(shouldInvert);
     };
@@ -422,10 +512,13 @@ export default function OrbitNav({
       subtree: true
     });
     return () => observer.disconnect();
-  }, [isDark, colorMode]);
+  }, [isDarkState, colorModeState]);
 
-  // Section tracking (preserved from v1 for potential future use)
+  // Section tracking (only active on homepage)
   useEffect(() => {
+    // Only set up section tracking if we're on the homepage
+    if (!isHomePage) return;
+
     const sections = [
       '#hero-trigger',
       '.company-name-section', 
@@ -472,14 +565,14 @@ export default function OrbitNav({
     return () => {
       scrollTriggers.forEach(trigger => trigger.kill());
     };
-  }, []);
+  }, [isHomePage]);
 
   // Hover handlers (no scale effect; kept for potential drop-shadow / future use)
   const handleMouseEnter = () => setIsHovered(true);
   const handleMouseLeave = () => setIsHovered(false);
 
-  const shouldShowBack = (isInverted || showBackOverride) && !isHomePage && !!backTarget && dotCenter;
-  const backTextLight = showBackOverride && !isInverted;
+  const shouldShowBack = (isInverted || showBackState) && !isHomePage && !!backTarget && dotCenter;
+  const backTextLight = showBackState && !isInverted;
 
   // Minimum touch target (px); dot hit area extends by this much on each side
   const HIT_AREA_PADDING = 20;

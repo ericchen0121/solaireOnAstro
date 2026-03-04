@@ -1,5 +1,6 @@
 ---
 import OrbitNav from "../components/react/OrbitNav.tsx";
+import { ViewTransitions } from "astro:transitions";
 import LenisProvider from "../components/LenisProvider.astro";
 import { navigationItems } from "../utils/navigation";
 import "../styles/global.css";
@@ -22,8 +23,14 @@ const {
 ---
 
 <!doctype html>
-<html lang="en">
+<html
+  lang="en"
+  data-orbit-nav-color-mode={orbitNavColorMode}
+  data-orbit-show-back={String(showBack)}
+  data-orbit-is-dark={String(isDark)}
+>
   <head>
+    <ViewTransitions />
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -53,13 +60,20 @@ const {
     <title>{title}</title>
   </head>
   <body>
+    <script define:vars={{ orbitNavColorMode, showBack, isDark }}>
+      document.documentElement.dataset.orbitNavColorMode = orbitNavColorMode;
+      document.documentElement.dataset.orbitShowBack = String(showBack);
+      document.documentElement.dataset.orbitIsDark = String(isDark);
+    </script>
     <LenisProvider />
-    <OrbitNav
-      client:only="react"
-      isDark={isDark}
-      colorMode={orbitNavColorMode}
-      showBack={showBack}
-    />
+    <div transition:name="orbit-nav" transition:persist="orbit-nav">
+      <OrbitNav
+        client:only="react"
+        isDark={isDark}
+        colorMode={orbitNavColorMode}
+        showBack={showBack}
+      />
+    </div>
     <slot />
   </body>
 </html>
