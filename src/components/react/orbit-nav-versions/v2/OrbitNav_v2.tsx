@@ -560,6 +560,7 @@ export default function OrbitNav({
             circleFill={isInverted ? "black" : "white"}
             rectFill={isInverted ? "white" : "black"}
             running={true}
+            lineAxis={isHomePage ? 'y' : 'x'}
             className={isHovered ? 'drop-shadow-md' : ''}
           />
         </div>
