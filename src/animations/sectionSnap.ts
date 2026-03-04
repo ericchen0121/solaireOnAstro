@@ -29,7 +29,7 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
     threshold = 0.15,
     snapDuration = 0.35,
     sections: selectors,
-    ease = "power4.in",
+    ease = "power2.out",
   } = options;
 
   let cleanupFn: (() => void) | null = null;
@@ -119,10 +119,10 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
       // Create a timeline for smooth, controlled scroll animation
       scrollTimeline = gsap.timeline({
         onComplete: () => {
-          console.log(`✅ SectionSnap: Snap complete, now at index ${index}`);
           animating = false;
           scrollTimeline = null;
-          // Release processing locks
+          // Start cooldown from when snap finishes so one gesture can't trigger two section moves
+          lastWheelTime = Date.now();
           processingWheel = false;
           processingTouch = false;
         },
@@ -148,8 +148,9 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
     // --- LISTEN TO WHEEL EVENTS ---
     // This immediately hijacks scroll and animates with GSAP
     let lastWheelTime = 0;
-    const wheelThrottle = 1200; // Increased throttle to prevent rapid firing
-    let lastProcessedIndex = -1; // Track the last section we processed to prevent double-processing
+    // Cooldown after snap *completes* (see onComplete) so one scroll gesture = one section move
+    const wheelThrottle = 800;
+    let lastProcessedIndex = -1;
 
     wheelListener = (e: WheelEvent) => {
       // Always prevent default to stop natural scrolling (desktop behavior)
@@ -183,13 +184,12 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
       }
 
       // If we just processed this index, ignore (prevent double-processing)
-      if (actualCurrentIndex === lastProcessedIndex && now - lastWheelTime < wheelThrottle * 2) {
+      if (actualCurrentIndex === lastProcessedIndex && now - lastWheelTime < wheelThrottle) {
         return;
       }
 
-      // Set processing lock immediately
+      // Set processing lock immediately; cooldown (lastWheelTime) is set when snap completes
       processingWheel = true;
-      lastWheelTime = now;
       lastProcessedIndex = actualCurrentIndex;
 
       // Determine scroll direction
@@ -227,8 +227,10 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
     };
 
     // --- TOUCH EVENTS: Disable snapping entirely on mobile ---
-    // Mobile gets natural scroll with Lenis; desktop gets wheel-based snapping
-    if (!isMobile()) {
+    // Mobile gets natural scroll; desktop gets wheel-based snapping
+    const mobile = isMobile();
+    
+    if (!mobile) {
       let lastTouchTime = 0;
       const touchThrottle = 800;
 
@@ -299,14 +301,14 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
       // Add touch listeners only on non-mobile (desktop trackpad/touchscreen)
       window.addEventListener("touchstart", touchListener, { passive: false });
       window.addEventListener("touchmove", touchListener, { passive: false });
+      
+      // Add wheel listener only on desktop
+      window.addEventListener("wheel", wheelListener, { passive: false });
+      console.log("🖥️ SectionSnap: Desktop - wheel and touch snapping enabled");
     } else {
-      console.log("📱 SectionSnap: Mobile detected - touch snapping disabled, using natural scroll");
+      console.log("📱 SectionSnap: Mobile detected - snapping disabled, using natural scroll");
     }
 
-    // Add wheel listener (desktop only behavior, but works on all devices that have wheel)
-    window.addEventListener("wheel", wheelListener, { passive: false });
-
-    console.log("✅ SectionSnap: Wheel and touch listeners added");
 
     // --- CREATE SCROLL TRIGGER TO TRACK CURRENT SECTION ---
     const firstSection = sections[0];

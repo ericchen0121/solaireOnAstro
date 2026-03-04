@@ -44,7 +44,7 @@ import Odometer from "../components/react/Odometer.tsx";
 
   <!-- Section 2: Company Name -->
   <section
-    class="company-name-section h-screen flex items-end justify-center bg-black text-white pb-8 md:pb-12 lg:pb-16"
+    class="company-name-section h-screen flex items-center justify-center bg-black text-white"
   >
     <div class="container mx-auto w-full">
       <h2
@@ -218,7 +218,6 @@ import Odometer from "../components/react/Odometer.tsx";
 <script>
   // @ts-nocheck
   import { initLetterReveal } from "../animations/letterReveal";
-  import { initHeroScrollAnimation } from "../animations/heroScrollAnimation";
   import { initScrollLetterReveal } from "../animations/scrollLetterReveal";
   import {
     initSectionSnap,
@@ -229,7 +228,6 @@ import Odometer from "../components/react/Odometer.tsx";
   // ScrollTrigger works natively with window scrolling
 
   if (typeof window !== "undefined") {
-    let cleanupScrollAnimation = null;
     let cleanupSectionSnap = null;
     const cleanupFunctions = [];
 
@@ -262,10 +260,11 @@ import Odometer from "../components/react/Odometer.tsx";
           console.log("🎬 Calling initLetterReveal");
           initLetterReveal(".hero-title", 0.8, 0.05);
 
-          // 2. Section snapping (automatically disabled during hero animation)
+          // 2. Section snapping
           cleanupSectionSnap = initSectionSnap({
             threshold: 0.05,
-            snapDuration: 0.25,
+            snapDuration: 0.3,
+            ease: "power2.out",
             sections: [
               "#hero-trigger",
               ".company-name-section",
@@ -282,19 +281,6 @@ import Odometer from "../components/react/Odometer.tsx";
           // If we arrived with a hash (e.g. from OrbitNav "back"),
           // gently correct the initial scroll position to that section.
           scrollToHashSectionIfNeeded();
-
-          // 3. Hero scroll animation - start after letter reveal is set up
-          setTimeout(() => {
-            cleanupScrollAnimation = initHeroScrollAnimation({
-              triggerSelector: "#hero-trigger",
-              contentSelector: "#hero-content",
-              lastSpanSelector: "#last-span, #last-span-mobile", // Target both desktop and mobile
-              markers: false,
-              onHeroComplete: () => {
-                // Hero animation complete - snapping is now enabled automatically
-              },
-            });
-          }, 200);
         });
       });
 
@@ -313,7 +299,6 @@ import Odometer from "../components/react/Odometer.tsx";
     }
 
     window.addEventListener("beforeunload", () => {
-      cleanupScrollAnimation?.();
       cleanupSectionSnap?.();
       cleanupFunctions.forEach((fn) => fn());
     });

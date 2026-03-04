@@ -40,8 +40,15 @@
     @apply box-border;
   }
 
+  /* Desktop: instant scroll (GSAP controls smoothness). Mobile: browser smooth scroll. */
   html {
-    @apply scroll-smooth;
+    scroll-behavior: auto;
+  }
+
+  @media (pointer: coarse) and (hover: none) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   body {

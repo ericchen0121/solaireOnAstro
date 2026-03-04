@@ -83,5 +83,5 @@ export function getDotSize(): number {
 // Temporary debug settings for V2 development
 export const DEBUG_SETTINGS = {
   showDebugMarkers: false,
-  logColorDetection: true,
+  logColorDetection: false,
 };

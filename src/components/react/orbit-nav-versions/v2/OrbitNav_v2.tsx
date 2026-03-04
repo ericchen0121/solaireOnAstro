@@ -171,14 +171,6 @@ export default function OrbitNav({
     const newShowBack = d.orbitShowBack !== undefined ? d.orbitShowBack === 'true' : fallback.showBack;
     const newIsDark = d.orbitIsDark !== undefined ? d.orbitIsDark === 'true' : fallback.isDark;
 
-    console.log('🔄 syncFromDocument:', {
-      path: normalisedPath,
-      isHome: newIsHome,
-      dataset: { mode: d.orbitNavColorMode, showBack: d.orbitShowBack, isDark: d.orbitIsDark },
-      fallback,
-      final: { colorMode: newColorMode, showBack: newShowBack, isDark: newIsDark }
-    });
-
     setIsHomePage(newIsHome);
     setBackTarget(newBackTarget);
     setColorModeState(newColorMode);
@@ -202,11 +194,9 @@ export default function OrbitNav({
       if (mode != null) cur.dataset.orbitNavColorMode = mode;
       if (showBackAttr != null) cur.dataset.orbitShowBack = showBackAttr;
       if (isDarkAttr != null) cur.dataset.orbitIsDark = isDarkAttr;
-      console.log('🔄 OrbitNav before-swap:', { mode, showBackAttr, isDarkAttr, path: window.location.pathname });
     };
 
     const onAfterNavigate = () => {
-      console.log('🔄 OrbitNav after navigate event, will sync');
       requestAnimationFrame(() => syncFromDocument());
     };
 
@@ -336,7 +326,6 @@ export default function OrbitNav({
     
     // Only initialize position on first mount, preserve it across navigation/resize
     if (!hasInitializedPosition.current) {
-      console.log('🎬 Initializing dot position at leftCenter:', leftCenter);
       currentPathProgress.current = leftCenter;
       previousSectionIndexRef.current = 0;
       hasInitializedPosition.current = true;
@@ -344,7 +333,6 @@ export default function OrbitNav({
       // Path dimensions changed (e.g. resize), reposition circle at current progress
       const circle = circleRef.current;
       const progress = currentPathProgress.current;
-      console.log('📐 Path changed, repositioning at current progress:', progress);
       gsap.set(circle, {
         motionPath: {
           path: path,
@@ -368,12 +356,8 @@ export default function OrbitNav({
 
   // Move circle to section position on section change (only active on homepage)
   useEffect(() => {
-    console.log('🔄 Movement effect triggered:', { isHomePage, currentSectionIndex });
     // Only move dot based on section changes when on homepage
-    if (!isHomePage) {
-      console.log('⏸️ Movement skipped - not on homepage');
-      return;
-    }
+    if (!isHomePage) return;
     if (!circleRef.current || !pathRef.current || sectionPositionsRef.current.length === 0) return;
 
     const circle = circleRef.current;
@@ -381,8 +365,6 @@ export default function OrbitNav({
     const positions = sectionPositionsRef.current;
     const targetProgress = positions[currentSectionIndex] ?? 0;
     const startProgress = currentPathProgress.current;
-    
-    console.log('🎯 Moving dot:', { from: startProgress, to: targetProgress, section: currentSectionIndex });
 
     if (animationRef.current) {
       animationRef.current.kill();
