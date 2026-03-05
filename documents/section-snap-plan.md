@@ -7,7 +7,7 @@ Transform the index page into a slideshow-like experience where each section act
 - **7 sections total:**
   1. Hero section (`#hero-trigger`) - has complex scroll animations
   2. Company name section (`.company-name-section`) - has phase 3 animation
-  3. Stats section (`.stats-section`) - has odometers
+  3. Stats section (`.stats-section`) - has static stat numbers
   4. Video section (`.video-section`)
   5. Why solar section (`.why-solar-section`) - has letter reveal
   6. Why us section (`.why-us-section`) - has letter reveal
@@ -117,7 +117,7 @@ export function initSectionSnap(options: SectionSnapOptions): () => void
 - [ ] Smooth transitions between sections
 - [ ] Works on window resize
 - [ ] Works with existing ScrollTrigger animations
-- [ ] Works with odometers and letter reveals
+- [ ] Works with letter reveals
 - [ ] Mobile touch scrolling works
 - [ ] Fast scrolling doesn't break snap
 

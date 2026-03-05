@@ -1,6 +1,5 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Odometer from "../components/react/Odometer.tsx";
 ---
 
 <BaseLayout
@@ -65,48 +64,42 @@ import Odometer from "../components/react/Odometer.tsx";
         class="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16 max-w-7xl mx-auto"
       >
         <!-- Stat 1: 1482 -->
-        <div>
-          <Odometer
-            client:only="react"
-            value={1482}
-            duration={2}
-            delay={0}
-            className="stat-number text-white mb-6"
-          />
-          <p class="text-base md:text-lg leading-relaxed text-white/90">
-            Vinet Rochat exploite le flu des rivières à la vallée de Joux, une
-            source d'énergie renouvelable que nous a accordée la nature.
-          </p>
+        <div class="stat-column">
+          <span class="stat-number text-white mb-6 block">1482</span>
+          <div class="stat-copy-wrap">
+            <p
+              class="stat-copy text-base md:text-lg leading-relaxed text-white/90"
+            >
+              Vinet Rochat exploite le flu des rivières à la vallée de Joux, une
+              source d'énergie renouvelable que nous a accordée la nature.
+            </p>
+          </div>
         </div>
 
         <!-- Stat 2: 2007 -->
-        <div>
-          <Odometer
-            client:only="react"
-            value={2007}
-            duration={2}
-            delay={0.5}
-            className="stat-number text-white mb-6"
-          />
-          <p class="text-base md:text-lg leading-relaxed text-white/90">
-            Dès 2007, pionniers en production d'énergie photovoltaïque, conseil,
-            investissement et service clients.
-          </p>
+        <div class="stat-column">
+          <span class="stat-number text-white mb-6 block">2007</span>
+          <div class="stat-copy-wrap">
+            <p
+              class="stat-copy text-base md:text-lg leading-relaxed text-white/90"
+            >
+              Dès 2007, pionniers en production d'énergie photovoltaïque,
+              conseil, investissement et service clients.
+            </p>
+          </div>
         </div>
 
         <!-- Stat 3: 15 -->
-        <div>
-          <Odometer
-            client:only="react"
-            value={15}
-            duration={1.5}
-            delay={1.0}
-            className="stat-number text-white mb-6"
-          />
-          <p class="text-base md:text-lg leading-relaxed text-white/90">
-            fois plus d'énergie est produite par un module qu'il ne faut pour le
-            produire.
-          </p>
+        <div class="stat-column">
+          <span class="stat-number text-white mb-6 block">15</span>
+          <div class="stat-copy-wrap">
+            <p
+              class="stat-copy text-base md:text-lg leading-relaxed text-white/90"
+            >
+              fois plus d'énergie est produite par un module qu'il ne faut pour
+              le produire.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -219,16 +212,15 @@ import Odometer from "../components/react/Odometer.tsx";
   // @ts-nocheck
   import { initLetterReveal } from "../animations/letterReveal";
   import { initScrollLetterReveal } from "../animations/scrollLetterReveal";
-  import {
-    initSectionSnap,
-    setSectionSnapAnimationActive,
-  } from "../animations/sectionSnap";
+  import { initStatsSectionReveal } from "../animations/statsSectionReveal";
+  import { initSectionSnap } from "../animations/sectionSnap";
 
   // Using native browser scrolling for better section snap reliability
   // ScrollTrigger works natively with window scrolling
 
   if (typeof window !== "undefined") {
     let cleanupSectionSnap = null;
+    let cleanupStatsReveal = null;
     const cleanupFunctions = [];
 
     function scrollToHashSectionIfNeeded() {
@@ -260,7 +252,10 @@ import Odometer from "../components/react/Odometer.tsx";
           console.log("🎬 Calling initLetterReveal");
           initLetterReveal(".hero-title", 0.8, 0.05);
 
-          // 2. Section snapping
+          // 2. Stats section: numbers stagger up, then paragraphs reveal; exit at top on scroll
+          cleanupStatsReveal = initStatsSectionReveal();
+
+          // 3. Section snapping
           cleanupSectionSnap = initSectionSnap({
             threshold: 0.05,
             snapDuration: 0.55,
@@ -284,7 +279,7 @@ import Odometer from "../components/react/Odometer.tsx";
         });
       });
 
-      // 4. Scroll letter reveals
+      // 4. Scroll letter reveals (other sections)
       cleanupFunctions.push(initScrollLetterReveal("#why-solar-text", 0.07));
       cleanupFunctions.push(initScrollLetterReveal("#why-us-text", 0.07));
       cleanupFunctions.push(initScrollLetterReveal("#clients-text", 0.07));
@@ -300,6 +295,7 @@ import Odometer from "../components/react/Odometer.tsx";
 
     window.addEventListener("beforeunload", () => {
       cleanupSectionSnap?.();
+      cleanupStatsReveal?.();
       cleanupFunctions.forEach((fn) => fn());
     });
   }

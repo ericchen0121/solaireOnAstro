@@ -25,7 +25,6 @@ A modern marketing website built with Astro, featuring smooth scroll animations 
 │   │   ├── LenisProvider.astro  # Lenis smooth scroll provider
 │   │   └── react/               # React islands
 │   │       ├── OrbitNav.tsx     # Orbiting navigation
-│   │       ├── Odometer.tsx     # Scroll-triggered number animation
 │   │       └── EmailMask.tsx    # Email masking, click-to-copy
 │   ├── layouts/
 │   │   ├── BaseLayout.astro
@@ -71,7 +70,6 @@ A modern marketing website built with Astro, featuring smooth scroll animations 
 ### Custom Micro-Animations
 
 1. **Orbiting Navigation** - Physics-based orbiting nav in upper right corner
-2. **Odometer Numbers** - Scroll-triggered number counting animation
 
 ### GSAP + Lenis Integration
 
@@ -98,36 +96,7 @@ import OrbitNav from '../components/react/OrbitNav.tsx';
 <OrbitNav client:only="react" isDark={false} />
 ```
 
-### 2. Odometer Component
-
-Scroll-triggered number animation that counts up to the target value.
-
-**Usage:**
-```astro
----
-import Odometer from '../components/react/Odometer.tsx';
----
-
-<Odometer 
-  client:load
-  value={1482}
-  duration={2}
-  decimals={0}
-  prefix=""
-  suffix=""
-  className="stat-number text-white"
-/>
-```
-
-**Props:**
-- `value`: Target number to count to
-- `duration`: Animation duration in seconds (default: 2)
-- `decimals`: Number of decimal places (default: 0)
-- `prefix`: Text before number (e.g., "$")
-- `suffix`: Text after number (e.g., "%")
-- `className`: CSS classes for styling
-
-### Creating Animations
+### 2. Creating Animations
 
 Animations are in `src/animations/` (e.g. `letterReveal.ts`, `heroScrollAnimation.ts`, `scrollLetterReveal.ts`, `sectionSnap.ts`).
 
