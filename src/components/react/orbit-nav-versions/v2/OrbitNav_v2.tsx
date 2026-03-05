@@ -564,7 +564,7 @@ export default function OrbitNav({
       {shouldShowBack && dotCenter && (
         <button
           type="button"
-          className={`fixed z-[60] text-xs md:text-sm lg:text-base font-bold hover:opacity-70 transition-opacity pointer-events-auto py-3 px-4 min-h-[44px] min-w-[44px] flex items-center justify-end ${backTextLight ? 'text-white' : 'text-black'}`}
+          className={`fixed z-[100] text-xs md:text-sm lg:text-base font-bold hover:opacity-70 transition-opacity pointer-events-auto py-3 px-4 min-h-[44px] min-w-[44px] flex items-center justify-end ${backTextLight ? 'text-white' : 'text-black'}`}
           style={{
             right: `calc(100vw - ${dotCenter.x}px + ${dotSize/2}px - ${HIT_AREA_PADDING*2}px)`,
             top: dotCenter.y + dotSize/2 + HIT_AREA_PADDING,
@@ -581,7 +581,7 @@ export default function OrbitNav({
 
       <div
         ref={containerRef}
-        className="orbit-nav-container fixed z-50 pointer-events-none"
+        className="orbit-nav-container fixed z-[100] pointer-events-none"
         style={{
           top: offsets.top,
           right: offsets.right,

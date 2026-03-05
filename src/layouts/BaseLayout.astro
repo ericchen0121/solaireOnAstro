@@ -65,7 +65,12 @@ const {
       document.documentElement.dataset.orbitShowBack = String(showBack);
       document.documentElement.dataset.orbitIsDark = String(isDark);
     </script>
-    <div transition:name="orbit-nav" transition:persist="orbit-nav">
+    <div
+      transition:name="orbit-nav"
+      transition:persist="orbit-nav"
+      class="relative z-[9999]"
+      style="isolation: isolate;"
+    >
       <OrbitNav
         client:only="react"
         isDark={isDark}
