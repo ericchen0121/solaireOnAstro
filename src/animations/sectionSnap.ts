@@ -4,6 +4,10 @@ import { gsap } from "gsap";
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
+// Optional per-section overrides
+const VIDEO_SECTION_CLASS = "video-section";
+const VIDEO_SNAP_DURATION = 0.9; // slightly longer snap just for video slide
+
 interface SectionSnapOptions {
   threshold?: number; // scroll % before advancing (0–1)
   snapDuration?: number;
@@ -45,7 +49,11 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
       ? selectors
           .map((sel) => document.querySelector(sel) as HTMLElement)
           .filter((el) => el !== null)
-      : Array.from(document.querySelectorAll("section")) as HTMLElement[];
+      : (Array.from(document.querySelectorAll("section")) as HTMLElement[]);
+
+    const videoSectionIndex = sections.findIndex((el) =>
+      el.classList.contains(VIDEO_SECTION_CLASS)
+    );
 
     console.log(`📋 SectionSnap: Found ${sections.length} sections`, sections);
 
@@ -108,6 +116,15 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
       console.log(`📍 SectionSnap: Snapping from ${currentPos.toFixed(0)}px to section ${index} at ${targetPos}px`);
 
       animating = true;
+
+      // Compute effective duration (allow special-case for video slide)
+      const isVideoTransition =
+        videoSectionIndex !== -1 &&
+        (index === videoSectionIndex || currentIndex === videoSectionIndex);
+      const effectiveDuration = isVideoTransition
+        ? VIDEO_SNAP_DURATION
+        : snapDuration;
+
       currentIndex = index;
 
       // Kill any existing scroll animation
@@ -140,7 +157,7 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
           y: targetPos,
           autoKill: false,
         },
-        duration: snapDuration,
+        duration: effectiveDuration,
         ease,
       });
     };

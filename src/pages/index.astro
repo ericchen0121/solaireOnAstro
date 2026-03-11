@@ -107,7 +107,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
   <!-- Section 4: Video Background (z-0 so orbit nav stays on top) -->
   <section
-    class="video-section relative z-0 h-screen w-screen flex items-center justify-center overflow-hidden text-align-left"
+    class="video-section relative z-0 h-screen w-screen flex items-center justify-center overflow-hidden text-align-left bg-black"
   >
     <video
       autoplay
@@ -213,6 +213,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   import { initLetterReveal } from "../animations/letterReveal";
   import { initScrollLetterReveal } from "../animations/scrollLetterReveal";
   import { initStatsSectionReveal } from "../animations/statsSectionReveal";
+  import { initVideoSectionScale } from "../animations/videoSectionScale";
   import { initSectionSnap } from "../animations/sectionSnap";
 
   // Using native browser scrolling for better section snap reliability
@@ -221,6 +222,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   if (typeof window !== "undefined") {
     let cleanupSectionSnap = null;
     let cleanupStatsReveal = null;
+    let cleanupVideoScale = null;
     const cleanupFunctions = [];
 
     function scrollToHashSectionIfNeeded() {
@@ -255,7 +257,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           // 2. Stats section: numbers stagger up, then paragraphs reveal; exit at top on scroll
           cleanupStatsReveal = initStatsSectionReveal();
 
-          // 3. Section snapping
+          // 3. Video section: scale background video from full-screen to ~80% to reveal black border
+          cleanupVideoScale = initVideoSectionScale();
+
+          // 4. Section snapping
           cleanupSectionSnap = initSectionSnap({
             threshold: 0.05,
             snapDuration: 0.55,
@@ -279,7 +284,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         });
       });
 
-      // 4. Scroll letter reveals (other sections)
+      // 5. Scroll letter reveals (other sections)
       cleanupFunctions.push(initScrollLetterReveal("#why-solar-text", 0.07));
       cleanupFunctions.push(initScrollLetterReveal("#why-us-text", 0.07));
       cleanupFunctions.push(initScrollLetterReveal("#clients-text", 0.07));
@@ -296,6 +301,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     window.addEventListener("beforeunload", () => {
       cleanupSectionSnap?.();
       cleanupStatsReveal?.();
+      cleanupVideoScale?.();
       cleanupFunctions.forEach((fn) => fn());
     });
   }
