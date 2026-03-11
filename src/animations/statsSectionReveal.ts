@@ -56,15 +56,17 @@ export function initStatsSectionReveal(): () => void {
     ease: "power4.inOut",
     stagger: NUMBERS_STAGGER,
   });
-  enterTl.to(
+  // fromTo so paragraphs always animate UP from bottom of slide with opacity 0→1 (fixes re-enter)
+  enterTl.fromTo(
     paragraphs,
+    { y: NUMBER_FROM_BOTTOM as gsap.TweenValue, opacity: 0 },
     {
       y: 0,
       opacity: 1,
       duration: PARAGRAPH_DURATION,
       ease: "power4.inOut",
     },
-    `-=${NUMBER_DURATION-NUMBERS_STAGGER*2}`
+    `-=${NUMBER_DURATION - NUMBERS_STAGGER * 2}`
   );
 
   const exitTl = gsap.timeline({ paused: true });
@@ -85,8 +87,9 @@ export function initStatsSectionReveal(): () => void {
     end: "bottom 15%",
     onEnter: () => enterTl.play(),
     onEnterBack: () => {
-      resetToInitial(numbers, paragraphs);
+      enterTl.pause();
       enterTl.progress(0);
+      resetToInitial(numbers, paragraphs);
       enterTl.play();
     },
     onLeaveBack: () => {
