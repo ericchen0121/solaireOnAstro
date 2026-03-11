@@ -23,7 +23,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         <source src="/projets.mp4" type="video/mp4" />
       </video>
       <div id="projets-text-overlay" class="projets-text-overlay">
-        <span class="projets-text active">Industriel</span>
+        <div class="projets-text-slot">
+          <span class="projets-text" data-projets-role="current"></span>
+          <span class="projets-text" data-projets-role="next"></span>
+        </div>
       </div>
     </section>
   </main>
@@ -36,6 +39,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
   .projets-section {
     position: relative;
+    --projets-title-line-height: 115px;
   }
 
   .projets-text-overlay {
@@ -51,6 +55,34 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     z-index: 10;
   }
 
+  .projets-text-slot {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .projets-text-slot .projets-text {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .projets-text[data-projets-role="current"] {
+    z-index: 0;
+  }
+
+  .projets-text[data-projets-role="next"] {
+    z-index: 1;
+  }
+
   .projets-text {
     font-family:
       "F37Moon",
@@ -62,29 +94,46 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     font-weight: 600;
     font-style: normal;
     font-size: 240px;
-    line-height: 115px;
+    line-height: var(--projets-title-line-height);
     letter-spacing: 0.02em; /* 2% */
     color: white;
     text-align: center;
     opacity: 0;
-    transition: opacity 0.3s ease-in-out;
+    transform: translateY(var(--projets-title-line-height));
+    transition:
+      /* opacity 0.2s ease-out, */ transform 0.35s
+      cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .projets-text.active {
     opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Move up then disappear (content swap); no opacity transition */
+  .projets-text.leaving {
+    opacity: 1;
+    transform: translateY(calc(-1.55 * var(--projets-title-line-height)));
+    transition: transform 0.1s ease-out;
   }
 
   @media (max-width: 1024px) {
+    .projets-section {
+      --projets-title-line-height: 60px;
+    }
+
     .projets-text {
       font-size: 120px;
-      line-height: 60px;
     }
   }
 
   @media (max-width: 768px) {
+    .projets-section {
+      --projets-title-line-height: 40px;
+    }
+
     .projets-text {
       font-size: 80px;
-      line-height: 40px;
     }
   }
 </style>
@@ -95,28 +144,82 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   let videoDuration = 0;
   let intervalDuration = 0;
 
-  const video = document.getElementById("projets-video");
-  const textElement = document.querySelector(".projets-text");
+  const video = document.getElementById(
+    "projets-video",
+  ) as HTMLVideoElement | null;
+  const currentEl = document.querySelector<HTMLSpanElement>(
+    ".projets-text[data-projets-role='current']",
+  );
+  const nextEl = document.querySelector<HTMLSpanElement>(
+    ".projets-text[data-projets-role='next']",
+  );
+  let currentTextEl = currentEl;
+  let nextTextEl = nextEl;
+  const leaveDuration = 140;
+  const enterDelay = 140;
+  const segmentLeadTime = 0.3;
 
-  function updateText(index) {
-    if (textElement) {
-      textElement.classList.remove("active");
-      setTimeout(() => {
-        if (textElement) {
-          textElement.textContent = texts[index];
-          textElement.classList.add("active");
-        }
-      }, 300); // Fade out, then change text and fade in
+  function getLeavingTransformValue(element: HTMLSpanElement) {
+    const lineHeight =
+      getComputedStyle(element)
+        .getPropertyValue("--projets-title-line-height")
+        .trim() || getComputedStyle(element).lineHeight;
+
+    return `translateY(-${lineHeight})`;
+  }
+
+  function updateText(index: number) {
+    if (!currentTextEl || !nextTextEl) return;
+    const isFirstShow =
+      !currentTextEl.classList.contains("active") || !currentTextEl.textContent;
+
+    if (isFirstShow) {
+      currentTextEl.textContent = texts[index];
+      currentTextEl.classList.remove("leaving");
+      currentTextEl.classList.remove("active");
+      void currentTextEl.offsetHeight;
+      currentTextEl.classList.add("active");
+      return;
     }
+
+    // Prepare next element: ensure it starts from the base "below" state
+    nextTextEl.textContent = texts[index];
+    nextTextEl.style.transition = "";
+    nextTextEl.style.opacity = "";
+    nextTextEl.style.transform = "";
+    nextTextEl.classList.remove("leaving", "active");
+    void nextTextEl.offsetHeight;
+
+    // Let the outgoing title start first, then bring the next one in.
+    currentTextEl.classList.add("leaving");
+    currentTextEl.classList.remove("active");
+    setTimeout(() => {
+      nextTextEl?.classList.add("active");
+    }, enterDelay);
+
+    setTimeout(() => {
+      const leavingEl = currentTextEl;
+      const incomingEl = nextTextEl;
+      if (!leavingEl || !incomingEl) return;
+      // Keep element at top position, just make it invisible (no drop back down)
+      leavingEl.style.transition = "none";
+      leavingEl.style.opacity = "0";
+      leavingEl.style.transform = getLeavingTransformValue(leavingEl);
+      leavingEl.classList.remove("leaving");
+      // Swap roles for next transition
+      currentTextEl = incomingEl;
+      nextTextEl = leavingEl;
+      currentTextEl.setAttribute("data-projets-role", "current");
+      nextTextEl.setAttribute("data-projets-role", "next");
+    }, leaveDuration);
   }
 
   function syncTextWithVideo() {
     if (!video || videoDuration === 0) return;
 
     const currentTime = video.currentTime;
-    const segmentIndex = Math.floor(
-      (currentTime % videoDuration) / intervalDuration,
-    );
+    const adjustedTime = (currentTime + segmentLeadTime) % videoDuration;
+    const segmentIndex = Math.floor(adjustedTime / intervalDuration);
     const newIndex = Math.min(segmentIndex, texts.length - 1);
 
     if (newIndex !== currentIndex) {
