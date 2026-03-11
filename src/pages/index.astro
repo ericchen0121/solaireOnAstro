@@ -134,12 +134,19 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     id="why-solar-section"
     class="why-solar-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
-    <a href="/why-solar">
+    <a href="/why-solar" class="slide-bar-link">
       <h2
-        id="why-solar-text"
-        class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4 cursor-pointer hover:opacity-80 transition-opacity"
+        class="slide-bar-title text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4 cursor-pointer"
       >
-        Pourquoi le solaire?
+        <span class="slide-bar-bg" aria-hidden="true"></span>
+        <span
+          id="why-solar-outline"
+          class="slide-bar-outline"
+          aria-hidden="true">Pourquoi le solaire?</span
+        >
+        <span id="why-solar-text" class="slide-bar-fill-text"
+          >Pourquoi le solaire?</span
+        >
       </h2>
     </a>
   </section>
@@ -149,12 +156,17 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     id="why-us-section"
     class="why-us-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
-    <a href="/why-work-with-us">
+    <a href="/why-work-with-us" class="slide-bar-link">
       <h2
-        id="why-us-text"
-        class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4 cursor-pointer hover:opacity-80 transition-opacity"
+        class="slide-bar-title text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4 cursor-pointer"
       >
-        Pourquoi travailler avec nous?
+        <span class="slide-bar-bg" aria-hidden="true"></span>
+        <span id="why-us-outline" class="slide-bar-outline" aria-hidden="true"
+          >Pourquoi travailler avec nous?</span
+        >
+        <span id="why-us-text" class="slide-bar-fill-text"
+          >Pourquoi travailler avec nous?</span
+        >
       </h2>
     </a>
   </section>
@@ -164,12 +176,17 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     id="clients-section"
     class="clients-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
-    <a href="/clients">
+    <a href="/clients" class="slide-bar-link">
       <h2
-        id="clients-text"
-        class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4 cursor-pointer hover:opacity-80 transition-opacity"
+        class="slide-bar-title text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4 cursor-pointer"
       >
-        Qui sont nos clients?
+        <span class="slide-bar-bg" aria-hidden="true"></span>
+        <span id="clients-outline" class="slide-bar-outline" aria-hidden="true"
+          >Qui sont nos clients?</span
+        >
+        <span id="clients-text" class="slide-bar-fill-text"
+          >Qui sont nos clients?</span
+        >
       </h2>
     </a>
   </section>
@@ -182,7 +199,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     <a href="/projets">
       <h2
         id="projets-text"
-        class="text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-bold text-center px-4 cursor-pointer hover:opacity-80 transition-opacity"
+        class="text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-bold text-center px-4 cursor-pointer"
       >
         Projets
       </h2>
@@ -197,7 +214,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     <a
       id="contact-text"
       href="mailto:Info@rochatsolaire.ch"
-      class="font-f37moon-light text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4 hover:opacity-80 transition-opacity duration-300"
+      class="font-f37moon-light text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4"
     >
       Contact
     </a>
@@ -284,10 +301,34 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         });
       });
 
-      // 5. Scroll letter reveals (other sections)
+      // 5. Scroll letter reveals (other sections) - MUST come after slide-bar setup
+      // Slide-bar links: click to show white bar animation, then navigate
+      const slideBarLinks = document.querySelectorAll(".slide-bar-link");
+      console.log("🎯 Found slide-bar-link elements:", slideBarLinks.length);
+
+      slideBarLinks.forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          const href = link.getAttribute("href");
+          if (!href) return;
+
+          console.log("🖱️ Slide bar link clicked");
+          link.classList.add("active");
+
+          setTimeout(() => {
+            console.log("🚀 Navigating to:", href);
+            window.location.href = href;
+          }, 820);
+        });
+      });
+
+      // Initialize letter reveals AFTER setting up click handlers
       cleanupFunctions.push(initScrollLetterReveal("#why-solar-text", 0.07));
+      cleanupFunctions.push(initScrollLetterReveal("#why-solar-outline", 0.07));
       cleanupFunctions.push(initScrollLetterReveal("#why-us-text", 0.07));
+      cleanupFunctions.push(initScrollLetterReveal("#why-us-outline", 0.07));
       cleanupFunctions.push(initScrollLetterReveal("#clients-text", 0.07));
+      cleanupFunctions.push(initScrollLetterReveal("#clients-outline", 0.07));
       cleanupFunctions.push(initScrollLetterReveal("#projets-text", 0.1));
       cleanupFunctions.push(initScrollLetterReveal("#contact-text", 0.1));
     }
