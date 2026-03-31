@@ -9,7 +9,9 @@ const NUMBER_FROM_BOTTOM = "60vh";
 const NUMBERS_STAGGER = 0.08;
 const NUMBER_DURATION = .8;
 const PARAGRAPH_DURATION = 1.25;
-const EXIT_DURATION = 0.3;
+/** Scroll stats up and out of frame when leaving toward the video section */
+const EXIT_DURATION = 0.55;
+const EXIT_OUT_Y = "-100vh";
 
 /**
  * Initial state: numbers and paragraphs start from bottom of screen (100vh below).
@@ -31,7 +33,7 @@ function resetToInitial(numbers: HTMLElement[], paragraphs: HTMLElement[]) {
  * Stats section: numbers enter from bottom of screen (as if part of the section) with
  * a slight delay between each (1482 → 2007 → 15). When they lock into center, paragraphs
  * come up from the bottom of the screen (100vh) with an opacity animation. On scroll to next
- * section, everything exits together at top of frame.
+ * section, everything scrolls up and out of frame (clipped by overflow-hidden on the section).
  */
 export function initStatsSectionReveal(): () => void {
   const section = document.querySelector(STATS_SECTION);
@@ -73,8 +75,8 @@ export function initStatsSectionReveal(): () => void {
   exitTl.to(
     [...numbers, ...paragraphs],
     {
-      y: -60,
-      opacity: 0,
+      y: EXIT_OUT_Y as gsap.TweenValue,
+      opacity: 1,
       duration: EXIT_DURATION,
       ease: "power2.in",
     },
@@ -120,13 +122,20 @@ export function initStatsSectionReveal(): () => void {
     };
   }
 
-  // Desktop UX: full enter + exit behavior with replays on scroll back.
-  const enterTrigger = ScrollTrigger.create({
+  // Tablet/desktop: enter in view, exit upward when scrolling down past the section toward video;
+  // re-enter from below replays enter (same trigger zone).
+  const enterExitTrigger = ScrollTrigger.create({
     trigger: section,
     start: "top 82%",
     end: "bottom 15%",
     onEnter: () => enterTl.play(),
+    onLeave: () => {
+      if (enterTl.progress() < 1) enterTl.progress(1);
+      exitTl.restart();
+    },
     onEnterBack: () => {
+      exitTl.pause();
+      exitTl.progress(0);
       enterTl.pause();
       enterTl.progress(0);
       resetToInitial(numbers, paragraphs);
@@ -139,20 +148,8 @@ export function initStatsSectionReveal(): () => void {
     },
   });
 
-  const exitTrigger = ScrollTrigger.create({
-    trigger: section,
-    start: "top top",
-    onEnter: () => exitTl.play(),
-    onLeaveBack: () => {
-      exitTl.pause();
-      exitTl.progress(0);
-      resetToInitial(numbers, paragraphs);
-    },
-  });
-
   return () => {
-    enterTrigger.kill();
-    exitTrigger.kill();
+    enterExitTrigger.kill();
     enterTl.kill();
     exitTl.kill();
   };
