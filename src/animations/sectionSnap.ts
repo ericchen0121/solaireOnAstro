@@ -36,6 +36,11 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
     ease = "expo.inOut",
   } = options;
 
+  // Desktop-only: enable snapping only for wide viewports (≥1200px).
+  if (typeof window !== "undefined" && window.innerWidth < 1200) {
+    return () => {};
+  }
+
   let cleanupFn: (() => void) | null = null;
   let wheelListener: ((e: WheelEvent) => void) | null = null;
   let touchStartY = 0;

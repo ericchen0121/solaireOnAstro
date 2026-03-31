@@ -555,6 +555,12 @@ export default function OrbitNav({
 
   const shouldShowBack = (isInverted || showBackState) && !isHomePage && !!backTarget && dotCenter;
   const backTextLight = showBackState && !isInverted;
+  const canNavigateBack = !isHomePage && !!backTarget;
+
+  const navigateBack = () => {
+    if (!backTarget) return;
+    window.location.href = backTarget;
+  };
 
   // Minimum touch target (px); dot hit area extends by this much on each side
   const HIT_AREA_PADDING = 20;
@@ -570,10 +576,7 @@ export default function OrbitNav({
             top: dotCenter.y + dotSize/2 + HIT_AREA_PADDING,
             transform: 'translateY(-50%)',
           }}
-          onClick={() => {
-            if (!backTarget) return;
-            window.location.href = backTarget;
-          }}
+          onClick={navigateBack}
         >
           back
         </button>
@@ -619,7 +622,7 @@ export default function OrbitNav({
         {/* Dot: larger hit area (HIT_AREA_PADDING on each side), visual dot centered */}
         <div
           ref={circleRef}
-          className="absolute cursor-pointer flex items-center justify-center pointer-events-auto"
+          className={`absolute flex items-center justify-center pointer-events-auto ${canNavigateBack ? 'cursor-pointer' : 'cursor-default'}`}
           style={{
             width: dotSize + HIT_AREA_PADDING * 2,
             height: dotSize + HIT_AREA_PADDING * 2,
@@ -628,7 +631,17 @@ export default function OrbitNav({
           }}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          title="Navigation"
+          onClick={canNavigateBack ? navigateBack : undefined}
+          onKeyDown={canNavigateBack ? (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              navigateBack();
+            }
+          } : undefined}
+          role={canNavigateBack ? 'button' : undefined}
+          tabIndex={canNavigateBack ? 0 : undefined}
+          aria-label={canNavigateBack ? 'Back' : 'Navigation'}
+          title={canNavigateBack ? 'Back' : 'Navigation'}
         >
           <OrbitNavDot
             size={dotSize}

@@ -80,7 +80,47 @@ export function initStatsSectionReveal(): () => void {
     },
     0
   );
+  // Mobile vs tablet/desktop behavior (width-based breakpoints)
+  const isMobileLike =
+    typeof window !== "undefined" && window.innerWidth < 768;
 
+  if (isMobileLike) {
+    // Mobile UX: animate in once when the stats section first comes into view,
+    // then keep the stats visible while the user scrolls through and past.
+    const mobileTrigger = ScrollTrigger.create({
+      trigger: section,
+      start: "top 85%",
+      end: "bottom 20%",
+      once: true,
+      onEnter: () => {
+        enterTl.play();
+      },
+      // If user scrolls back up before the first animation completes, replay it cleanly.
+      onEnterBack: () => {
+        if (enterTl.progress() < 1) {
+          enterTl.pause(0);
+          resetToInitial(numbers, paragraphs);
+          enterTl.play();
+        } else {
+          // Ensure everything is fully visible if they re-enter after it has played.
+          gsap.to([...numbers, ...paragraphs], {
+            y: 0,
+            opacity: 1,
+            duration: 0.25,
+            overwrite: true,
+          });
+        }
+      },
+    });
+
+    return () => {
+      mobileTrigger.kill();
+      enterTl.kill();
+      exitTl.kill();
+    };
+  }
+
+  // Desktop UX: full enter + exit behavior with replays on scroll back.
   const enterTrigger = ScrollTrigger.create({
     trigger: section,
     start: "top 82%",
