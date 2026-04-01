@@ -4,8 +4,13 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 
 const STATS_SECTION = ".stats-section";
-/** Numbers enter from bottom of screen (full viewport height), with stagger between each */
-const NUMBER_FROM_BOTTOM = "60vh";
+/** Numbers enter from below; on short viewports use px so motion fits within the visible area */
+function getNumberFromBottom(): string {
+  if (typeof window === "undefined") return "60vh";
+  const h = window.innerHeight;
+  if (h < 560) return `${Math.round(h * 0.38)}px`;
+  return "60vh";
+}
 const NUMBERS_STAGGER = 0.08;
 const NUMBER_DURATION = .8;
 const PARAGRAPH_DURATION = 1.25;
@@ -14,19 +19,27 @@ const EXIT_DURATION = 0.55;
 const EXIT_OUT_Y = "-100vh";
 
 /**
- * Initial state: numbers and paragraphs start from bottom of screen (100vh below).
+ * Initial state: numbers and paragraphs start from below the visible area.
  */
-function setInitialState(numbers: HTMLElement[], paragraphs: HTMLElement[]) {
-  gsap.set(numbers, { y: NUMBER_FROM_BOTTOM as gsap.TweenValue, opacity: 0 });
-  gsap.set(paragraphs, { y: NUMBER_FROM_BOTTOM as gsap.TweenValue, opacity: 0 });
+function setInitialState(
+  numbers: HTMLElement[],
+  paragraphs: HTMLElement[],
+  fromBottom: string
+) {
+  gsap.set(numbers, { y: fromBottom as gsap.TweenValue, opacity: 0 });
+  gsap.set(paragraphs, { y: fromBottom as gsap.TweenValue, opacity: 0 });
 }
 
 /**
  * Reset to initial state (for when user scrolls back up and we want enter to replay).
  */
-function resetToInitial(numbers: HTMLElement[], paragraphs: HTMLElement[]) {
-  gsap.set(numbers, { y: NUMBER_FROM_BOTTOM as gsap.TweenValue, opacity: 0 });
-  gsap.set(paragraphs, { y: NUMBER_FROM_BOTTOM as gsap.TweenValue, opacity: 0 });
+function resetToInitial(
+  numbers: HTMLElement[],
+  paragraphs: HTMLElement[],
+  fromBottom: string
+) {
+  gsap.set(numbers, { y: fromBottom as gsap.TweenValue, opacity: 0 });
+  gsap.set(paragraphs, { y: fromBottom as gsap.TweenValue, opacity: 0 });
 }
 
 /**
@@ -48,7 +61,8 @@ export function initStatsSectionReveal(): () => void {
 
   if (numbers.length === 0 || paragraphs.length === 0) return () => {};
 
-  setInitialState(numbers, paragraphs);
+  let numberFromBottom = getNumberFromBottom();
+  setInitialState(numbers, paragraphs, numberFromBottom);
 
   const enterTl = gsap.timeline({ paused: true });
   enterTl.to(numbers, {
@@ -61,7 +75,7 @@ export function initStatsSectionReveal(): () => void {
   // fromTo so paragraphs always animate UP from bottom of slide with opacity 0→1 (fixes re-enter)
   enterTl.fromTo(
     paragraphs,
-    { y: NUMBER_FROM_BOTTOM as gsap.TweenValue, opacity: 0 },
+    { y: numberFromBottom as gsap.TweenValue, opacity: 0 },
     {
       y: 0,
       opacity: 1,
@@ -82,9 +96,17 @@ export function initStatsSectionReveal(): () => void {
     },
     0
   );
-  // Mobile vs tablet/desktop behavior (width-based breakpoints)
+  // Phone / narrow tablet in any orientation: width alone misses landscape phones (wide but short).
   const isMobileLike =
-    typeof window !== "undefined" && window.innerWidth < 768;
+    typeof window !== "undefined" &&
+    Math.min(window.innerWidth, window.innerHeight) < 768;
+
+  const refreshOnViewport = () => {
+    numberFromBottom = getNumberFromBottom();
+    ScrollTrigger.refresh();
+  };
+  window.addEventListener("resize", refreshOnViewport);
+  window.addEventListener("orientationchange", refreshOnViewport);
 
   if (isMobileLike) {
     // Mobile UX: animate in once when the stats section first comes into view,
@@ -101,7 +123,7 @@ export function initStatsSectionReveal(): () => void {
       onEnterBack: () => {
         if (enterTl.progress() < 1) {
           enterTl.pause(0);
-          resetToInitial(numbers, paragraphs);
+          resetToInitial(numbers, paragraphs, numberFromBottom);
           enterTl.play();
         } else {
           // Ensure everything is fully visible if they re-enter after it has played.
@@ -116,6 +138,8 @@ export function initStatsSectionReveal(): () => void {
     });
 
     return () => {
+      window.removeEventListener("resize", refreshOnViewport);
+      window.removeEventListener("orientationchange", refreshOnViewport);
       mobileTrigger.kill();
       enterTl.kill();
       exitTl.kill();
@@ -138,17 +162,19 @@ export function initStatsSectionReveal(): () => void {
       exitTl.progress(0);
       enterTl.pause();
       enterTl.progress(0);
-      resetToInitial(numbers, paragraphs);
+      resetToInitial(numbers, paragraphs, numberFromBottom);
       enterTl.play();
     },
     onLeaveBack: () => {
-      resetToInitial(numbers, paragraphs);
+      resetToInitial(numbers, paragraphs, numberFromBottom);
       enterTl.pause();
       enterTl.progress(0);
     },
   });
 
   return () => {
+    window.removeEventListener("resize", refreshOnViewport);
+    window.removeEventListener("orientationchange", refreshOnViewport);
     enterExitTrigger.kill();
     enterTl.kill();
     exitTl.kill();

@@ -20,8 +20,12 @@ export function initScrollLetterReveal(
     return () => {};
   }
 
-  // Split text into characters
-  const split = new SplitText(container, { type: 'chars' });
+  const split = new SplitText(container, {
+    type: 'words,chars',
+    tag: 'span',
+    wordsClass: 'scroll-split-word',
+    charsClass: 'scroll-split-char',
+  });
   const chars = split.chars as HTMLElement[];
 
   // Set initial state: invisible

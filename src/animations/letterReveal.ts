@@ -11,14 +11,16 @@ gsap.registerPlugin(SplitText);
  * @param delay - Delay before animation starts (default: 0)
  * @param stagger - Time between each character reveal (default: 0.05)
  */
+const noopCleanup = () => {};
+
 export function initLetterReveal(
   selector: string,
   delay: number = 0,
   stagger: number = 0.05
-): void {
+): () => void {
   const container = document.querySelector(selector);
   if (!container) {
-    return;
+    return noopCleanup;
   }
 
   const allSpans = container.querySelectorAll('span');
@@ -29,7 +31,7 @@ export function initLetterReveal(
     return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
   });
   if (spans.length === 0) {
-    return;
+    return noopCleanup;
   }
 
   const allChars: HTMLElement[] = [];
@@ -37,7 +39,12 @@ export function initLetterReveal(
   // Split every span into characters (skip hero-cursor)
   spans.forEach((span) => {
     try {
-      const split = new SplitText(span as HTMLElement, { type: 'chars' });
+      const split = new SplitText(span as HTMLElement, {
+        type: 'words,chars',
+        tag: 'span',
+        wordsClass: 'hero-word',
+        charsClass: 'hero-char',
+      });
       if (split.chars && split.chars.length > 0) {
         allChars.push(...(split.chars as HTMLElement[]));
       }
@@ -47,7 +54,7 @@ export function initLetterReveal(
   });
 
   if (allChars.length === 0) {
-    return;
+    return noopCleanup;
   }
 
   // Initial state: fully hidden (no faint text underneath)
@@ -58,12 +65,17 @@ export function initLetterReveal(
 
   // Blinking cursor: position in front of the reveal, advance with each character
   const cursor = container.querySelector('.hero-cursor') as HTMLElement | null;
+  /** Last character the cursor was placed after — used to re-measure after rotate/resize */
+  let lastCursorChar: HTMLElement | null = null;
+  let resizeObserver: ResizeObserver | null = null;
+
   const containerRect = () => (container as HTMLElement).getBoundingClientRect();
   const setCursorAfterChar = (charEl: HTMLElement) => {
     if (!cursor) return;
     const cr = containerRect();
     const charRect = charEl.getBoundingClientRect();
     if (charRect.width === 0 && charRect.height === 0) return; // skip hidden (e.g. mobile-only on desktop)
+    lastCursorChar = charEl;
     const cursorHeight = cursor.getBoundingClientRect().height || charRect.height * 1.25;
     const top = charRect.top - cr.top + (charRect.height / 2) - (cursorHeight / 2);
     gsap.set(cursor, {
@@ -71,6 +83,18 @@ export function initLetterReveal(
       top: `${top}px`,
     });
   };
+
+  const repositionCursorAfterLayout = () => {
+    if (!cursor || !lastCursorChar) return;
+    // Double rAF: text reflow after orientation change often lands after first paint (esp. iOS)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (cursor && lastCursorChar) setCursorAfterChar(lastCursorChar);
+      });
+    });
+  };
+
+  const onViewportChange = () => repositionCursorAfterLayout();
   const lastVisibleChar = () => {
     for (let i = allChars.length - 1; i >= 0; i--) {
       const r = allChars[i].getBoundingClientRect();
@@ -96,6 +120,16 @@ export function initLetterReveal(
       initialBlinkTl.kill();
       gsap.set(cursor, { opacity: 1 });
     });
+
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('orientationchange', onViewportChange);
+    window.visualViewport?.addEventListener('resize', onViewportChange);
+    window.visualViewport?.addEventListener('scroll', onViewportChange);
+
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => onViewportChange());
+      resizeObserver.observe(container as HTMLElement);
+    }
   }
 
   // "Hard cut" typing — characters switch on instantly, one by one
@@ -127,6 +161,16 @@ export function initLetterReveal(
       }
     });
   });
+
+  return () => {
+    if (!cursor) return;
+    resizeObserver?.disconnect();
+    resizeObserver = null;
+    window.removeEventListener('resize', onViewportChange);
+    window.removeEventListener('orientationchange', onViewportChange);
+    window.visualViewport?.removeEventListener('resize', onViewportChange);
+    window.visualViewport?.removeEventListener('scroll', onViewportChange);
+  };
 }
 
 

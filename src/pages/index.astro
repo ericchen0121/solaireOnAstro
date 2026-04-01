@@ -12,31 +12,14 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     id="hero-trigger"
     class="hero h-screen flex items-center justify-center bg-black text-white"
   >
-    <div id="hero-content" class="container mx-auto px-4">
+    <div id="hero-content" class="container mx-auto px-[4.5rem] md:px-[8rem]">
       <h1
         class="font-f37moon-light hero-title text-left max-w-6xl md:max-w-6xl max-w-none"
       >
         <span class="hero-cursor" aria-hidden="true"></span>
-        <!-- Desktop version -->
-        <span class="hidden md:inline">Le soleil produit en une</span><br
-          class="hidden md:block"
-        />
-        <span class="hidden md:inline">heure ce que l'humanité</span><br
-          class="hidden md:block"
-        />
-        <span id="last-span" class="last-span hidden md:inline"
-          >consomme en un an.</span
+        <span class="hero-headline"
+          >Le soleil produit en une heure ce que l'humanité consomme en un an.</span
         >
-
-        <!-- Mobile version with better line breaks -->
-        <span class="md:hidden">Le soleil produit</span><br class="md:hidden" />
-        <span class="md:hidden">en une heure ce que</span><br
-          class="md:hidden"
-        />
-        <span class="md:hidden">l'humanité consomme</span><br
-          class="md:hidden"
-        />
-        <span id="last-span-mobile" class="last-span md:hidden">en un an.</span>
       </h1>
     </div>
   </section>
@@ -45,7 +28,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   <section
     class="company-name-section h-screen flex items-center justify-center bg-black text-white"
   >
-    <div class="container mx-auto w-full">
+    <div class="container mx-auto w-full px-[4.5rem] md:px-[8rem]">
       <h2
         class="company-name-title text-7xl md:text-8xl lg:text-9xl xl:text-[12rem] font-bold text-center leading-none"
       >
@@ -57,11 +40,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
   <!-- Section 3: Stats -->
   <section
-    class="stats-section relative h-screen flex items-center justify-center overflow-hidden bg-black text-white py-20"
+    class="stats-section relative h-screen min-h-0 flex flex-col items-center justify-center overflow-hidden bg-black text-white py-20 [@media(max-height:560px)]:py-6 [@media(max-height:560px)_and_(max-width:1100px)]:justify-start [@media(max-height:560px)_and_(max-width:1100px)]:overflow-y-auto"
   >
-    <div class="container mx-auto px-4 w-full">
+    <div class="container mx-auto px-[4.5rem] md:px-[8rem] w-full">
       <div
-        class="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16 max-w-7xl mx-auto"
+        class="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16 max-w-7xl mx-auto [@media(max-height:560px)_and_(max-width:1100px)]:grid-cols-1 [@media(max-height:560px)_and_(max-width:1100px)]:gap-8"
       >
         <!-- Stat 1: 1482 -->
         <div class="stat-column">
@@ -119,7 +102,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       <source src="/romande_r1.mp4" type="video/mp4" />
     </video>
 
-    <div class="relative z-10 text-left px-4">
+    <div class="relative z-10 text-left px-[4.5rem] md:px-[8rem]">
       <h2
         class="font-f37moon-light text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-white leading-tight"
       >
@@ -136,17 +119,19 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   >
     <a href="/why-solar" class="slide-bar-link">
       <h2
-        class="slide-bar-title text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4 cursor-pointer"
+        class="slide-bar-title text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-[4.5rem] md:px-[8rem] cursor-pointer"
       >
         <span class="slide-bar-bg" aria-hidden="true"></span>
-        <span
-          id="why-solar-outline"
-          class="slide-bar-outline"
-          aria-hidden="true">Pourquoi le solaire?</span
-        >
-        <span id="why-solar-text" class="slide-bar-fill-text"
-          >Pourquoi le solaire?</span
-        >
+        <span class="slide-bar-text-stack">
+          <span
+            id="why-solar-outline"
+            class="slide-bar-outline"
+            aria-hidden="true">Pourquoi le solaire?</span
+          >
+          <span id="why-solar-text" class="slide-bar-fill-text"
+            >Pourquoi le solaire?</span
+          >
+        </span>
       </h2>
     </a>
   </section>
@@ -158,15 +143,17 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   >
     <a href="/why-work-with-us" class="slide-bar-link">
       <h2
-        class="slide-bar-title text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4 cursor-pointer"
+        class="slide-bar-title text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-[4.5rem] md:px-[8rem] cursor-pointer"
       >
         <span class="slide-bar-bg" aria-hidden="true"></span>
-        <span id="why-us-outline" class="slide-bar-outline" aria-hidden="true"
-          >Pourquoi travailler avec nous?</span
-        >
-        <span id="why-us-text" class="slide-bar-fill-text"
-          >Pourquoi travailler avec nous?</span
-        >
+        <span class="slide-bar-text-stack">
+          <span id="why-us-outline" class="slide-bar-outline" aria-hidden="true"
+            >Pourquoi travailler avec nous?</span
+          >
+          <span id="why-us-text" class="slide-bar-fill-text"
+            >Pourquoi travailler avec nous?</span
+          >
+        </span>
       </h2>
     </a>
   </section>
@@ -178,15 +165,19 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   >
     <a href="/clients" class="slide-bar-link">
       <h2
-        class="slide-bar-title text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4 cursor-pointer"
+        class="slide-bar-title text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-[4.5rem] md:px-[8rem] cursor-pointer"
       >
         <span class="slide-bar-bg" aria-hidden="true"></span>
-        <span id="clients-outline" class="slide-bar-outline" aria-hidden="true"
-          >Qui sont nos clients?</span
-        >
-        <span id="clients-text" class="slide-bar-fill-text"
-          >Qui sont nos clients?</span
-        >
+        <span class="slide-bar-text-stack">
+          <span
+            id="clients-outline"
+            class="slide-bar-outline"
+            aria-hidden="true">Qui sont nos clients?</span
+          >
+          <span id="clients-text" class="slide-bar-fill-text"
+            >Qui sont nos clients?</span
+          >
+        </span>
       </h2>
     </a>
   </section>
@@ -199,7 +190,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     <a href="/projets">
       <h2
         id="projets-text"
-        class="text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-bold text-center px-4 cursor-pointer"
+        class="text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-bold text-center px-[4.5rem] md:px-[8rem] cursor-pointer"
       >
         Projets
       </h2>
@@ -214,7 +205,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     <a
       id="contact-text"
       href="mailto:Info@rochatsolaire.ch"
-      class="font-f37moon-light text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-4"
+      class="font-f37moon-light text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-center px-[4.5rem] md:px-[8rem]"
     >
       Contact
     </a>
@@ -240,6 +231,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     let cleanupSectionSnap = null;
     let cleanupStatsReveal = null;
     let cleanupVideoScale = null;
+    let cleanupLetterReveal = null;
     const cleanupFunctions = [];
 
     function scrollToHashSectionIfNeeded() {
@@ -269,7 +261,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           console.log("🎬 Calling initLetterReveal");
-          initLetterReveal(".hero-title", 0.8, 0.05);
+          cleanupLetterReveal = initLetterReveal(".hero-title", 0.8, 0.05);
 
           // 2. Stats section: numbers stagger up, then paragraphs reveal; exit at top on scroll
           cleanupStatsReveal = initStatsSectionReveal();
@@ -340,6 +332,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     }
 
     window.addEventListener("beforeunload", () => {
+      cleanupLetterReveal?.();
       cleanupSectionSnap?.();
       cleanupStatsReveal?.();
       cleanupVideoScale?.();

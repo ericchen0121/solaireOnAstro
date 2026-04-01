@@ -152,21 +152,40 @@
     background: #000000 !important;
   }
 
-  .slide-bar-fill-text,
-  .slide-bar-outline {
+  /*
+   * Outline + fill share one layout box: grid places both in the same cell so
+   * mobile Safari can’t shift absolute outline vs in-flow fill (different CBs).
+   */
+  .slide-bar-text-stack {
+    display: grid;
+    grid-template-areas: "stack";
+    justify-items: center;
+    align-items: start;
+    width: 100%;
     position: relative;
-    display: block;
     z-index: 2;
   }
 
-  .slide-bar-fill-text {
-    color: #ffffff;
+  .slide-bar-text-stack .slide-bar-outline,
+  .slide-bar-text-stack .slide-bar-fill-text {
+    grid-area: stack;
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    text-align: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    height: auto;
   }
 
-  /* Separate outline layer avoids stroking SplitText character wrappers directly */
-  .slide-bar-outline {
-    position: absolute;
-    inset: 0;
+  .slide-bar-text-stack .slide-bar-outline {
+    z-index: 1;
     color: transparent;
     opacity: 0;
     pointer-events: none;
@@ -174,6 +193,25 @@
     transition-timing-function: cubic-bezier(0.3, 0.1, 0.2, 1);
     -webkit-text-stroke: 3px rgba(255, 255, 255, 0.55);
     -webkit-font-smoothing: antialiased;
+    paint-order: stroke fill;
+  }
+
+  .slide-bar-text-stack .slide-bar-fill-text {
+    z-index: 2;
+    color: #ffffff;
+  }
+
+  /* Scroll letter reveal (why-solar / why-us / clients): words stay on one line */
+  .scroll-split-word {
+    display: inline-block;
+    white-space: nowrap;
+    vertical-align: baseline;
+  }
+
+  @media (max-width: 767px) {
+    .slide-bar-text-stack .slide-bar-outline {
+      -webkit-text-stroke-width: 2px;
+    }
   }
 
   .slide-bar-link:hover .slide-bar-outline {
@@ -224,6 +262,12 @@
     margin-left: 10vw;
   }
 
+  /* SplitText (words + chars): whole words stay on one line; line breaks only between words */
+  .hero-title .hero-word {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
   /* Blinking cursor – thin, tall, 0.5s on / 0.5s off like real text editors */
   .hero-cursor {
     position: absolute;
@@ -251,16 +295,16 @@
     50% { opacity: 0; }       /* 0.5s off */
   }
 
-  /* Mobile: larger font, no left margin, proper padding, prevent word breaks */
+  /* Mobile: larger font, no left margin; horizontal inset from #hero-content px-[4.5rem] */
   @media (max-width: 768px) {
     .hero-title {
       font-size: 48px;
       line-height: 52px;
       margin-left: 0;
-      padding: 0 1rem;
-      word-break: keep-all; /* Prevent words from breaking */
-      overflow-wrap: normal; /* Don't wrap long words */
-      hyphens: none; /* No hyphenation */
+      padding: 0;
+      word-break: normal;
+      overflow-wrap: normal;
+      hyphens: none;
     }
   }
 

@@ -25,6 +25,7 @@ const {
 <!doctype html>
 <html
   lang="en"
+  class:list={[{ "bg-black min-h-full": isDark }]}
   data-orbit-nav-color-mode={orbitNavColorMode}
   data-orbit-show-back={String(showBack)}
   data-orbit-is-dark={String(isDark)}
@@ -33,7 +34,10 @@ const {
     <ViewTransitions />
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
 
@@ -59,7 +63,7 @@ const {
 
     <title>{title}</title>
   </head>
-  <body>
+  <body class:list={[{ "bg-black min-h-full": isDark }]}>
     <script define:vars={{ orbitNavColorMode, showBack, isDark }}>
       document.documentElement.dataset.orbitNavColorMode = orbitNavColorMode;
       document.documentElement.dataset.orbitShowBack = String(showBack);
