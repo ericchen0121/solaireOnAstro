@@ -22,6 +22,7 @@ pnpm-debug.log*
 # .vscode/  # Keep .vscode settings for team consistency
 .idea/
 
-# Large binaries: ignore MP4s everywhere except deploy assets in public/
+# MP4s: Cloudflare Pages max 25 MiB/file — commit only assets under that limit.
 *.mp4
-!public/**/*.mp4
+!public/romande_r1.mp4
+!public/projets.mp4
