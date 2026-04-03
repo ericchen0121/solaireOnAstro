@@ -4,21 +4,21 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
 <BaseLayout
   title="Projets - Rochat Solaire"
-  isDark={false}
+  isDark={true}
   orbitNavColorMode="light"
   showBack={true}
 >
   <main class="projets-page">
-    <section
-      class="projets-section h-screen w-screen bg-black overflow-hidden relative"
-    >
+    <section class="projets-section bg-black overflow-hidden">
       <video
         id="projets-video"
         autoplay
         loop
         muted
         playsinline
-        class="absolute inset-0 w-full h-full object-cover"
+        webkit-playsinline=""
+        preload="auto"
+        class="projets-video"
       >
         <source src="/projets.mp4" type="video/mp4" />
       </video>
@@ -35,11 +35,42 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 <style>
   .projets-page {
     font-family: var(--font-primary);
+    margin: 0;
+    padding: 0;
+    /* Keeps body background continuous when hero is position:fixed */
+    min-height: 100dvh;
+    min-height: 100vh;
   }
 
+  /* Full-bleed to physical edges on iPhone (notch / home indicator) with viewport-fit=cover */
   .projets-section {
-    position: relative;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    min-height: -webkit-fill-available;
     --projets-title-line-height: 115px;
+  }
+
+  .projets-video {
+    position: absolute;
+    object-fit: cover;
+    z-index: 0;
+    /* iOS Safari: promote compositing layer to avoid black / no-paint frames */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    /* Extend past safe-area padding so video reaches hardware edges in landscape */
+    top: calc(-1 * env(safe-area-inset-top, 0px));
+    bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+    left: calc(-1 * env(safe-area-inset-left, 0px));
+    right: calc(-1 * env(safe-area-inset-right, 0px));
+    width: calc(
+      100% + env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px)
+    );
+    height: calc(
+      100% + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)
+    );
   }
 
   .projets-text-overlay {
@@ -129,35 +160,50 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
   @media (max-width: 768px) {
     .projets-section {
-      --projets-title-line-height: 40px;
+      --projets-title-line-height: 32px;
     }
 
     .projets-text {
-      font-size: 80px;
+      font-size: 64px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .projets-section {
+      --projets-title-line-height: 26px;
+    }
+
+    .projets-text {
+      font-size: 48px;
     }
   }
 </style>
 
 <script>
   const texts = ["Industriel", "Résidentiel", "École", "Rural", "Hôpital"];
-  let currentIndex = 0;
-  let videoDuration = 0;
-  let intervalDuration = 0;
-
-  const video = document.getElementById(
-    "projets-video",
-  ) as HTMLVideoElement | null;
-  const currentEl = document.querySelector<HTMLSpanElement>(
-    ".projets-text[data-projets-role='current']",
-  );
-  const nextEl = document.querySelector<HTMLSpanElement>(
-    ".projets-text[data-projets-role='next']",
-  );
-  let currentTextEl = currentEl;
-  let nextTextEl = nextEl;
   const leaveDuration = 140;
   const enterDelay = 140;
   const segmentLeadTime = 0.3;
+
+  let cleanup: (() => void) | null = null;
+  let currentIndex = 0;
+  let videoDuration = 0;
+  let intervalDuration = 0;
+  let currentTextEl: HTMLSpanElement | null = null;
+  let nextTextEl: HTMLSpanElement | null = null;
+
+  function tryPlayProjetsVideo(video: HTMLVideoElement) {
+    video.muted = true;
+    video.defaultMuted = true;
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+    const p = video.play();
+    if (p !== undefined) {
+      p.catch(() => {
+        /* autoplay policy — retry once after user gesture is rare on full-page bg */
+      });
+    }
+  }
 
   function getLeavingTransformValue(element: HTMLSpanElement) {
     const lineHeight =
@@ -182,7 +228,6 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       return;
     }
 
-    // Prepare next element: ensure it starts from the base "below" state
     nextTextEl.textContent = texts[index];
     nextTextEl.style.transition = "";
     nextTextEl.style.opacity = "";
@@ -190,7 +235,6 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     nextTextEl.classList.remove("leaving", "active");
     void nextTextEl.offsetHeight;
 
-    // Let the outgoing title start first, then bring the next one in.
     currentTextEl.classList.add("leaving");
     currentTextEl.classList.remove("active");
     setTimeout(() => {
@@ -201,12 +245,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       const leavingEl = currentTextEl;
       const incomingEl = nextTextEl;
       if (!leavingEl || !incomingEl) return;
-      // Keep element at top position, just make it invisible (no drop back down)
       leavingEl.style.transition = "none";
       leavingEl.style.opacity = "0";
       leavingEl.style.transform = getLeavingTransformValue(leavingEl);
       leavingEl.classList.remove("leaving");
-      // Swap roles for next transition
       currentTextEl = incomingEl;
       nextTextEl = leavingEl;
       currentTextEl.setAttribute("data-projets-role", "current");
@@ -214,43 +256,77 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     }, leaveDuration);
   }
 
-  function syncTextWithVideo() {
-    if (!video || videoDuration === 0) return;
+  function initProjetsPage() {
+    cleanup?.();
+    cleanup = null;
 
-    const currentTime = video.currentTime;
-    const adjustedTime = (currentTime + segmentLeadTime) % videoDuration;
-    const segmentIndex = Math.floor(adjustedTime / intervalDuration);
-    const newIndex = Math.min(segmentIndex, texts.length - 1);
+    const video = document.getElementById(
+      "projets-video",
+    ) as HTMLVideoElement | null;
+    currentTextEl = document.querySelector<HTMLSpanElement>(
+      ".projets-text[data-projets-role='current']",
+    );
+    nextTextEl = document.querySelector<HTMLSpanElement>(
+      ".projets-text[data-projets-role='next']",
+    );
 
-    if (newIndex !== currentIndex) {
-      currentIndex = newIndex;
-      updateText(currentIndex);
+    if (!video || !currentTextEl || !nextTextEl) return;
+
+    const v = video;
+
+    currentIndex = 0;
+    videoDuration = 0;
+    intervalDuration = 0;
+
+    const ac = new AbortController();
+    cleanup = () => ac.abort();
+
+    function syncTextWithVideo() {
+      if (videoDuration === 0) return;
+      const currentTime = v.currentTime;
+      const adjustedTime = (currentTime + segmentLeadTime) % videoDuration;
+      const segmentIndex = Math.floor(adjustedTime / intervalDuration);
+      const newIndex = Math.min(segmentIndex, texts.length - 1);
+
+      if (newIndex !== currentIndex) {
+        currentIndex = newIndex;
+        updateText(currentIndex);
+      }
     }
-  }
 
-  if (video) {
-    video.addEventListener("loadedmetadata", () => {
-      videoDuration = video.duration;
-      intervalDuration = videoDuration / 5; // 1/5 of video duration
+    function onLoadedMetadata() {
+      videoDuration = v.duration;
+      if (!Number.isFinite(videoDuration) || videoDuration <= 0) return;
+      intervalDuration = videoDuration / 5;
       currentIndex = 0;
       updateText(0);
+      tryPlayProjetsVideo(v);
+    }
 
-      // Sync every frame
-      video.addEventListener("timeupdate", syncTextWithVideo);
-
-      // Reset to first text when video loops
-      video.addEventListener("ended", () => {
+    v.addEventListener("loadedmetadata", onLoadedMetadata, {
+      signal: ac.signal,
+    });
+    v.addEventListener("timeupdate", syncTextWithVideo, {
+      signal: ac.signal,
+    });
+    v.addEventListener(
+      "ended",
+      () => {
         currentIndex = 0;
         updateText(0);
-      });
-    });
+      },
+      { signal: ac.signal },
+    );
 
-    // Initial display if video is already loaded
-    if (video.readyState >= 2) {
-      videoDuration = video.duration;
+    tryPlayProjetsVideo(v);
+
+    if (v.readyState >= 2 && Number.isFinite(v.duration) && v.duration > 0) {
+      videoDuration = v.duration;
       intervalDuration = videoDuration / 5;
       updateText(0);
-      video.addEventListener("timeupdate", syncTextWithVideo);
     }
   }
+
+  document.addEventListener("astro:page-load", initProjetsPage);
+  initProjetsPage();
 </script>

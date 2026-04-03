@@ -58,15 +58,11 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Desktop: instant scroll (GSAP controls smoothness). Mobile: browser smooth scroll. */
+  /* Native scroll only — smooth + touch momentum + ScrollTrigger fights (jitter near section edges). */
   html {
     scroll-behavior: auto;
-  }
-
-  @media (pointer: coarse) and (hover: none) {
-    html {
-      scroll-behavior: smooth;
-    }
+    /* Reduces sub-pixel scroll jumps when layout shifts (e.g. mobile toolbar) fighting small drags */
+    overflow-anchor: none;
   }
 
   body {
@@ -259,7 +255,7 @@
     font-size: 80px;
     line-height: 80px;
     letter-spacing: 0.02em; /* 2% */
-    margin-left: 10vw;
+    /* margin-left: 10vw; */
   }
 
   /* SplitText (words + chars): whole words stay on one line; line breaks only between words */

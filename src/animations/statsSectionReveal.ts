@@ -1,5 +1,6 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { isScrollDiagnosticsEnabled, logScrollDiag } from "../utils/scrollDiagnostics";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -101,12 +102,43 @@ export function initStatsSectionReveal(): () => void {
     typeof window !== "undefined" &&
     Math.min(window.innerWidth, window.innerHeight) < 768;
 
-  const refreshOnViewport = () => {
+  // iOS Safari fires `resize` very often while scrolling (dynamic toolbar changes innerHeight).
+  // Calling ScrollTrigger.refresh() on every event thrashes layout and causes scroll jitter.
+  const RESIZE_REFRESH_DEBOUNCE_MS = 200;
+  let resizeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const flushViewportRefresh = (reason: "resize-debounced" | "orientation") => {
     numberFromBottom = getNumberFromBottom();
+    if (isScrollDiagnosticsEnabled()) {
+      logScrollDiag("stats-section", `ScrollTrigger.refresh (${reason})`, {
+        numberFromBottom,
+        innerHeight: window.innerHeight,
+        innerWidth: window.innerWidth,
+      });
+    }
     ScrollTrigger.refresh();
   };
-  window.addEventListener("resize", refreshOnViewport);
-  window.addEventListener("orientationchange", refreshOnViewport);
+
+  /** Keep numberFromBottom in sync on every resize; debounce only the expensive ST.refresh (iOS toolbar). */
+  const onWindowResize = () => {
+    numberFromBottom = getNumberFromBottom();
+    if (resizeDebounceTimer !== null) clearTimeout(resizeDebounceTimer);
+    resizeDebounceTimer = window.setTimeout(() => {
+      resizeDebounceTimer = null;
+      flushViewportRefresh("resize-debounced");
+    }, RESIZE_REFRESH_DEBOUNCE_MS);
+  };
+
+  const onOrientationChange = () => {
+    if (resizeDebounceTimer !== null) {
+      clearTimeout(resizeDebounceTimer);
+      resizeDebounceTimer = null;
+    }
+    flushViewportRefresh("orientation");
+  };
+
+  window.addEventListener("resize", onWindowResize);
+  window.addEventListener("orientationchange", onOrientationChange);
 
   if (isMobileLike) {
     // Mobile UX: animate in once when the stats section first comes into view,
@@ -117,10 +149,21 @@ export function initStatsSectionReveal(): () => void {
       end: "bottom 20%",
       once: true,
       onEnter: () => {
+        if (isScrollDiagnosticsEnabled()) {
+          logScrollDiag("stats-section", "mobile trigger onEnter (once)", {
+            scrollY: Math.round(window.scrollY),
+          });
+        }
         enterTl.play();
       },
       // If user scrolls back up before the first animation completes, replay it cleanly.
       onEnterBack: () => {
+        if (isScrollDiagnosticsEnabled()) {
+          logScrollDiag("stats-section", "mobile trigger onEnterBack", {
+            scrollY: Math.round(window.scrollY),
+            enterProgress: enterTl.progress(),
+          });
+        }
         if (enterTl.progress() < 1) {
           enterTl.pause(0);
           resetToInitial(numbers, paragraphs, numberFromBottom);
@@ -138,8 +181,9 @@ export function initStatsSectionReveal(): () => void {
     });
 
     return () => {
-      window.removeEventListener("resize", refreshOnViewport);
-      window.removeEventListener("orientationchange", refreshOnViewport);
+      if (resizeDebounceTimer !== null) clearTimeout(resizeDebounceTimer);
+      window.removeEventListener("resize", onWindowResize);
+      window.removeEventListener("orientationchange", onOrientationChange);
       mobileTrigger.kill();
       enterTl.kill();
       exitTl.kill();
@@ -152,12 +196,30 @@ export function initStatsSectionReveal(): () => void {
     trigger: section,
     start: "top 82%",
     end: "bottom 15%",
-    onEnter: () => enterTl.play(),
+    onEnter: () => {
+      if (isScrollDiagnosticsEnabled()) {
+        logScrollDiag("stats-section", "desktop enterExit onEnter", {
+          scrollY: Math.round(window.scrollY),
+        });
+      }
+      enterTl.play();
+    },
     onLeave: () => {
+      if (isScrollDiagnosticsEnabled()) {
+        logScrollDiag("stats-section", "desktop enterExit onLeave → exitTl", {
+          scrollY: Math.round(window.scrollY),
+          enterProgress: enterTl.progress(),
+        });
+      }
       if (enterTl.progress() < 1) enterTl.progress(1);
       exitTl.restart();
     },
     onEnterBack: () => {
+      if (isScrollDiagnosticsEnabled()) {
+        logScrollDiag("stats-section", "desktop enterExit onEnterBack", {
+          scrollY: Math.round(window.scrollY),
+        });
+      }
       exitTl.pause();
       exitTl.progress(0);
       enterTl.pause();
@@ -166,6 +228,11 @@ export function initStatsSectionReveal(): () => void {
       enterTl.play();
     },
     onLeaveBack: () => {
+      if (isScrollDiagnosticsEnabled()) {
+        logScrollDiag("stats-section", "desktop enterExit onLeaveBack", {
+          scrollY: Math.round(window.scrollY),
+        });
+      }
       resetToInitial(numbers, paragraphs, numberFromBottom);
       enterTl.pause();
       enterTl.progress(0);
@@ -173,8 +240,9 @@ export function initStatsSectionReveal(): () => void {
   });
 
   return () => {
-    window.removeEventListener("resize", refreshOnViewport);
-    window.removeEventListener("orientationchange", refreshOnViewport);
+    if (resizeDebounceTimer !== null) clearTimeout(resizeDebounceTimer);
+    window.removeEventListener("resize", onWindowResize);
+    window.removeEventListener("orientationchange", onOrientationChange);
     enterExitTrigger.kill();
     enterTl.kill();
     exitTl.kill();

@@ -1,41 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { DEBUG_SETTINGS, getDotSize, ORBIT_NAV_LAYOUT } from '../../orbit-nav-config';
+import {
+  DEBUG_SETTINGS,
+  getDotSize,
+  getOrbitContainerOffsets,
+  getOrbitPathDimensions,
+} from '../../orbit-nav-config';
+import { isScrollDiagnosticsEnabled, logScrollDiag } from '../../../../utils/scrollDiagnostics';
 import OrbitNavDot from './OrbitNavDot';
 
-const getPathDimensions = () => {
-  if (typeof window === 'undefined') {
-    return {
-      w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH_DESKTOP,
-      h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT_DESKTOP,
-    };
-  }
-
-  const viewportWidth = window.innerWidth;
-
-  if (viewportWidth >= ORBIT_NAV_LAYOUT.TABLET_BREAKPOINT_PX) {
-    return {
-      w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH_DESKTOP,
-      h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT_DESKTOP,
-    };
-  }
-
-  if (viewportWidth >= ORBIT_NAV_LAYOUT.MOBILE_BREAKPOINT_PX) {
-    return {
-      w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH_TABLET,
-      h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT_TABLET,
-    };
-  }
-
-  return {
-    w: ORBIT_NAV_LAYOUT.ORBIT_WIDTH_MOBILE,
-    h: ORBIT_NAV_LAYOUT.ORBIT_HEIGHT_MOBILE,
-  };
-};
-
-gsap.registerPlugin(MotionPathPlugin, ScrollTrigger);
+gsap.registerPlugin(MotionPathPlugin);
 
 interface OrbitNavProps {
   isDark?: boolean;
@@ -54,7 +29,7 @@ interface OrbitNavProps {
  * - Auto color inversion (preserved from v1) 
  * - No route-specific text labels (removed from v1)
  * - Prepared for new circle animation
- * - ScrollTrigger integration (preserved from v1)
+ * - Homepage section index from scroll (viewport center; no per-section ScrollTrigger)
  */
 function getBackTargetFromPath(normalisedPath: string): string | null {
   switch (normalisedPath) {
@@ -78,7 +53,7 @@ function getOrbitNavConfigFromPath(path: string): { colorMode: 'auto' | 'light' 
     case '/clients':
       return { colorMode: 'dark', showBack: false, isDark: false };
     case '/projets':
-      return { colorMode: 'light', showBack: true, isDark: false };
+      return { colorMode: 'light', showBack: true, isDark: true };
     case '/projects':
       return { colorMode: 'dark', showBack: false, isDark: false };
     case '/contact':
@@ -106,16 +81,15 @@ export default function OrbitNav({
   const currentPathProgress = useRef<number>(0);
   const previousSectionIndexRef = useRef<number>(0);
   const isAnimatingRef = useRef<boolean>(false);
+  /** Last committed section for boundary hysteresis (reduces index flip-flop / scroll jitter). */
+  const sectionIndexHysteresisRef = useRef<number>(0);
   const hasInitializedPosition = useRef<boolean>(false);
   const [debugPositions, setDebugPositions] = useState<Array<{x: number, y: number, label: string}>>([]);
-  const [pathDimensions, setPathDimensions] = useState(() => getPathDimensions());
+  const [pathDimensions, setPathDimensions] = useState(() => getOrbitPathDimensions());
   const [dotSize, setDotSize] = useState(() => getDotSize());
   const [offsets, setOffsets] = useState(() => {
     const initialDot = getDotSize();
-    return {
-      top: ORBIT_NAV_LAYOUT.TOP_OFFSET_RATIO * initialDot,
-      right: ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 3 * initialDot,
-    };
+    return getOrbitContainerOffsets(initialDot);
   });
   const [isHomePage, setIsHomePage] = useState(true);
   const [backTarget, setBackTarget] = useState<string | null>(null);
@@ -142,20 +116,21 @@ export default function OrbitNav({
   // Responsive orbit and dot size
   useEffect(() => {
     const update = () => {
-      const newPathDimensions = getPathDimensions();
+      const newPathDimensions = getOrbitPathDimensions();
       const newDotSize = getDotSize();
 
       setPathDimensions(newPathDimensions);
       setDotSize(newDotSize);
-      setOffsets({
-        top: ORBIT_NAV_LAYOUT.TOP_OFFSET_RATIO * newDotSize,
-        right: ORBIT_NAV_LAYOUT.RIGHT_OFFSET_RATIO * 3 * newDotSize,
-      });
+      setOffsets(getOrbitContainerOffsets(newDotSize));
       requestAnimationFrame(() => syncDotCenterRef.current());
     };
     update();
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+    };
   }, []);
 
   const syncFromDocument = () => {
@@ -497,55 +472,138 @@ export default function OrbitNav({
   }, [isDarkState, colorModeState]);
 
   // Section tracking (only active on homepage)
+  // Viewport-center index + boundary hysteresis (avoids rapid index toggles at section edges).
+  // While the orbit dot is tweening (~0.35s), skip scroll-driven index updates so the motion
+  // path animation can run; updating index every frame during that window was killing/restarting
+  // the tween and broke mobile track animation.
   useEffect(() => {
-    // Only set up section tracking if we're on the homepage
     if (!isHomePage) return;
 
-    const sections = [
+    const SECTION_INDEX_HYSTERESIS_PX = 32;
+
+    const sectionSelectors = [
       '#hero-trigger',
-      '.company-name-section', 
+      '.company-name-section',
       '.stats-section',
       '.video-section',
       '.why-solar-section',
-      '.why-us-section', 
+      '.why-us-section',
       '.clients-section',
       '.projets-section',
-      '.contact-section'
+      '.contact-section',
     ];
 
-    sectionsRef.current = sections;
+    sectionsRef.current = sectionSelectors;
 
-    // Create ScrollTriggers for section detection
-    const scrollTriggers: ScrollTrigger[] = [];
+    const elements = sectionSelectors
+      .map((sel) => document.querySelector(sel) as HTMLElement | null)
+      .filter((el): el is HTMLElement => el !== null);
 
-    sections.forEach((selector, index) => {
-      const element = document.querySelector(selector);
-      if (!element) return;
+    if (elements.length === 0) return;
 
-      const trigger = ScrollTrigger.create({
-        trigger: element,
-        start: 'top 50%',
-        end: 'bottom 50%',
-        onEnter: () => {
-          if (!isAnimatingRef.current) {
-            setCurrentSectionIndex(index);
-            // Do NOT set previousSectionIndexRef here - it is updated in animation onComplete
-            // so that isForward = (currentSectionIndex > previousSectionIndexRef) is correct
-          }
-        },
-        onEnterBack: () => {
-          if (!isAnimatingRef.current) {
-            setCurrentSectionIndex(index);
-            // Do NOT set previousSectionIndexRef here
+    const getRawIndexForCenter = (centerY: number): number => {
+      for (let i = 0; i < elements.length; i++) {
+        const el = elements[i];
+        const top = el.offsetTop;
+        const bottom = top + el.offsetHeight;
+        const isLast = i === elements.length - 1;
+        if (isLast) {
+          if (centerY >= top && centerY <= bottom) return i;
+        } else if (centerY >= top && centerY < bottom) {
+          return i;
+        }
+      }
+      let best = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < elements.length; i++) {
+        const el = elements[i];
+        const mid = el.offsetTop + el.offsetHeight / 2;
+        const d = Math.abs(centerY - mid);
+        if (d < bestDist) {
+          bestDist = d;
+          best = i;
+        }
+      }
+      return best;
+    };
+
+    const getIndexWithHysteresis = (centerY: number): number => {
+      const raw = getRawIndexForCenter(centerY);
+      const last = sectionIndexHysteresisRef.current;
+      if (raw === last) return last;
+      if (Math.abs(raw - last) > 1) return raw;
+
+      const margin = SECTION_INDEX_HYSTERESIS_PX;
+      if (raw > last) {
+        const topNext = elements[raw].offsetTop;
+        return centerY >= topNext + margin ? raw : last;
+      }
+      const topLeave = elements[last].offsetTop;
+      return centerY <= topLeave - margin ? raw : last;
+    };
+
+    let rafId = 0;
+    let lastOrbitBlockedLogAt = 0;
+    const tick = () => {
+      rafId = 0;
+      if (isAnimatingRef.current) {
+        if (isScrollDiagnosticsEnabled()) {
+          const now = Date.now();
+          if (now - lastOrbitBlockedLogAt > 400) {
+            lastOrbitBlockedLogAt = now;
+            logScrollDiag('OrbitNav', 'tick skipped (orbit dot tweening)', {
+              scrollY: Math.round(window.scrollY),
+              innerHeight: window.innerHeight,
+            });
           }
         }
-      });
+        return;
+      }
 
-      scrollTriggers.push(trigger);
-    });
+      const centerY = window.scrollY + window.innerHeight * 0.5;
+      const next = getIndexWithHysteresis(centerY);
+      setCurrentSectionIndex((prev) => {
+        if (prev === next) return prev;
+        sectionIndexHysteresisRef.current = next;
+        if (isScrollDiagnosticsEnabled()) {
+          const raw = getRawIndexForCenter(centerY);
+          logScrollDiag('OrbitNav', 'section index change', {
+            from: prev,
+            to: next,
+            raw,
+            scrollY: Math.round(window.scrollY),
+            centerY: Math.round(centerY),
+            selector: sectionSelectors[next],
+          });
+        }
+        return next;
+      });
+    };
+
+    const onScroll = () => {
+      if (rafId !== 0) return;
+      rafId = requestAnimationFrame(tick);
+    };
+
+    const onResize = () => {
+      if (rafId !== 0) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(tick);
+    };
+
+    // Re-sync after navigation (ref persists on the React instance)
+    const centerY0 = window.scrollY + window.innerHeight * 0.5;
+    sectionIndexHysteresisRef.current = getRawIndexForCenter(centerY0);
+
+    tick();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
 
     return () => {
-      scrollTriggers.forEach(trigger => trigger.kill());
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+      if (rafId !== 0) cancelAnimationFrame(rafId);
     };
   }, [isHomePage]);
 

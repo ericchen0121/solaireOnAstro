@@ -1,5 +1,6 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { isScrollDiagnosticsEnabled, logScrollDiag } from "../utils/scrollDiagnostics";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -33,7 +34,37 @@ export function initVideoSectionScale(): () => void {
       start: "center center",
       // Finish scaling as we approach the next slide
       end: "bottom top",
-      scrub: true,
+      // scrub: true uses ~1s catch-up smoothing and can feel like scroll "sticks" on slow drags;
+      // 0 ties scale directly to scroll position (still smooth when flicking).
+      scrub: 0,
+      onEnter: () => {
+        if (isScrollDiagnosticsEnabled()) {
+          logScrollDiag("video-section", "ScrollTrigger onEnter", {
+            scrollY: Math.round(window.scrollY),
+          });
+        }
+      },
+      onLeave: () => {
+        if (isScrollDiagnosticsEnabled()) {
+          logScrollDiag("video-section", "ScrollTrigger onLeave", {
+            scrollY: Math.round(window.scrollY),
+          });
+        }
+      },
+      onEnterBack: () => {
+        if (isScrollDiagnosticsEnabled()) {
+          logScrollDiag("video-section", "ScrollTrigger onEnterBack", {
+            scrollY: Math.round(window.scrollY),
+          });
+        }
+      },
+      onLeaveBack: () => {
+        if (isScrollDiagnosticsEnabled()) {
+          logScrollDiag("video-section", "ScrollTrigger onLeaveBack", {
+            scrollY: Math.round(window.scrollY),
+          });
+        }
+      },
     },
   });
 
