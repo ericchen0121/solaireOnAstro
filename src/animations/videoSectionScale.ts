@@ -1,5 +1,6 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { tryPlayVideo } from "../utils/ensureVideoPlayback";
 import { isScrollDiagnosticsEnabled, logScrollDiag } from "../utils/scrollDiagnostics";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -19,6 +20,9 @@ export function initVideoSectionScale(): () => void {
 
   const video = section.querySelector("video");
   if (!video || !(video instanceof HTMLVideoElement)) return () => {};
+
+  tryPlayVideo(video);
+  video.addEventListener("canplay", () => tryPlayVideo(video), { once: true });
 
   // Ensure transform origin and starting scale are centered/full-screen
   gsap.set(video, {

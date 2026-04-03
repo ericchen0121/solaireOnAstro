@@ -180,6 +180,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 </style>
 
 <script>
+  import { tryPlayVideo } from "../../utils/ensureVideoPlayback";
+
   const texts = ["Industriel", "Résidentiel", "École", "Rural", "Hôpital"];
   const leaveDuration = 140;
   const enterDelay = 140;
@@ -191,19 +193,6 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   let intervalDuration = 0;
   let currentTextEl: HTMLSpanElement | null = null;
   let nextTextEl: HTMLSpanElement | null = null;
-
-  function tryPlayProjetsVideo(video: HTMLVideoElement) {
-    video.muted = true;
-    video.defaultMuted = true;
-    video.setAttribute("playsinline", "");
-    video.setAttribute("webkit-playsinline", "");
-    const p = video.play();
-    if (p !== undefined) {
-      p.catch(() => {
-        /* autoplay policy — retry once after user gesture is rare on full-page bg */
-      });
-    }
-  }
 
   function getLeavingTransformValue(element: HTMLSpanElement) {
     const lineHeight =
@@ -300,7 +289,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       intervalDuration = videoDuration / 5;
       currentIndex = 0;
       updateText(0);
-      tryPlayProjetsVideo(v);
+      tryPlayVideo(v);
     }
 
     v.addEventListener("loadedmetadata", onLoadedMetadata, {
@@ -318,7 +307,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       { signal: ac.signal },
     );
 
-    tryPlayProjetsVideo(v);
+    tryPlayVideo(v);
 
     if (v.readyState >= 2 && Number.isFinite(v.duration) && v.duration > 0) {
       videoDuration = v.duration;

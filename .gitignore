@@ -22,5 +22,6 @@ pnpm-debug.log*
 # .vscode/  # Keep .vscode settings for team consistency
 .idea/
 
-
+# Large binaries: ignore MP4s everywhere except deploy assets in public/
 *.mp4
+!public/**/*.mp4

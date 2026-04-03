@@ -97,6 +97,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       loop
       muted
       playsinline
+      webkit-playsinline=""
+      preload="auto"
       class="absolute inset-0 w-full h-full object-cover"
     >
       <source src="/romande_r1.mp4" type="video/mp4" />
@@ -223,6 +225,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   import { initStatsSectionReveal } from "../animations/statsSectionReveal";
   import { initVideoSectionScale } from "../animations/videoSectionScale";
   import { initSectionSnap } from "../animations/sectionSnap";
+  import { tryPlayVideo } from "../utils/ensureVideoPlayback";
 
   // Using native browser scrolling for better section snap reliability
   // ScrollTrigger works natively with window scrolling
@@ -338,5 +341,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       cleanupVideoScale?.();
       cleanupFunctions.forEach((fn) => fn());
     });
+
+    function playHomeVideoIfPresent() {
+      const v = document.querySelector(".video-section video");
+      if (v instanceof HTMLVideoElement) tryPlayVideo(v);
+    }
+
+    document.addEventListener("astro:page-load", playHomeVideoIfPresent);
   }
 </script>
