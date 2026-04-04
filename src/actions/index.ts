@@ -45,23 +45,53 @@ export const server = {
         });
       }
 
+      const from = import.meta.env.CONTACT_FROM_EMAIL?.trim();
+      if (!from) {
+        throw new ActionError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Contact sender address is not configured.",
+        });
+      }
+
       const subjectLine =
         subject.trim() || "Contact form — Rochat Solaire";
 
       const resend = new Resend(apiKey);
-      const { error } = await resend.emails.send({
-        from: "onboarding@resend.dev",
+      const teamSend = await resend.emails.send({
+        from,
         to,
         replyTo: email,
         subject: subjectLine,
         text: `From: ${email}\n\n${message}`,
       });
 
-      if (error) {
+      if (teamSend.error) {
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",
-          message: error.message,
+          message: teamSend.error.message,
         });
+      }
+
+      const confirmSend = await resend.emails.send({
+        from,
+        to: email,
+        replyTo: to,
+        subject: "We received your message — Rochat Solaire",
+        text: [
+          "Thank you for contacting Rochat Solaire.",
+          "",
+          "We have received your message and will get back to you soon.",
+          "",
+          "—",
+          "This is an automated confirmation. For follow-up, you can reply to the message we send from our team inbox.",
+        ].join("\n"),
+      });
+
+      if (confirmSend.error) {
+        console.error(
+          "[sendContactEmail] Team email sent but confirmation to sender failed:",
+          confirmSend.error.message,
+        );
       }
 
       return { sent: true as const };

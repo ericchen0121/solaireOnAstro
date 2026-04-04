@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly RESEND_API_KEY?: string;
   /** Inbound address for contact form submissions (server-only). */
   readonly CONTACT_TO_EMAIL?: string;
+  /** Verified Resend "from" address (server-only). */
+  readonly CONTACT_FROM_EMAIL?: string;
 }
 
 interface ImportMeta {
