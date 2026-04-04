@@ -264,7 +264,10 @@
     white-space: nowrap;
   }
 
-  /* Blinking cursor – thin, tall, 0.5s on / 0.5s off like real text editors */
+  /*
+   * Hero / letter-reveal cursor — same bar as homepage init reveal.
+   * Use with text that sets color (e.g. text-white); letterReveal positions it.
+   */
   .hero-cursor {
     position: absolute;
     display: none; /* shown by letterReveal when ready */
@@ -278,6 +281,11 @@
     pointer-events: none;
     animation: hero-cursor-blink 1s step-end infinite;
     animation-delay: -0.45s; /* JS will reset to 0s when typing ends for precise blink start */
+  }
+
+  /* Text caret in form fields: match hero cursor (white bar on dark contact UI) */
+  .caret-hero-match {
+    caret-color: currentColor;
   }
 
   /* Solid (no blink) while "typing" – like a real text editor */

@@ -1,6 +1,6 @@
 ---
 import OrbitNav from "../components/react/OrbitNav.tsx";
-import { ViewTransitions } from "astro:transitions";
+import ClientRouter from "astro/components/ClientRouter.astro";
 import { navigationItems } from "../utils/navigation";
 import "../styles/global.css";
 
@@ -31,7 +31,7 @@ const {
   data-orbit-is-dark={String(isDark)}
 >
   <head>
-    <ViewTransitions />
+    <ClientRouter />
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
     <meta

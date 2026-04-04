@@ -889,7 +889,7 @@ export default function OrbitNav({
     { label: 'clients', href: '/clients/', selector: '.clients-section' },
     { label: 'projets', href: '/projets/', selector: '.projets-section' },
     { label: 'home', href: '/', selector: '#hero-trigger' },
-    { label: 'contact', href: 'mailto:contact@rochatsolaire.com', selector: null },
+    { label: 'contact', href: '/contact/', selector: null },
   ];
 
   // Get current section label

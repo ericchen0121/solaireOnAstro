@@ -57,7 +57,7 @@ function getOrbitNavConfigFromPath(path: string): { colorMode: 'auto' | 'light' 
     case '/projects':
       return { colorMode: 'dark', showBack: false, isDark: false };
     case '/contact':
-      return { colorMode: 'dark', showBack: false, isDark: true };
+      return { colorMode: 'light', showBack: true, isDark: true };
     default:
       return { colorMode: 'auto', showBack: false, isDark: false };
   }

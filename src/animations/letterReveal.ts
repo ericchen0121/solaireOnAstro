@@ -13,6 +13,16 @@ gsap.registerPlugin(SplitText);
  */
 const noopCleanup = () => {};
 
+/** Wall-clock duration for the typing reveal (delay + stagger × chars + buffer). */
+export function letterRevealDurationMs(
+  charCount: number,
+  delay = 0.45,
+  stagger = 0.05,
+  bufferMs = 700,
+): number {
+  return Math.ceil((delay + charCount * stagger) * 1000) + bufferMs;
+}
+
 export function initLetterReveal(
   selector: string,
   delay: number = 0,
