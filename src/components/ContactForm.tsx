@@ -2,6 +2,7 @@ import { actions, isInputError } from "astro:actions";
 import {
   useEffect,
   useLayoutEffect,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -40,6 +41,54 @@ const INPUT_CLASS =
 const MESSAGE_BLOCK_MIN = "min-h-[6.5rem] md:min-h-[7rem]";
 const TEXTAREA_CLASS =
   `contact-type-field ${MESSAGE_BLOCK_MIN} w-full resize-y border-0 border-b-0 bg-transparent px-0 py-0 font-f37moon-light text-xl leading-snug tracking-[0.02em] text-white caret-hero-match placeholder:text-white/35 focus:outline-none focus:ring-0 disabled:opacity-50 md:text-2xl md:leading-snug`;
+
+type FormFeedback = "form" | "success" | "error";
+
+function ContactSuccessIcon() {
+  return (
+    <svg
+      aria-hidden
+      className="h-16 w-16 shrink-0 md:h-20 md:w-20"
+      viewBox="0 0 100 100"
+    >
+      <circle cx="50" cy="50" r="38" fill="white" />
+      <path
+        className="stroke-charcoal"
+        d="M 32 56 Q 50 74 68 56"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ContactErrorIcon() {
+  return (
+    <svg
+      aria-hidden
+      className="h-16 w-16 shrink-0 md:h-20 md:w-20"
+      viewBox="0 0 100 100"
+    >
+      <circle
+        cx="50"
+        cy="50"
+        r="38"
+        fill="none"
+        stroke="white"
+        strokeWidth="2"
+      />
+      <path
+        d="M 38 38 L 62 62 M 62 38 L 38 62"
+        fill="none"
+        stroke="white"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 function ContactFieldSection({
   step,
@@ -83,8 +132,9 @@ function ContactFieldSection({
 }
 
 export default function ContactForm() {
+  const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [feedback, setFeedback] = useState<FormFeedback>("form");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
     subject?: string;
@@ -138,7 +188,6 @@ export default function ContactForm() {
     const form = e.currentTarget;
 
     setLoading(true);
-    setSuccess(false);
     setErrorMessage(null);
     setFieldErrors({});
 
@@ -157,18 +206,24 @@ export default function ContactForm() {
 
     if (error) {
       if (isInputError(error)) {
-        setFieldErrors({
+        const fe = {
           subject: error.fields.subject?.join(" "),
           email: error.fields.email?.join(" "),
           message: error.fields.message?.join(" "),
-        });
+        };
+        setFieldErrors(fe);
+        const parts = [fe.subject, fe.email, fe.message].filter(Boolean);
+        setErrorMessage(
+          parts.join(" ") || "Please check the fields and try again.",
+        );
       } else {
         setErrorMessage(error.message ?? "Something went wrong. Try again.");
       }
+      setFeedback("error");
       return;
     }
 
-    setSuccess(true);
+    setFeedback("success");
     form.reset();
     const subjectInput = form.querySelector<HTMLInputElement>(
       "#contact-subject",
@@ -176,31 +231,30 @@ export default function ContactForm() {
     if (subjectInput) subjectInput.value = DEFAULT_SUBJECT;
   }
 
+  function resetToForm() {
+    setFeedback("form");
+    setErrorMessage(null);
+    setFieldErrors({});
+    const form = formRef.current;
+    if (form) {
+      form.reset();
+      const subjectInput = form.querySelector<HTMLInputElement>(
+        "#contact-subject",
+      );
+      if (subjectInput) subjectInput.value = DEFAULT_SUBJECT;
+    }
+  }
+
   const blockSubmit = step < 4;
 
   return (
-    <form
-      className="contact-form-type space-y-10 md:space-y-12"
-      onSubmit={onSubmit}
-    >
-      {success && (
-        <p
-          className="font-f37moon-light text-base tracking-[0.02em] text-white/90"
-          role="status"
+    <div className="contact-form-feedback-root w-full">
+      {feedback === "form" && (
+        <form
+          ref={formRef}
+          className="contact-form-type space-y-10 md:space-y-12"
+          onSubmit={onSubmit}
         >
-          Message sent. We will get back to you soon.
-        </p>
-      )}
-
-      {errorMessage && (
-        <p
-          className="font-f37moon-light text-base tracking-[0.02em] text-red-200"
-          role="alert"
-        >
-          {errorMessage}
-        </p>
-      )}
-
       {/* 1. Title — same vertical slot as final */}
       <div>
         {step === 0 ? (
@@ -397,6 +451,51 @@ export default function ContactForm() {
           {loading ? "…" : "send"}
         </button>
       </div>
-    </form>
+        </form>
+      )}
+
+      {feedback === "success" && (
+        <div
+          className="flex w-full max-w-lg flex-col items-center justify-center gap-8 px-6 py-10 text-center text-white motion-safe:animate-[contact-feedback-in_0.65s_ease-out_both] md:mx-auto md:px-10 md:py-14"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="font-f37moon-light text-lg leading-snug tracking-[0.02em] md:text-xl">
+            Thanks for contacting us.
+          </p>
+          <p className="font-f37moon-light text-lg leading-snug tracking-[0.02em] md:text-xl">
+            Your message has been sent!
+          </p>
+          <ContactSuccessIcon />
+          <button
+            type="button"
+            onClick={resetToForm}
+            className="font-f37moon-light mt-2 text-sm tracking-[0.12em] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
+          >
+            Send another message
+          </button>
+        </div>
+      )}
+
+      {feedback === "error" && errorMessage && (
+        <div
+          className="flex w-full max-w-lg flex-col items-center justify-center gap-8 px-6 py-10 text-center text-white motion-safe:animate-[contact-feedback-in_0.65s_ease-out_both] md:mx-auto md:px-10 md:py-14"
+          role="alert"
+          aria-live="assertive"
+        >
+          <p className="max-w-md font-f37moon-light text-base leading-relaxed tracking-[0.02em] text-white/95 md:text-lg">
+            ERROR: {errorMessage}
+          </p>
+          <ContactErrorIcon />
+          <button
+            type="button"
+            onClick={resetToForm}
+            className="font-f37moon-light mt-2 text-sm tracking-[0.12em] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

@@ -10,12 +10,17 @@ import ContactForm from "../../components/ContactForm.tsx";
   showBack={true}
 >
   <main class="contact-page">
-    <section
-      class="contact-section min-h-screen min-h-dvh flex items-center justify-center bg-charcoal text-white py-16 md:py-20"
-    >
+    <section class="contact-section bg-black text-white py-16 md:py-20">
       <div class="container mx-auto px-4 md:px-[4.5rem]">
         <div class="contact-page-fade mx-auto max-w-3xl">
-          <ContactForm client:load />
+          <ContactForm client:only="react">
+            <p
+              slot="fallback"
+              class="font-f37moon-light text-sm tracking-[0.02em] text-white/50"
+            >
+              Loading form…
+            </p>
+          </ContactForm>
         </div>
       </div>
     </section>
@@ -70,6 +75,33 @@ import ContactForm from "../../components/ContactForm.tsx";
       opacity: 1;
       transform: none;
       animation: none;
+    }
+  }
+
+  /* Chrome autofill paints a light background; force dark field to match page */
+  :global(.contact-page .contact-form-type input:-webkit-autofill),
+  :global(.contact-page .contact-form-type input:-webkit-autofill:hover),
+  :global(.contact-page .contact-form-type input:-webkit-autofill:focus),
+  :global(.contact-page .contact-form-type input:-webkit-autofill:active),
+  :global(.contact-page .contact-form-type textarea:-webkit-autofill),
+  :global(.contact-page .contact-form-type textarea:-webkit-autofill:hover),
+  :global(.contact-page .contact-form-type textarea:-webkit-autofill:focus),
+  :global(.contact-page .contact-form-type textarea:-webkit-autofill:active) {
+    -webkit-box-shadow: 0 0 0 1000px rgb(0 0 0) inset !important;
+    -webkit-text-fill-color: rgb(255 255 255) !important;
+    caret-color: white;
+  }
+</style>
+
+<style is:global>
+  @keyframes contact-feedback-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 </style>

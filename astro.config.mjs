@@ -8,6 +8,12 @@ export default defineConfig({
   // Astro Actions require server output (see ActionsWithoutServerOutputError with output: static + adapter in v6).
   output: 'server',
   adapter: cloudflare(),
+  vite: {
+    resolve: {
+      // Avoid duplicate React in SSR/worker bundles (invalid hook call / missing optimized chunks in dev).
+      dedupe: ['react', 'react-dom'],
+    },
+  },
   integrations: [
     tailwind(),
     react({
