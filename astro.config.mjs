@@ -5,9 +5,10 @@ import tailwind from '@astrojs/tailwind';
 
 // https://astro.build/config
 export default defineConfig({
-  // Astro Actions require server output (see ActionsWithoutServerOutputError with output: static + adapter in v6).
-  output: 'server',
-  adapter: cloudflare(),
+  // `output: "hybrid"` was removed in Astro 6; `static` + adapter + per-route `prerender` is the replacement.
+  // Pages using Astro Actions must set `export const prerender = false` (e.g. contact).
+  output: 'static',
+  adapter: cloudflare({ configPath: './wrangler.jsonc' }),
   vite: {
     resolve: {
       // Avoid duplicate React in SSR/worker bundles (invalid hook call / missing optimized chunks in dev).
