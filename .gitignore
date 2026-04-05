@@ -2,6 +2,9 @@
 dist/
 .output/
 
+# Wrangler local deploy metadata (points at dist/; must not be committed — breaks CI)
+.wrangler/
+
 # dependencies
 node_modules/
 
