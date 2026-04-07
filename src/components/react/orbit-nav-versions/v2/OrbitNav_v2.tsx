@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import {
@@ -65,6 +65,119 @@ function getSectionIndexForSubpagePath(normalisedPath: string): number | null {
   }
 }
 
+/** Same list as the homepage scroll listener — used to resolve scroll position to section index. */
+const HOMEPAGE_SECTION_SELECTORS = [
+  '#hero-trigger',
+  '.company-name-section',
+  '.stats-section',
+  '.video-section',
+  '.why-solar-section',
+  '.why-us-section',
+  '.clients-section',
+  '.projets-section',
+  '.contact-section',
+] as const;
+
+const SECTION_INDEX_HYSTERESIS_PX = 32;
+
+function queryHomepageSectionElements(): HTMLElement[] {
+  return HOMEPAGE_SECTION_SELECTORS.map((sel) => document.querySelector(sel) as HTMLElement | null).filter(
+    (el): el is HTMLElement => el !== null,
+  );
+}
+
+function homepageRawIndexForCenter(elements: HTMLElement[], centerY: number): number {
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements[i];
+    const top = el.offsetTop;
+    const bottom = top + el.offsetHeight;
+    const isLast = i === elements.length - 1;
+    if (isLast) {
+      if (centerY >= top && centerY <= bottom) return i;
+    } else if (centerY >= top && centerY < bottom) {
+      return i;
+    }
+  }
+  let best = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements[i];
+    const mid = el.offsetTop + el.offsetHeight / 2;
+    const d = Math.abs(centerY - mid);
+    if (d < bestDist) {
+      bestDist = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
+function homepageIndexWithHysteresis(
+  elements: HTMLElement[],
+  centerY: number,
+  lastCommitted: number,
+): number {
+  const raw = homepageRawIndexForCenter(elements, centerY);
+  const last = lastCommitted;
+  if (raw === last) return last;
+  if (Math.abs(raw - last) > 1) return raw;
+
+  const margin = SECTION_INDEX_HYSTERESIS_PX;
+  if (raw > last) {
+    const topNext = elements[raw].offsetTop;
+    return centerY >= topNext + margin ? raw : last;
+  }
+  const topLeave = elements[last].offsetTop;
+  return centerY <= topLeave - margin ? raw : last;
+}
+
+/**
+ * Section index for `/#...` targets (back links from subpages). Layout runs before scroll
+ * restoration to the hash, so viewport-center math can point at the hero while the URL
+ * already says e.g. `#clients-section` — use hash first to avoid a sweep after scroll catches up.
+ */
+function homepageSectionIndexFromHash(hash: string): number | null {
+  const h = hash.trim().toLowerCase();
+  if (!h || h === '#') return null;
+  switch (h) {
+    case '#hero-trigger':
+      return 0;
+    case '#why-solar-section':
+      return 4;
+    case '#why-us-section':
+      return 5;
+    case '#clients-section':
+      return 6;
+    case '#projets-section':
+      return 7;
+    case '#contact-section':
+      return 8;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Scroll-driven section index, but while `/#...` is in the URL and the viewport center is still
+ * above that element (fragment scroll not applied yet), keep the hash section so we don't flash
+ * hero then tween to clients.
+ */
+function homepageScrollDerivedIndexOrHash(
+  elements: HTMLElement[],
+  centerY: number,
+  lastCommitted: number,
+): number {
+  const hashIdx =
+    typeof window !== 'undefined' ? homepageSectionIndexFromHash(window.location.hash) : null;
+  if (hashIdx !== null && elements[hashIdx]) {
+    const top = elements[hashIdx].offsetTop;
+    if (centerY < top - 1) {
+      return hashIdx;
+    }
+  }
+  return homepageIndexWithHysteresis(elements, centerY, lastCommitted);
+}
+
 /** Fallback orbit nav config by path when dataset is missing (e.g. before-swap not yet run). */
 function getOrbitNavConfigFromPath(path: string): { colorMode: 'auto' | 'light' | 'dark'; showBack: boolean; isDark: boolean } {
   switch (path) {
@@ -119,12 +232,24 @@ export default function OrbitNav({
   const [pathKey, setPathKey] = useState(() =>
     typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/',
   );
+  /** Kept in sync with `window.location.hash` so layout can re-run when Astro applies # after pathname. */
+  const [routeHash, setRouteHash] = useState(() =>
+    typeof window !== 'undefined' ? window.location.hash : '',
+  );
   const [backTarget, setBackTarget] = useState<string | null>(null);
   const [colorModeState, setColorModeState] = useState(colorMode);
   const [showBackState, setShowBackState] = useState(showBackOverride);
   const [isDarkState, setIsDarkState] = useState(isDark);
   const [dotCenter, setDotCenter] = useState<{ x: number; y: number } | null>(null);
+  /** Bumped after pill path + sectionPositionsRef are computed (useLayoutEffect snaps subpage dot after this). */
+  const [orbitPathVersion, setOrbitPathVersion] = useState(0);
   const syncDotCenterRef = useRef<() => void>(() => {});
+  /** Detect subpage ↔ homepage transitions for instant orbit snap (null = not yet mounted). */
+  const prevIsHomeForSnapRef = useRef<boolean | null>(null);
+  /** After subpage→home layout snap, skip one move-effect tween (scroll index already applied). */
+  const skipNextHomeMoveTweenRef = useRef(false);
+  /** Last `routeHash` we applied in home snap (SPA can set pathname before hash — need a second snap). */
+  const lastHomeSnapHashRef = useRef<string>('');
 
   const syncDotCenter = () => {
     if (!pathRef.current || !containerRef.current) return;
@@ -175,6 +300,7 @@ export default function OrbitNav({
 
     setIsHomePage(newIsHome);
     setPathKey(normalisedPath);
+    setRouteHash(window.location.hash);
     setBackTarget(newBackTarget);
     setColorModeState(newColorMode);
     setShowBackState(newShowBack);
@@ -200,16 +326,30 @@ export default function OrbitNav({
     };
 
     const onAfterNavigate = () => {
-      requestAnimationFrame(() => syncFromDocument());
+      // Sync immediately so isHomePage/pathKey update before paint; rAF deferred sync caused
+      // subpage→home to paint one frame with stale route + move-effect tween from subpage progress.
+      syncFromDocument();
+      // Hash often lands after pathname on client navigations to /#section — refresh until stable.
+      requestAnimationFrame(() => {
+        if (typeof window === 'undefined') return;
+        setRouteHash(window.location.hash);
+        requestAnimationFrame(() => setRouteHash(window.location.hash));
+      });
     };
+
+    const onHashOrPop = () => setRouteHash(window.location.hash);
 
     document.addEventListener('astro:before-swap', onBeforeSwap);
     document.addEventListener('astro:page-load', onAfterNavigate);
     document.addEventListener('astro:after-swap', onAfterNavigate);
+    window.addEventListener('hashchange', onHashOrPop);
+    window.addEventListener('popstate', onHashOrPop);
     return () => {
       document.removeEventListener('astro:before-swap', onBeforeSwap);
       document.removeEventListener('astro:page-load', onAfterNavigate);
       document.removeEventListener('astro:after-swap', onAfterNavigate);
+      window.removeEventListener('hashchange', onHashOrPop);
+      window.removeEventListener('popstate', onHashOrPop);
     };
   }, []);
 
@@ -360,32 +500,134 @@ export default function OrbitNav({
       });
       setDebugPositions(pts);
     }
+    setOrbitPathVersion((v) => v + 1);
     requestAnimationFrame(() => syncDotCenterRef.current());
   }, [debugMarkers, PATH_WIDTH, PATH_HEIGHT]);
 
-  // Non-home routes: snap dot to the same track progress as the matching homepage section (reuse sectionPositionsRef).
-  useEffect(() => {
-    if (isHomePage) return;
-    const raf = requestAnimationFrame(() => {
-      if (!circleRef.current || !pathRef.current || sectionPositionsRef.current.length === 0) return;
-      const mapped = getSectionIndexForSubpagePath(pathKey);
-      const idx = mapped ?? 0;
-      const positions = sectionPositionsRef.current;
-      const targetProgress = positions[idx] ?? positions[0];
-      currentPathProgress.current = targetProgress;
-      previousSectionIndexRef.current = idx;
-      gsap.set(circleRef.current, {
-        motionPath: {
-          path: pathRef.current,
-          autoRotate: false,
-          start: targetProgress,
-          end: targetProgress,
-        },
-      });
-      requestAnimationFrame(() => syncDotCenterRef.current());
+  // Instant orbit snap (no tween): subpage ↔ homepage. Depends on orbitPathVersion so subpage runs
+  // after sectionPositionsRef is filled by the path useEffect (layout runs before paint — no rAF sweep).
+  useLayoutEffect(() => {
+    const wasHome = prevIsHomeForSnapRef.current;
+    prevIsHomeForSnapRef.current = isHomePage;
+
+    if (!circleRef.current || !pathRef.current || sectionPositionsRef.current.length === 0) return;
+
+    if (animationRef.current) {
+      animationRef.current.kill();
+      animationRef.current = null;
+    }
+    isAnimatingRef.current = false;
+
+    if (isHomePage) {
+      const hashKey = routeHash;
+      const hashIdx = homepageSectionIndexFromHash(hashKey);
+
+      const applyHomeSnapFromIndex = (next: number, recordHash: string) => {
+        const positions = sectionPositionsRef.current;
+        const targetProgress = positions[next] ?? 0;
+        currentPathProgress.current = targetProgress;
+        previousSectionIndexRef.current = next;
+        sectionIndexHysteresisRef.current = next;
+        gsap.set(circleRef.current, {
+          motionPath: {
+            path: pathRef.current,
+            autoRotate: false,
+            start: targetProgress,
+            end: targetProgress,
+          },
+        });
+        syncDotCenterRef.current();
+        skipNextHomeMoveTweenRef.current = true;
+        setCurrentSectionIndex(next);
+        lastHomeSnapHashRef.current = recordHash;
+      };
+
+      // Subpage → homepage: align to scroll/hash before paint.
+      if (wasHome === false) {
+        const elements = queryHomepageSectionElements();
+        if (elements.length === 0) {
+          requestAnimationFrame(() => {
+            const pathNow = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/';
+            if (pathNow !== '/') return;
+            const els = queryHomepageSectionElements();
+            if (!circleRef.current || !pathRef.current || els.length === 0) return;
+            const hk = typeof window !== 'undefined' ? window.location.hash : '';
+            const hi = homepageSectionIndexFromHash(hk);
+            let next2: number;
+            if (hi !== null) {
+              next2 = hi;
+              sectionIndexHysteresisRef.current = hi;
+            } else {
+              const centerY2 = window.scrollY + window.innerHeight * 0.5;
+              sectionIndexHysteresisRef.current = homepageRawIndexForCenter(els, centerY2);
+              next2 = homepageIndexWithHysteresis(els, centerY2, sectionIndexHysteresisRef.current);
+            }
+            const positions2 = sectionPositionsRef.current;
+            const targetProgress2 = positions2[next2] ?? 0;
+            currentPathProgress.current = targetProgress2;
+            previousSectionIndexRef.current = next2;
+            sectionIndexHysteresisRef.current = next2;
+            gsap.set(circleRef.current, {
+              motionPath: {
+                path: pathRef.current,
+                autoRotate: false,
+                start: targetProgress2,
+                end: targetProgress2,
+              },
+            });
+            syncDotCenterRef.current();
+            skipNextHomeMoveTweenRef.current = true;
+            setCurrentSectionIndex(next2);
+            lastHomeSnapHashRef.current = hk;
+          });
+          return;
+        }
+
+        let next: number;
+        if (hashIdx !== null) {
+          next = hashIdx;
+          sectionIndexHysteresisRef.current = hashIdx;
+        } else {
+          const centerY = window.scrollY + window.innerHeight * 0.5;
+          sectionIndexHysteresisRef.current = homepageRawIndexForCenter(elements, centerY);
+          next = homepageIndexWithHysteresis(elements, centerY, sectionIndexHysteresisRef.current);
+        }
+        applyHomeSnapFromIndex(next, hashKey);
+        return;
+      }
+
+      // Already on home: pathname can update before hash (SPA) — second snap when # arrives.
+      if (hashIdx !== null && hashKey !== lastHomeSnapHashRef.current) {
+        const elements = queryHomepageSectionElements();
+        if (elements.length === 0) return;
+        sectionIndexHysteresisRef.current = hashIdx;
+        applyHomeSnapFromIndex(hashIdx, hashKey);
+        return;
+      }
+
+      return;
+    }
+
+    lastHomeSnapHashRef.current = '';
+
+    // Homepage → subpage (or direct load on subpage): snap to matching section track — no sweep from hero.
+    const mapped = getSectionIndexForSubpagePath(pathKey);
+    const idx = mapped ?? 0;
+    const positions = sectionPositionsRef.current;
+    const targetProgress = positions[idx] ?? positions[0];
+    currentPathProgress.current = targetProgress;
+    previousSectionIndexRef.current = idx;
+    gsap.set(circleRef.current, {
+      motionPath: {
+        path: pathRef.current,
+        autoRotate: false,
+        start: targetProgress,
+        end: targetProgress,
+      },
     });
-    return () => cancelAnimationFrame(raf);
-  }, [isHomePage, pathKey, PATH_WIDTH, PATH_HEIGHT]);
+    syncDotCenterRef.current();
+    setCurrentSectionIndex(idx);
+  }, [isHomePage, pathKey, PATH_WIDTH, PATH_HEIGHT, orbitPathVersion, routeHash]);
 
   // Move circle to section position on section change (only active on homepage)
   useEffect(() => {
@@ -398,6 +640,30 @@ export default function OrbitNav({
     const positions = sectionPositionsRef.current;
     const targetProgress = positions[currentSectionIndex] ?? 0;
     const startProgress = currentPathProgress.current;
+
+    if (skipNextHomeMoveTweenRef.current) {
+      skipNextHomeMoveTweenRef.current = false;
+      currentPathProgress.current = targetProgress;
+      previousSectionIndexRef.current = currentSectionIndex;
+      if (animationRef.current) {
+        animationRef.current.kill();
+        animationRef.current = null;
+      }
+      isAnimatingRef.current = false;
+      let p = targetProgress;
+      if (p >= 1.0) p -= 1.0;
+      if (p < 0.0) p += 1.0;
+      gsap.set(circle, {
+        motionPath: {
+          path,
+          autoRotate: false,
+          start: p,
+          end: p,
+        },
+      });
+      requestAnimationFrame(() => syncDotCenterRef.current());
+      return;
+    }
 
     if (animationRef.current) {
       animationRef.current.kill();
@@ -537,68 +803,11 @@ export default function OrbitNav({
   useEffect(() => {
     if (!isHomePage) return;
 
-    const SECTION_INDEX_HYSTERESIS_PX = 32;
-
-    const sectionSelectors = [
-      '#hero-trigger',
-      '.company-name-section',
-      '.stats-section',
-      '.video-section',
-      '.why-solar-section',
-      '.why-us-section',
-      '.clients-section',
-      '.projets-section',
-      '.contact-section',
-    ];
-
+    const sectionSelectors = [...HOMEPAGE_SECTION_SELECTORS];
     sectionsRef.current = sectionSelectors;
 
-    const elements = sectionSelectors
-      .map((sel) => document.querySelector(sel) as HTMLElement | null)
-      .filter((el): el is HTMLElement => el !== null);
-
+    const elements = queryHomepageSectionElements();
     if (elements.length === 0) return;
-
-    const getRawIndexForCenter = (centerY: number): number => {
-      for (let i = 0; i < elements.length; i++) {
-        const el = elements[i];
-        const top = el.offsetTop;
-        const bottom = top + el.offsetHeight;
-        const isLast = i === elements.length - 1;
-        if (isLast) {
-          if (centerY >= top && centerY <= bottom) return i;
-        } else if (centerY >= top && centerY < bottom) {
-          return i;
-        }
-      }
-      let best = 0;
-      let bestDist = Infinity;
-      for (let i = 0; i < elements.length; i++) {
-        const el = elements[i];
-        const mid = el.offsetTop + el.offsetHeight / 2;
-        const d = Math.abs(centerY - mid);
-        if (d < bestDist) {
-          bestDist = d;
-          best = i;
-        }
-      }
-      return best;
-    };
-
-    const getIndexWithHysteresis = (centerY: number): number => {
-      const raw = getRawIndexForCenter(centerY);
-      const last = sectionIndexHysteresisRef.current;
-      if (raw === last) return last;
-      if (Math.abs(raw - last) > 1) return raw;
-
-      const margin = SECTION_INDEX_HYSTERESIS_PX;
-      if (raw > last) {
-        const topNext = elements[raw].offsetTop;
-        return centerY >= topNext + margin ? raw : last;
-      }
-      const topLeave = elements[last].offsetTop;
-      return centerY <= topLeave - margin ? raw : last;
-    };
 
     let rafId = 0;
     let lastOrbitBlockedLogAt = 0;
@@ -619,12 +828,12 @@ export default function OrbitNav({
       }
 
       const centerY = window.scrollY + window.innerHeight * 0.5;
-      const next = getIndexWithHysteresis(centerY);
+      const next = homepageScrollDerivedIndexOrHash(elements, centerY, sectionIndexHysteresisRef.current);
       setCurrentSectionIndex((prev) => {
         if (prev === next) return prev;
         sectionIndexHysteresisRef.current = next;
         if (isScrollDiagnosticsEnabled()) {
-          const raw = getRawIndexForCenter(centerY);
+          const raw = homepageRawIndexForCenter(elements, centerY);
           logScrollDiag('OrbitNav', 'section index change', {
             from: prev,
             to: next,
@@ -650,7 +859,12 @@ export default function OrbitNav({
 
     // Re-sync after navigation (ref persists on the React instance)
     const centerY0 = window.scrollY + window.innerHeight * 0.5;
-    sectionIndexHysteresisRef.current = getRawIndexForCenter(centerY0);
+    const hashIdx0 = homepageSectionIndexFromHash(window.location.hash);
+    if (hashIdx0 !== null && elements[hashIdx0] && centerY0 < elements[hashIdx0].offsetTop - 1) {
+      sectionIndexHysteresisRef.current = hashIdx0;
+    } else {
+      sectionIndexHysteresisRef.current = homepageRawIndexForCenter(elements, centerY0);
+    }
 
     tick();
     window.addEventListener('scroll', onScroll, { passive: true });
