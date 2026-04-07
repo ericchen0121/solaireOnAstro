@@ -43,6 +43,28 @@ function getBackTargetFromPath(normalisedPath: string): string | null {
   }
 }
 
+/**
+ * Same section index as homepage `sectionSelectors` / `sectionPositionsRef` for that route’s hash target.
+ * Keeps the orbit dot on subpages at the same track position as if the user were on that section on `/`.
+ */
+function getSectionIndexForSubpagePath(normalisedPath: string): number | null {
+  switch (normalisedPath) {
+    case '/why-solar':
+      return 4;
+    case '/why-work-with-us':
+      return 5;
+    case '/clients':
+      return 6;
+    case '/projets':
+    case '/projects':
+      return 7;
+    case '/contact':
+      return 8;
+    default:
+      return null;
+  }
+}
+
 /** Fallback orbit nav config by path when dataset is missing (e.g. before-swap not yet run). */
 function getOrbitNavConfigFromPath(path: string): { colorMode: 'auto' | 'light' | 'dark'; showBack: boolean; isDark: boolean } {
   switch (path) {
@@ -91,7 +113,12 @@ export default function OrbitNav({
     const initialDot = getDotSize();
     return getOrbitContainerOffsets(initialDot);
   });
-  const [isHomePage, setIsHomePage] = useState(true);
+  const [isHomePage, setIsHomePage] = useState(() =>
+    typeof window !== 'undefined' ? (window.location.pathname.replace(/\/+$/, '') || '/') === '/' : true,
+  );
+  const [pathKey, setPathKey] = useState(() =>
+    typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/',
+  );
   const [backTarget, setBackTarget] = useState<string | null>(null);
   const [colorModeState, setColorModeState] = useState(colorMode);
   const [showBackState, setShowBackState] = useState(showBackOverride);
@@ -147,6 +174,7 @@ export default function OrbitNav({
     const newIsDark = d.orbitIsDark !== undefined ? d.orbitIsDark === 'true' : fallback.isDark;
 
     setIsHomePage(newIsHome);
+    setPathKey(normalisedPath);
     setBackTarget(newBackTarget);
     setColorModeState(newColorMode);
     setShowBackState(newShowBack);
@@ -301,8 +329,14 @@ export default function OrbitNav({
     
     // Only initialize position on first mount, preserve it across navigation/resize
     if (!hasInitializedPosition.current) {
-      currentPathProgress.current = leftCenter;
-      previousSectionIndexRef.current = 0;
+      const pathForInit =
+        typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/';
+      const onHome = pathForInit === '/';
+      const mapped = getSectionIndexForSubpagePath(pathForInit);
+      const initialIndex = onHome ? 0 : mapped ?? 0;
+      const initialProgress = sectionPositionsRef.current[initialIndex] ?? leftCenter;
+      currentPathProgress.current = initialProgress;
+      previousSectionIndexRef.current = initialIndex;
       hasInitializedPosition.current = true;
     } else if (circleRef.current) {
       // Path dimensions changed (e.g. resize), reposition circle at current progress
@@ -328,6 +362,30 @@ export default function OrbitNav({
     }
     requestAnimationFrame(() => syncDotCenterRef.current());
   }, [debugMarkers, PATH_WIDTH, PATH_HEIGHT]);
+
+  // Non-home routes: snap dot to the same track progress as the matching homepage section (reuse sectionPositionsRef).
+  useEffect(() => {
+    if (isHomePage) return;
+    const raf = requestAnimationFrame(() => {
+      if (!circleRef.current || !pathRef.current || sectionPositionsRef.current.length === 0) return;
+      const mapped = getSectionIndexForSubpagePath(pathKey);
+      const idx = mapped ?? 0;
+      const positions = sectionPositionsRef.current;
+      const targetProgress = positions[idx] ?? positions[0];
+      currentPathProgress.current = targetProgress;
+      previousSectionIndexRef.current = idx;
+      gsap.set(circleRef.current, {
+        motionPath: {
+          path: pathRef.current,
+          autoRotate: false,
+          start: targetProgress,
+          end: targetProgress,
+        },
+      });
+      requestAnimationFrame(() => syncDotCenterRef.current());
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isHomePage, pathKey, PATH_WIDTH, PATH_HEIGHT]);
 
   // Move circle to section position on section change (only active on homepage)
   useEffect(() => {
