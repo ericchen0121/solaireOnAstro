@@ -36,8 +36,7 @@ function getBackTargetFromPath(normalisedPath: string): string | null {
     case '/why-solar': return '/#why-solar-section';
     case '/why-work-with-us': return '/#why-us-section';
     case '/clients': return '/#clients-section';
-    case '/projets':
-    case '/projects': return '/#projets-section';
+    case '/projets': return '/#projets-section';
     case '/contact': return '/#contact-section';
     default: return '/';
   }
@@ -56,7 +55,6 @@ function getSectionIndexForSubpagePath(normalisedPath: string): number | null {
     case '/clients':
       return 6;
     case '/projets':
-    case '/projects':
       return 7;
     case '/contact':
       return 8;
@@ -189,8 +187,6 @@ function getOrbitNavConfigFromPath(path: string): { colorMode: 'auto' | 'light' 
       return { colorMode: 'dark', showBack: false, isDark: false };
     case '/projets':
       return { colorMode: 'light', showBack: true, isDark: true };
-    case '/projects':
-      return { colorMode: 'dark', showBack: false, isDark: false };
     case '/contact':
       return { colorMode: 'light', showBack: true, isDark: true };
     default:

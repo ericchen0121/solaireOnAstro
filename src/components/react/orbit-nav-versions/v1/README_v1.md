@@ -84,7 +84,7 @@ The component automatically displays different text based on the current route:
 | `/why-solar/` | `solaire` |
 | `/why-work-with-us/` | `nous` |
 | `/clients/` | `clients` |
-| `/projects/` | `projets` |
+| `/projets/` | `projets` |
 | `/contact/` | `contact` |
 
 To add or modify route labels, edit `src/utils/navigation.ts`:

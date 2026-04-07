@@ -158,7 +158,7 @@ export function initMyAnimation() {
 - `/why-solar/` - Why choose solar energy
 - `/why-work-with-us/` - Company benefits
 - `/clients/` - Client showcase
-- `/projects/` - Project portfolio
+- `/projets/` - Projets (video portfolio)
 - `/contact/` - Contact form
 
 Most pages use `BaseLayout.astro`; `why-work-with-us` uses `LenisLayout.astro` (adds Lenis smooth scroll). Both include:

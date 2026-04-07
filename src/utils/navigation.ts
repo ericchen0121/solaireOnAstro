@@ -4,7 +4,7 @@ export const navigationItems = [
   { label: 'Why Solar', href: '/why-solar/' },
   { label: 'Why Us', href: '/why-work-with-us/' },
   { label: 'Clients', href: '/clients/' },
-  { label: 'Projects', href: '/projects/' },
+  { label: 'Projects', href: '/projets/' },
   { label: 'Contact', href: '/contact/' },
 ];
 
@@ -14,7 +14,7 @@ export const routeLabels: Record<string, string> = {
   '/why-solar/': 'solaire',
   '/why-work-with-us/': 'nous',
   '/clients/': 'clients',
-  '/projects/': 'projets',
+  '/projets/': 'projets',
   '/contact/': 'contact',
 };
 
