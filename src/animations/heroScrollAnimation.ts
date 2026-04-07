@@ -54,11 +54,11 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
     const contentElement = document.querySelector(contentSelector) as HTMLElement;
     const lastSpan = document.querySelector(lastSpanSelector) as HTMLElement;
     const companyNameSection = document.querySelector('.company-name-section') as HTMLElement;
-    const companyNameH2 = companyNameSection 
-      ? companyNameSection.querySelector('h2') as HTMLElement
+    const companyNameTitle = companyNameSection
+      ? (companyNameSection.querySelector('.company-name-title') as HTMLElement)
       : null;
-    const companyNameSpans = companyNameH2 
-      ? Array.from(companyNameH2.querySelectorAll('span')) as HTMLElement[]
+    const companyNameFadeEls = companyNameTitle
+      ? (Array.from(companyNameTitle.querySelectorAll('h4, span')) as HTMLElement[])
       : [];
 
     console.log('🔍 Hero Scroll Animation Debug:', {
@@ -66,8 +66,8 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
       contentElement: contentElement ? 'Found' : 'NOT FOUND',
       lastSpan: lastSpan ? 'Found' : 'NOT FOUND',
       companyNameSection: companyNameSection ? 'Found' : 'NOT FOUND',
-      companyNameH2: companyNameH2 ? 'Found' : 'NOT FOUND',
-      companyNameSpans: companyNameSpans.length,
+      companyNameTitle: companyNameTitle ? 'Found' : 'NOT FOUND',
+      companyNameFadeEls: companyNameFadeEls.length,
       mounted,
     });
 
@@ -140,18 +140,18 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
       }
       
       // Set initial state for company name section
-      // h2 container: y: startY (will move up)
-      // spans: opacity: 0 (will fade in)
+      // title wrapper: y: startY (will move up)
+      // h4 + span: opacity: 0 (will fade in)
       // Keep section background black
-      if (companyNameH2) {
-        gsap.set(companyNameH2, { y: startY });
-        console.log('🎨 Company name h2 initial state set (y: startY)');
+      if (companyNameTitle) {
+        gsap.set(companyNameTitle, { y: startY });
+        console.log('🎨 Company name title initial state set (y: startY)');
       }
-      if (companyNameSpans.length > 0) {
-        companyNameSpans.forEach((span) => {
-          gsap.set(span, { opacity: 0.05 });
+      if (companyNameFadeEls.length > 0) {
+        companyNameFadeEls.forEach((el) => {
+          gsap.set(el, { opacity: 0.05 });
         });
-        console.log(`🎨 Company name spans initial state set (opacity: 0) for ${companyNameSpans.length} spans`);
+        console.log(`🎨 Company name fade els initial state set (opacity: 0) for ${companyNameFadeEls.length} elements`);
       }
       
       // Create timeline with ScrollTrigger
@@ -281,18 +281,18 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
             });
             
             // Reset company name section to initial state
-            // h2 container: y: startY
-            // spans: opacity: 0
-            if (companyNameH2) {
-              const h2Height = companyNameH2.offsetHeight;
-              gsap.set(companyNameH2, { y: h2Height }); // set this to padding height
-              console.log(`🔄 Reset company name h2 to initial state (y: ${startY})`);
+            // title wrapper: y: startY
+            // h4 + span: opacity: 0
+            if (companyNameTitle) {
+              const titleHeight = companyNameTitle.offsetHeight;
+              gsap.set(companyNameTitle, { y: titleHeight }); // set this to padding height
+              console.log(`🔄 Reset company name title to initial state (y: ${startY})`);
             }
-            if (companyNameSpans.length > 0) {
-              companyNameSpans.forEach((span) => {
-                gsap.set(span, { opacity: 0 });
+            if (companyNameFadeEls.length > 0) {
+              companyNameFadeEls.forEach((el) => {
+                gsap.set(el, { opacity: 0 });
               });
-              console.log(`🔄 Reset company name spans to initial state (opacity: 0)`);
+              console.log(`🔄 Reset company name fade els to initial state (opacity: 0)`);
             }
             
             // Scroll to top of hero section using GSAP ScrollTo
@@ -439,9 +439,9 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
       // Phase 3: Fade in and slide up company name section
       // Separate timeline with its own ScrollTrigger for independent scrub control
       // Uses transform-based animations (y, opacity) - doesn't affect document flow
-      if (companyNameH2 && companyNameSpans.length > 0 && companyNameSection) {
-        // Get the height of the h2 element
-        const h2Height = companyNameH2.offsetHeight;
+      if (companyNameTitle && companyNameFadeEls.length > 0 && companyNameSection) {
+        // Get the height of the title wrapper
+        const titleHeight = companyNameTitle.offsetHeight;
         
         const duration1 = 1;
         const duration2 = 0.55;
@@ -470,12 +470,12 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
               if (!scrubPhase3 && phase3Timeline) {
                 // Restart animation when scrolling back up into the section
                 // Reset to initial state first
-                if (companyNameH2) {
-                  gsap.set(companyNameH2, { y: startY });
+                if (companyNameTitle) {
+                  gsap.set(companyNameTitle, { y: startY });
                 }
-                if (companyNameSpans.length > 0) {
-                  companyNameSpans.forEach((span) => {
-                    gsap.set(span, { opacity: 0.05 });
+                if (companyNameFadeEls.length > 0) {
+                  companyNameFadeEls.forEach((el) => {
+                    gsap.set(el, { opacity: 0.05 });
                   });
                 }
                 // Reset timeline and play from beginning
@@ -488,12 +488,12 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
             onLeaveBack: () => {
               // When leaving the section going backwards (scrolling up past it), reset to initial state
               if (!scrubPhase3) {
-                if (companyNameH2) {
-                  gsap.set(companyNameH2, { y: startY });
+                if (companyNameTitle) {
+                  gsap.set(companyNameTitle, { y: startY });
                 }
-                if (companyNameSpans.length > 0) {
-                  companyNameSpans.forEach((span) => {
-                    gsap.set(span, { opacity: 0.05 });
+                if (companyNameFadeEls.length > 0) {
+                  companyNameFadeEls.forEach((el) => {
+                    gsap.set(el, { opacity: 0.05 });
                   });
                 }
                 if (phase3Timeline) {
@@ -506,8 +506,8 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
           },
         });
 
-        // Animate spans opacity (fade in) - same timing as both parts
-        phase3Timeline.to(companyNameSpans, {
+        // Animate h4 + span opacity (fade in) - same timing as both parts
+        phase3Timeline.to(companyNameFadeEls, {
           opacity: 1,
           duration: totalDuration,
           ease: CustomEase.create("custom", "M0,0 C0.272,0 0.522,0.117 0.566,0.335 0.654,0.776 0.744,1 1,1 "),
@@ -519,17 +519,17 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
           },
         }, 0); // Start at timeline position 0
 
-        // Part 1: Move from y: h2Height to y: -h2Height+100
+        // Part 1: Move from y: titleHeight to y: -titleHeight+100
         // Using transform (translateY) - doesn't affect document flow, allows normal scrolling
-        phase3Timeline.to(companyNameH2, {
-          y: -h2Height + 100,
+        phase3Timeline.to(companyNameTitle, {
+          y: -titleHeight + 100,
           duration: duration1,
           ease: 'none',
-        }, 0); // Start at the same time as spans animation
+        }, 0); // Start at the same time as fade animation
         
-        // Part 2: Move from y: -h2Height+100 to y: -(viewportHeightPx - h2Height*1.75)
-        phase3Timeline.to(companyNameH2, {
-          y: -(viewportHeightPx - h2Height * 1.75),
+        // Part 2: Move from y: -titleHeight+100 to y: -(viewportHeightPx - titleHeight*1.75)
+        phase3Timeline.to(companyNameTitle, {
+          y: -(viewportHeightPx - titleHeight * 1.75),
           duration: duration2,
           ease: 'power3.out',
         }, duration1); // Start after part 1 completes

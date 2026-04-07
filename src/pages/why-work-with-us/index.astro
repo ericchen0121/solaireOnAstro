@@ -13,21 +13,18 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
       class="why-us-section h-screen bg-white text-black flex items-center justify-center"
     >
       <div class="top-section-content">
-        <!-- Main Title -->
-        <div class="top-section-content-text mb-6">
+        <h3 class="typo-h3 mt-20 mb-16 md:mt-28 md:mb-20 lg:mt-40 lg:mb-24">
           Des partenaires dynamiques, en mesure de réaliser tous les projets
           photovoltaïques.
-        </div>
+        </h3>
 
-        <!-- Affiliated Companies -->
-        <div class="top-section-content-text mb-6">
+        <h3 class="typo-h3 mt-0 mb-16 md:mb-20 lg:mb-24">
           Sociétés affiliées: Palézieux Solaire SA, Bettens Solaire Sàrl.
-        </div>
+        </h3>
 
-        <!-- Motto -->
-        <div class="top-section-content-text mb-6">
+        <h3 class="typo-h3 mt-0 mb-16 md:mb-20 lg:mb-24">
           On fait ce que l'on dit, et disons ce que l'on fait!
-        </div>
+        </h3>
       </div>
     </section>
 
@@ -38,9 +35,9 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
         <ol class="numbered-list space-y-8 md:space-y-12">
           <li class="numbered-item">
             <div class="number-container">
-              <span class="number">1</span>
+              <h2 class="typo-h2 number m-0">1</h2>
             </div>
-            <p class="numbered-text">
+            <p class="numbered-text typo-b1">
               Nous gérons 9 centrales photovoltaïques propres qui produisent 2.4
               millions de kWh par année.
             </p>
@@ -48,9 +45,9 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <span class="number">2</span>
+              <h2 class="typo-h2 number m-0">2</h2>
             </div>
-            <p class="numbered-text">
+            <p class="numbered-text typo-b1">
               Membre de Swissolar, RochatSolaire fait partie des Pros du
               Solaire.
             </p>
@@ -58,9 +55,9 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <span class="number">3</span>
+              <h2 class="typo-h2 number m-0">3</h2>
             </div>
-            <p class="numbered-text">
+            <p class="numbered-text typo-b1">
               Elle exécute des mandats pour des collectivités publiques, ou des
               privés, étude du projet photovoltaïque, optimisation, rédaction du
               cahier des charges de l'appel d'offres, choix des fournisseurs,
@@ -70,9 +67,9 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <span class="number">4</span>
+              <h2 class="typo-h2 number m-0">4</h2>
             </div>
-            <p class="numbered-text">
+            <p class="numbered-text typo-b1">
               Elle offre des opportunités de placement financier à des
               investisseurs.
             </p>
@@ -80,9 +77,9 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <span class="number">5</span>
+              <h2 class="typo-h2 number m-0">5</h2>
             </div>
-            <p class="numbered-text">
+            <p class="numbered-text typo-b1">
               Nous cherchons à bien comprendre les besoins du client, ses
               objectifs et ses ressources.
             </p>
@@ -90,9 +87,9 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <span class="number">6</span>
+              <h2 class="typo-h2 number m-0">6</h2>
             </div>
-            <p class="numbered-text">
+            <p class="numbered-text typo-b1">
               Notre logiciel financier exclusif permet de calculer tous les
               paramètres du projet et son rendement.
             </p>
@@ -100,9 +97,9 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <span class="number">7</span>
+              <h2 class="typo-h2 number m-0">7</h2>
             </div>
-            <p class="numbered-text">
+            <p class="numbered-text typo-b1">
               Nous pouvons aider le client à financer son investissement auprès
               d'une banque.
             </p>
@@ -110,9 +107,9 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <span class="number">8</span>
+              <h2 class="typo-h2 number m-0">8</h2>
             </div>
-            <p class="numbered-text">
+            <p class="numbered-text typo-b1">
               Nous effectuons ou faisons effectuer les démarches auprès des
               entités officielles, communes, cantons, Swissgrid, Office Fédéral
               du Courant Fort (ESTI), distributeur local d'électricité.
@@ -146,27 +143,6 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
     .top-section-content {
       max-width: 1400px;
       padding: 0 4rem;
-    }
-  }
-
-  .top-section-content-text {
-    font-size: 2.25rem;
-    font-weight: 300;
-    line-height: 1.2;
-    margin-bottom: 3rem;
-  }
-
-  @media (min-width: 768px) {
-    .top-section-content-text {
-      font-size: 3rem;
-      margin-bottom: 4rem;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .top-section-content-text {
-      font-size: 4rem;
-      margin-bottom: 5rem;
     }
   }
 
@@ -210,8 +186,8 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    width: 60px;
     flex-shrink: 0;
+    min-width: 48px;
     padding-top: 0;
     margin-top: 0;
     align-self: flex-start;
@@ -219,36 +195,21 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
   @media (min-width: 768px) {
     .number-container {
-      width: 60px;
+      min-width: 72px;
     }
   }
 
   @media (min-width: 1024px) {
     .number-container {
-      width: 60px;
+      min-width: 108px;
     }
   }
 
-  .number {
-    font-family:
-      "F37Moon",
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
-      Roboto,
-      sans-serif;
-    font-weight: 300;
-    font-style: normal;
-    font-size: 115px;
+  /* .typo-h2 on digits — tight line box for alignment with b1 copy */
+  .number.typo-h2 {
     line-height: 1;
-    letter-spacing: 0.01em; /* 1% */
     text-align: center;
     width: 100%;
-    leading-trim: none;
-    padding-top: 0;
-    margin-top: 0;
-    padding-bottom: 0;
-    margin-bottom: 0;
     display: block;
   }
 
@@ -258,63 +219,5 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
     margin: 0;
     padding-top: 0;
     margin-top: 0;
-  }
-
-  .detail-text {
-    font-family:
-      "F37Moon",
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
-      Roboto,
-      sans-serif;
-    font-weight: 300;
-    font-style: normal;
-    font-size: 18px;
-    line-height: 24px;
-    letter-spacing: 0.01em; /* 1% */
-  }
-
-  @media (min-width: 768px) {
-    .detail-text {
-      font-size: 24px;
-      line-height: 32px;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .detail-text {
-      font-size: 30px;
-      line-height: 40px;
-    }
-  }
-
-  .numbered-text {
-    font-family:
-      "F37Moon",
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
-      Roboto,
-      sans-serif;
-    font-weight: 300;
-    font-style: normal;
-    font-size: 18px;
-    line-height: 24px;
-    letter-spacing: 0.01em; /* 1% */
-  }
-
-  @media (min-width: 768px) {
-    .numbered-text {
-      font-size: 24px;
-      line-height: 32px;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .numbered-text {
-      font-size: 30px;
-      line-height: 40px;
-    }
   }
 </style>

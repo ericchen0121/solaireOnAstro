@@ -34,6 +34,45 @@
     --font-hero: 'F37Moon', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     /* F37Moon font family - use with explicit font-weight (300 for Light, 600 for Demi) */
     --font-f37moon: 'F37Moon', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-f37moon-light: var(--font-f37moon);
+    --font-f37moon-demi: var(--font-f37moon);
+
+    /* Typography scale — px @ default / 768px / 1024px */
+    --typo-leading: 130%;
+    /* h1 — Number list: 60 → 80 → 148px | -2px tracking */
+    --typo-h1-size: 60px;
+    /* h2 — Quotes / section titles / submenus: Light | 40 → 60 → 108px */
+    --typo-h2-size: 40px;
+    /* h3 — Copypoints: 48 → 72 → 80px */
+    --typo-h3-size: 48px;
+    /* h4 — Project headers: 52 → 96 → 160px */
+    --typo-h4-size: 52px;
+    /* b1 — Body copy: 16 → 20 → 24px */
+    --typo-b1-size: 16px;
+    /* b2 — Menu caption: 12 → 16 → 20px */
+    --typo-b2-size: 12px;
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      --typo-h1-size: 80px;
+      --typo-h2-size: 60px;
+      --typo-h3-size: 72px;
+      --typo-h4-size: 96px;
+      --typo-b1-size: 20px;
+      --typo-b2-size: 16px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --typo-h1-size: 148px;
+      --typo-h2-size: 108px;
+      --typo-h3-size: 80px;
+      --typo-h4-size: 160px;
+      --typo-b1-size: 24px;
+      --typo-b2-size: 20px;
+    }
   }
 
   * {
@@ -107,11 +146,77 @@
     font-style: normal;
   }
 
-  /* Big numerical stats utility class */
+  /*
+   * Rochat Solaire type scale (F37Moon) — use classes across pages for consistency.
+   * h1 — --typo-h1-size (px) | h2 — --typo-h2-size | h3 — --typo-h3-size | h4 — --typo-h4-size + .typo-h4-light
+   * b1 — Body copy: --typo-b1-size (16/20/24px), Light, 130% | b2 — --typo-b2-size (12/16/20px)
+   */
+  .typo-h1,
   .stat-number {
-    @apply text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight;
+    font-family: var(--font-f37moon-light);
+    font-weight: 300;
+    font-size: var(--typo-h1-size);
+    line-height: var(--typo-leading);
+    letter-spacing: -2px;
+  }
+
+  /* Stats numerals: same scale as .typo-h1 + tabular lining figures */
+  .stat-number {
     font-feature-settings: 'tnum';
     font-variant-numeric: tabular-nums;
+  }
+
+  .typo-h2,
+  .section-title,
+  .slide-bar-title {
+    font-family: var(--font-f37moon-light);
+    font-weight: 300;
+    font-size: var(--typo-h2-size);
+    line-height: var(--typo-leading);
+    letter-spacing: normal;
+  }
+
+  .typo-h3 {
+    font-family: var(--font-f37moon-light);
+    font-weight: 300;
+    font-size: var(--typo-h3-size);
+    line-height: var(--typo-leading);
+    letter-spacing: normal;
+  }
+
+  .typo-h4 {
+    font-family: var(--font-f37moon-demi);
+    font-weight: 600;
+    font-size: var(--typo-h4-size);
+    line-height: var(--typo-leading);
+    letter-spacing: normal;
+  }
+
+  /* Same h4 scale as .typo-h4 (F37Moon Light) — e.g. second word in a project header line */
+  .typo-h4-light {
+    font-family: var(--font-f37moon-light);
+    font-weight: 300;
+    font-size: var(--typo-h4-size);
+    line-height: var(--typo-leading);
+    letter-spacing: normal;
+  }
+
+  /* b1 — body copy: F37Moon Light, 16 → 20 → 24px, 130% leading */
+  .typo-b1,
+  .stat-copy {
+    font-family: var(--font-f37moon-light);
+    font-weight: 300;
+    font-size: var(--typo-b1-size);
+    line-height: var(--typo-leading);
+    letter-spacing: normal;
+  }
+
+  .typo-b2 {
+    font-family: var(--font-f37moon-demi);
+    font-weight: 600;
+    font-size: var(--typo-b2-size);
+    line-height: var(--typo-leading);
+    letter-spacing: normal;
   }
 
   /* Slide-up bar effect (p5aholic style): separate text layers + real bar element */
@@ -247,15 +352,10 @@
     color: #ffffff !important;
   }
 
-  /* Hero title styling - F37 Moon style */
-  .hero-title {
+  /* Hero headline — size follows .typo-h2 / --typo-h2-size; layout only */
+  .hero .hero-title {
     position: relative;
     font-family: var(--font-hero);
-    font-weight: 300;
-    font-size: 80px;
-    line-height: 80px;
-    letter-spacing: 0.02em; /* 2% */
-    /* margin-left: 10vw; */
   }
 
   /* SplitText (words + chars): whole words stay on one line; line breaks only between words */
@@ -299,39 +399,14 @@
     50% { opacity: 0; }       /* 0.5s off */
   }
 
-  /* Mobile: larger font, no left margin; horizontal inset from #hero-content px-[4.5rem] */
-  @media (max-width: 768px) {
+  /* Hero: layout only (sizes follow type scale above) */
+  @media (max-width: 767px) {
     .hero-title {
-      font-size: 48px;
-      line-height: 52px;
       margin-left: 0;
       padding: 0;
       word-break: normal;
       overflow-wrap: normal;
       hyphens: none;
-    }
-  }
-
-  /* Small mobile: still readable size */
-  @media (max-width: 480px) {
-    .hero-title {
-      font-size: 30px;
-      line-height: 34px;
-    }
-  }
-
-  /* iPhone Pro Max and similar large phones */
-  @media (max-width: 430px) {
-    .hero-title {
-      font-size: 32px;
-      line-height: 36px;
-    }
-  }
-
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .hero-title {
-      font-size: 90px;
-      line-height: 86px;
     }
   }
 

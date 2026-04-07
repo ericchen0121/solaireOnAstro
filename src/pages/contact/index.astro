@@ -39,7 +39,7 @@ export const prerender = false;
     position: relative;
     font-family: var(--font-hero);
     font-weight: 300;
-    font-size: clamp(2rem, 5.5vw, 3.25rem);
+    font-size: clamp(32px, 5.5vw, 52px);
     line-height: 1.08;
     letter-spacing: 0.02em;
   }
@@ -54,14 +54,14 @@ export const prerender = false;
 
   @media (max-width: 768px) {
     :global(.contact-type-title) {
-      font-size: clamp(1.75rem, 6vw, 2.25rem);
+      font-size: clamp(28px, 6vw, 36px);
       line-height: 1.12;
     }
   }
 
   .contact-page-fade {
     opacity: 0;
-    transform: translateY(0.75rem);
+    transform: translateY(12px);
     animation: contact-page-fade-in 0.65s ease-out forwards;
   }
 
@@ -99,7 +99,7 @@ export const prerender = false;
   @keyframes contact-feedback-in {
     from {
       opacity: 0;
-      transform: translateY(0.5rem);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
