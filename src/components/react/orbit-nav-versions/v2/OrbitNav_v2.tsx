@@ -206,6 +206,8 @@ export default function OrbitNav({
   const pathRef = useRef<SVGPathElement>(null);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [isInverted, setIsInverted] = useState(false);
+  /** Mirrors `body.nav-or-text-hovered` (slide-bar sections + nav hover) for SVG fills — V2 ignores global.css orbit rules. */
+  const [navOrTextHovered, setNavOrTextHovered] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const animationRef = useRef<gsap.core.Tween | gsap.core.Timeline | null>(null);
   const sectionsRef = useRef<string[]>([]);
@@ -301,6 +303,11 @@ export default function OrbitNav({
     setColorModeState(newColorMode);
     setShowBackState(newShowBack);
     setIsDarkState(newIsDark);
+
+    /* Slide-bar hover only exists on `/`; stale class after client nav flips dot (black→white→black). */
+    if (!newIsHome) {
+      document.body.classList.remove('nav-or-text-hovered');
+    }
   };
 
   useEffect(() => {
@@ -777,6 +784,10 @@ export default function OrbitNav({
         console.log('🎨 OrbitNav V2 Color:', { colorMode: colorModeState, shouldInvert, willShow: shouldInvert ? 'black circle' : 'white circle' });
       }
       setIsInverted(shouldInvert);
+      const navHover =
+        document.body.classList.contains('nav-or-text-hovered') &&
+        (window.location.pathname.replace(/\/+$/, '') || '/') === '/';
+      setNavOrTextHovered(navHover);
     };
 
     updateColors();
@@ -879,9 +890,30 @@ export default function OrbitNav({
   const handleMouseEnter = () => setIsHovered(true);
   const handleMouseLeave = () => setIsHovered(false);
 
+  /** Homepage only: slide-bar white hover flips dot; ignore stale body class on subpages. */
+  const displayInverted = isInverted !== (navOrTextHovered && isHomePage);
+
   const shouldShowBack = (isInverted || showBackState) && !isHomePage && !!backTarget && dotCenter;
   const backTextLight = showBackState && !isInverted;
   const canNavigateBack = !isHomePage && !!backTarget;
+
+  /** Fade / slide “back” in after route + dot layout settle (avoids abrupt pop-in). */
+  const [backReveal, setBackReveal] = useState(false);
+  useEffect(() => {
+    if (!shouldShowBack) {
+      setBackReveal(false);
+      return;
+    }
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setBackReveal(true);
+      return;
+    }
+    setBackReveal(false);
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setBackReveal(true));
+    });
+    return () => cancelAnimationFrame(id);
+  }, [shouldShowBack, pathKey]);
 
   const navigateBack = () => {
     if (!backTarget) return;
@@ -896,11 +928,13 @@ export default function OrbitNav({
       {shouldShowBack && dotCenter && (
         <button
           type="button"
-          className={`fixed z-[100] text-xs md:text-sm lg:text-base font-bold hover:opacity-70 transition-opacity pointer-events-auto py-3 px-4 min-h-[44px] min-w-[44px] flex items-center justify-end ${backTextLight ? 'text-white' : 'text-black'}`}
+          className={`fixed z-[100] text-xs md:text-sm lg:text-base font-bold py-3 px-4 min-h-[44px] min-w-[44px] flex items-center justify-end transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none motion-reduce:opacity-100 ${backReveal ? 'pointer-events-auto opacity-100 hover:opacity-70' : 'pointer-events-none opacity-0'} ${backTextLight ? 'text-white' : 'text-black'}`}
           style={{
             right: `calc(100vw - ${dotCenter.x}px + ${dotSize/2}px - ${HIT_AREA_PADDING*2}px)`,
             top: dotCenter.y + dotSize/2 + HIT_AREA_PADDING,
-            transform: 'translateY(-50%)',
+            transform: backReveal
+              ? 'translateY(-50%)'
+              : 'translateY(calc(-50% + 6px))',
           }}
           onClick={navigateBack}
         >
@@ -971,8 +1005,8 @@ export default function OrbitNav({
         >
           <OrbitNavDot
             size={dotSize}
-            circleFill={isInverted ? "black" : "white"}
-            rectFill={isInverted ? "white" : "black"}
+            circleFill={displayInverted ? "black" : "white"}
+            rectFill={displayInverted ? "white" : "black"}
             running={true}
             lineAxis={isHomePage ? 'y' : 'x'}
             className={isHovered ? 'drop-shadow-md' : ''}

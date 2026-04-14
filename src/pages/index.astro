@@ -120,11 +120,6 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       >
         <span class="slide-bar-bg" aria-hidden="true"></span>
         <span class="slide-bar-text-stack">
-          <span
-            id="why-solar-outline"
-            class="slide-bar-outline"
-            aria-hidden="true">Pourquoi le solaire?</span
-          >
           <span id="why-solar-text" class="slide-bar-fill-text"
             >Pourquoi le solaire?</span
           >
@@ -144,9 +139,6 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       >
         <span class="slide-bar-bg" aria-hidden="true"></span>
         <span class="slide-bar-text-stack">
-          <span id="why-us-outline" class="slide-bar-outline" aria-hidden="true"
-            >Pourquoi travailler avec nous?</span
-          >
           <span id="why-us-text" class="slide-bar-fill-text"
             >Pourquoi travailler avec nous?</span
           >
@@ -166,11 +158,6 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       >
         <span class="slide-bar-bg" aria-hidden="true"></span>
         <span class="slide-bar-text-stack">
-          <span
-            id="clients-outline"
-            class="slide-bar-outline"
-            aria-hidden="true">Qui sont nos clients?</span
-          >
           <span id="clients-text" class="slide-bar-fill-text"
             >Qui sont nos clients?</span
           >
@@ -225,6 +212,18 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     let cleanupVideoScale = null;
     let cleanupLetterReveal = null;
     const cleanupFunctions = [];
+
+    const SLIDE_BAR_LINK_SEL = ".slide-bar-link";
+    function onSlideBarLinkHoverEnter() {
+      document.body.classList.add("nav-or-text-hovered");
+    }
+    function onSlideBarLinkHoverLeave(e) {
+      const rt = e.relatedTarget;
+      if (rt instanceof Element && rt.closest(SLIDE_BAR_LINK_SEL)) return;
+      document.body.classList.remove("nav-or-text-hovered");
+    }
+    /** Slide-bar links: teardown hover → body class on beforeunload */
+    let slideBarOrbitHoverLinks = [];
 
     function scrollToHashSectionIfNeeded() {
       const { hash } = window.location;
@@ -288,11 +287,15 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       });
 
       // 5. Scroll letter reveals (other sections) - MUST come after slide-bar setup
-      // Slide-bar links: click to show white bar animation, then navigate
-      const slideBarLinks = document.querySelectorAll(".slide-bar-link");
-      console.log("🎯 Found slide-bar-link elements:", slideBarLinks.length);
+      // Slide-bar links: hover → body.nav-or-text-hovered (OrbitNav V2); click → wipe then navigate
+      slideBarOrbitHoverLinks = Array.from(
+        document.querySelectorAll(SLIDE_BAR_LINK_SEL),
+      );
+      console.log("🎯 Found slide-bar-link elements:", slideBarOrbitHoverLinks.length);
 
-      slideBarLinks.forEach((link) => {
+      slideBarOrbitHoverLinks.forEach((link) => {
+        link.addEventListener("mouseenter", onSlideBarLinkHoverEnter);
+        link.addEventListener("mouseleave", onSlideBarLinkHoverLeave);
         link.addEventListener("click", (e) => {
           e.preventDefault();
           const href = link.getAttribute("href");
@@ -301,20 +304,18 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           console.log("🖱️ Slide bar link clicked");
           link.classList.add("active");
 
+          /* After .slide-bar-bg transform (0.8s + ease-out tail); keep margin so wipe finishes before hard nav */
           setTimeout(() => {
             console.log("🚀 Navigating to:", href);
             window.location.href = href;
-          }, 820);
+          }, 920);
         });
       });
 
       // Initialize letter reveals AFTER setting up click handlers
       cleanupFunctions.push(initScrollLetterReveal("#why-solar-text", 0.07));
-      cleanupFunctions.push(initScrollLetterReveal("#why-solar-outline", 0.07));
       cleanupFunctions.push(initScrollLetterReveal("#why-us-text", 0.07));
-      cleanupFunctions.push(initScrollLetterReveal("#why-us-outline", 0.07));
       cleanupFunctions.push(initScrollLetterReveal("#clients-text", 0.07));
-      cleanupFunctions.push(initScrollLetterReveal("#clients-outline", 0.07));
       cleanupFunctions.push(initScrollLetterReveal("#projets-text", 0.1));
       cleanupFunctions.push(initScrollLetterReveal("#contact-text", 0.1));
     }
@@ -331,6 +332,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       cleanupStatsReveal?.();
       cleanupVideoScale?.();
       cleanupFunctions.forEach((fn) => fn());
+      slideBarOrbitHoverLinks.forEach((link) => {
+        link.removeEventListener("mouseenter", onSlideBarLinkHoverEnter);
+        link.removeEventListener("mouseleave", onSlideBarLinkHoverLeave);
+      });
+      slideBarOrbitHoverLinks = [];
     });
 
     function playHomeVideoIfPresent() {

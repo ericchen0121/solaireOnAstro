@@ -13,6 +13,8 @@ const INNER_BOUNDARY_RATIO = 0.9;
 const RECT_WIDTH_RATIO = 0.18;
 const INNER_STROKE_SCALE = 0.3 / 32; // stroke 0.3 at 32px → proportional
 const TRANSITION_DURATION = 0.35;
+/** Home ↔ subpage switches `lineAxis`; keep this short to avoid a visible “morph flash” on client navigations. */
+const AXIS_CHANGE_DURATION = 0.06;
 
 interface OrbitNavDotProps {
   size?: number;
@@ -71,11 +73,15 @@ export default function OrbitNavDot({
     const rect = rectRef.current;
     if (!rect || !running) return;
 
-    const runTransitionTo = (target: typeof centerStateY, onComplete: () => void) => {
+    const runTransitionTo = (
+      target: typeof centerStateY,
+      onComplete: () => void,
+      duration: number = TRANSITION_DURATION,
+    ) => {
       if (transitionRef.current) transitionRef.current.kill();
       transitionRef.current = gsap.to(rect, {
         attr: target,
-        duration: TRANSITION_DURATION,
+        duration,
         ease: 'power2.inOut',
         onComplete: () => {
           transitionRef.current = null;
@@ -137,10 +143,14 @@ export default function OrbitNavDot({
 
     if (axisChanged) {
       const targetCenter = lineAxis === 'y' ? centerStateY : centerStateX;
-      runTransitionTo(targetCenter, () => {
-        if (lineAxis === 'y') startYAxisTimeline();
-        else startXAxisTimeline();
-      });
+      runTransitionTo(
+        targetCenter,
+        () => {
+          if (lineAxis === 'y') startYAxisTimeline();
+          else startXAxisTimeline();
+        },
+        AXIS_CHANGE_DURATION,
+      );
     } else {
       gsap.set(rect, { attr: lineAxis === 'y' ? centerStateY : centerStateX });
       if (lineAxis === 'y') startYAxisTimeline();
@@ -173,6 +183,12 @@ export default function OrbitNavDot({
   const pillRadius = rectFullWidth / 2;
   const initialRect = lineAxis === 'y' ? centerStateY : centerStateX;
 
+  const svgPaintTransition =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? undefined
+      : 'fill 0.22s ease-out, stroke 0.22s ease-out';
+
   return (
     <svg
       width={size}
@@ -186,7 +202,10 @@ export default function OrbitNavDot({
         cy={center}
         r={outerRadius}
         fill={circleFill}
-        style={{ shapeRendering: 'geometricPrecision' }}
+        style={{
+          shapeRendering: 'geometricPrecision',
+          transition: svgPaintTransition,
+        }}
       />
       <circle
         cx={center}
@@ -197,7 +216,10 @@ export default function OrbitNavDot({
         strokeWidth={innerStrokeWidth}
         strokeDasharray="1.5 1.5"
         opacity={0.12}
-        style={{ pointerEvents: 'none' }}
+        style={{
+          pointerEvents: 'none',
+          transition: svgPaintTransition,
+        }}
       />
       <rect
         ref={rectRef}
@@ -208,7 +230,10 @@ export default function OrbitNavDot({
         rx={pillRadius}
         ry={pillRadius}
         fill={rectFill}
-        style={{ shapeRendering: 'geometricPrecision' }}
+        style={{
+          shapeRendering: 'geometricPrecision',
+          transition: svgPaintTransition,
+        }}
       />
     </svg>
   );
