@@ -8,6 +8,16 @@
   font-display: swap;
 }
 
+/* Dedicated family so Light never resolves to Demi when paired with .typo-h4 in the same row. */
+@font-face {
+  font-family: 'F37Moon-Light';
+  src: url('/fonts/F37Moon-Light/F37Moon-Light.otf') format('opentype'),
+       url('/fonts/F37Moon-Light/F37Moon-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: 'F37Moon';
   src: url('/fonts/F37Moon-Demi/F37Moon-Demi.otf') format('opentype'),
@@ -32,9 +42,10 @@
     /* Typography */
     --font-primary: 'F37Moon', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-hero: 'F37Moon', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    /* F37Moon font family - use with explicit font-weight (300 for Light, 600 for Demi) */
+    /* F37Moon: Light uses dedicated @font-face name so browsers don’t pick Demi when weight/context is ambiguous. */
     --font-f37moon: 'F37Moon', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-f37moon-light: var(--font-f37moon);
+    --font-f37moon-light: 'F37Moon-Light', 'F37Moon', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+      Roboto, sans-serif;
     --font-f37moon-demi: var(--font-f37moon);
 
     /* Typography scale — px @ default / 768px / 1024px */
@@ -49,6 +60,8 @@
     --typo-h3-size: 48px;
     /* h4 — Project headers: 52 → 96 → 160px */
     --typo-h4-size: 52px;
+    /* Homepage company row — larger than .typo-h4 to match hero headline visual width */
+    --company-name-size: 60px;
     /* b1 — Body copy: 16 → 20 → 24px */
     --typo-b1-size: 16px;
     /* b2 — Menu caption: 12 → 16 → 20px */
@@ -62,6 +75,7 @@
       --typo-h2-size: 60px;
       --typo-h3-size: 72px;
       --typo-h4-size: 96px;
+      --company-name-size: 110px;
       --typo-b1-size: 20px;
       --typo-b2-size: 16px;
     }
@@ -75,6 +89,7 @@
       --typo-h2-size: 108px;
       --typo-h3-size: 80px;
       --typo-h4-size: 160px;
+      --company-name-size: 190px;
       --typo-b1-size: 24px;
       --typo-b2-size: 20px;
     }
@@ -214,13 +229,21 @@
     letter-spacing: normal;
   }
 
-  /* Same h4 scale as .typo-h4 (F37Moon Light) — e.g. second word in a project header line */
+  /* Same h4 scale as .typo-h4 — Moon Light via --font-f37moon-light (F37Moon-Light first in stack). */
   .typo-h4-light {
     font-family: var(--font-f37moon-light);
     font-weight: 300;
+    font-style: normal;
+    font-synthesis: none;
     font-size: var(--typo-h4-size);
     line-height: var(--typo-leading);
     letter-spacing: normal;
+  }
+
+  /* Rochat / Solaire — same max width as hero; larger type so L/R extent matches hero block */
+  .company-name-title .typo-h4,
+  .company-name-title .typo-h4-light {
+    font-size: var(--company-name-size);
   }
 
   /* b1 — body copy: F37Moon Light, 16 → 20 → 24px, 130% leading */
@@ -488,7 +511,7 @@
 
   /* Company name title styling */
   .company-name-title {
-    /* line-height: 1; */
+    min-width: 0;
   }
 
   /* Hover flip effect for text sections - only on text hover */
@@ -589,6 +612,10 @@
     -webkit-text-stroke: 1.5px white;
     text-stroke: 1.5px white;
     font-weight: 300;
+  }
+  
+  .no-ligatures {
+    font-variant-ligatures: no-common-ligatures;
   }
   
   @media (min-width: 768px) {

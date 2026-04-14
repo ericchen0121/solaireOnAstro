@@ -87,7 +87,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
   <!-- Section 4: Video Background (z-0 so orbit nav stays on top) -->
   <section
-    class="video-section relative z-0 h-screen w-screen flex items-center justify-center overflow-hidden text-align-left bg-black"
+    class="video-section relative z-0 h-screen w-screen flex items-center justify-center overflow-hidden bg-black text-center"
   >
     <video
       autoplay
@@ -101,8 +101,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       <source src="/romande_r1.mp4" type="video/mp4" />
     </video>
 
-    <div class="relative z-10 text-left px-[4.5rem] md:px-[8rem]">
-      <h2 class="typo-h2 text-white">
+    <div class="relative z-10 w-full px-[4.5rem] md:px-[8rem] text-center">
+      <h2 class="typo-h2 text-white no-ligatures">
         Un réseau romand,<br />
         basé sur la confiance.
       </h2>
