@@ -171,6 +171,23 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /*
+   * Stats3-up: :root uses 148px h1 from 1024px; narrow grid → collision ~1024–1280.
+   * Wider band ~1280–1540: still slightly reduced; full 148px from 1540px (see below).
+   */
+  @media (min-width: 1024px) and (max-width: 1279.98px) {
+    .stats-section .stat-number {
+      font-size: clamp(5rem, 7.5vw, 6.75rem);
+    }
+  }
+
+  /* Stats: 148px h1 still feels oversized 1280–1540 in the 3-up row */
+  @media (min-width: 1280px) and (max-width: 1539.98px) {
+    .stats-section .stat-number {
+      font-size: clamp(7.25rem, 3.5vw + 4.75rem, 8.125rem);
+    }
+  }
+
   .typo-h2,
   .section-title,
   .slide-bar-title {
@@ -214,6 +231,59 @@
     font-size: var(--typo-b1-size);
     line-height: var(--typo-leading);
     letter-spacing: normal;
+  }
+
+  /* Stats: copy inset from numeral; 3-col row widens into the column gutter so lines use space up to the next numeral */
+  .stats-section .stats-grid {
+    /* Must match Tailwind gap-12 (3rem) / md:gap-16 (4rem) for width calc */
+    --stats-gutter: 3rem;
+  }
+
+  @media (min-width: 768px) {
+    .stats-section .stats-grid {
+      --stats-gutter: 4rem;
+    }
+  }
+
+  .stats-section .stat-column {
+    min-width: 0;
+  }
+
+  .stats-section .stat-copy-wrap {
+    box-sizing: border-box;
+    padding-inline-start: 1.25rem;
+    max-width: none;
+  }
+
+  @media (min-width: 480px) {
+    .stats-section .stat-copy-wrap {
+      padding-inline-start: 2rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .stats-section .stat-copy-wrap {
+      padding-inline-start: 3.25rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .stats-section .stat-copy-wrap {
+      padding-inline-start: 5rem;
+    }
+  }
+
+  /* 3-column row: grow wrap by one track gap so .stat-copy can flow into the space between numerals */
+  @media (min-width: 768px) {
+    .stats-section .stat-column:not(:last-child) .stat-copy-wrap {
+      width: calc(100% + var(--stats-gutter));
+    }
+
+    @media (max-height: 560px) and (max-width: 1100px) {
+      .stats-section .stat-column:not(:last-child) .stat-copy-wrap {
+        width: 100%;
+      }
+    }
   }
 
   .typo-b2 {
