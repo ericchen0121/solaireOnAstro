@@ -6,6 +6,20 @@ import SplitText from 'gsap/SplitText';
 gsap.registerPlugin(SplitText);
 
 /**
+ * Homepage hero only: default `false` — cursor hides when typing finishes.
+ * Set to `true` for a blinking caret after the last character.
+ */
+export const HERO_END_CURSOR_BLINK = false;
+
+export type LetterRevealOptions = {
+  /**
+   * When `true` (default), cursor keeps blinking after the last character.
+   * When `false`, cursor is hidden once typing completes.
+   */
+  endCursorBlink?: boolean;
+};
+
+/**
  * Initialize letter reveal animation on elements with spans
  * @param selector - CSS selector for the container element
  * @param delay - Delay before animation starts (default: 0)
@@ -26,8 +40,10 @@ export function letterRevealDurationMs(
 export function initLetterReveal(
   selector: string,
   delay: number = 0,
-  stagger: number = 0.05
+  stagger: number = 0.05,
+  options: LetterRevealOptions = {},
 ): () => void {
+  const endCursorBlink = options.endCursorBlink ?? true;
   const container = document.querySelector(selector);
   if (!container) {
     return noopCleanup;
@@ -113,6 +129,9 @@ export function initLetterReveal(
     return allChars[allChars.length - 1];
   };
 
+  let endBlinkTl: gsap.core.Timeline | null = null;
+  let endPhaseDelay: gsap.core.Tween | null = null;
+
   if (cursor) {
     cursor.style.display = 'inline-block';
     gsap.set(cursor, { left: '0px', top: '0px', opacity: 1 });
@@ -157,22 +176,33 @@ export function initLetterReveal(
         // Move cursor after each character appears
         if (cursor) setCursorAfterChar(char);
         
-        // When last character completes, start blink 50ms later
+        // When last character completes: optional endless blink, or hide cursor
         if (i === lastCharIndex && cursor) {
-          gsap.delayedCall(0.05, () => {
-            const endBlinkTl = gsap.timeline({ repeat: -1 });
-            // Cursor is already on, so: stay on briefly, off for 0.5s, on for 0.5s
-            endBlinkTl.to(cursor, { opacity: 1, duration: 0.05, ease: 'none' })
-                      .to(cursor, { opacity: 0, duration: 0.5, ease: 'none' })
-                      .to(cursor, { opacity: 1, duration: 0.5, ease: 'none' });
-          });
           setCursorAfterChar(lastVisibleChar());
+          endPhaseDelay = gsap.delayedCall(0.05, () => {
+            endPhaseDelay = null;
+            if (!cursor) return;
+            if (endCursorBlink) {
+              endBlinkTl = gsap.timeline({ repeat: -1 });
+              endBlinkTl
+                .to(cursor, { opacity: 1, duration: 0.05, ease: 'none' })
+                .to(cursor, { opacity: 0, duration: 0.5, ease: 'none' })
+                .to(cursor, { opacity: 1, duration: 0.5, ease: 'none' });
+            } else {
+              gsap.set(cursor, { opacity: 0 });
+              cursor.style.display = 'none';
+            }
+          });
         }
       }
     });
   });
 
   return () => {
+    endPhaseDelay?.kill();
+    endPhaseDelay = null;
+    endBlinkTl?.kill();
+    endBlinkTl = null;
     if (!cursor) return;
     resizeObserver?.disconnect();
     resizeObserver = null;

@@ -34,10 +34,11 @@ A modern marketing website built with Astro, featuring smooth scroll animations 
 │   │   ├── why-solar/
 │   │   ├── why-work-with-us/
 │   │   ├── clients/
-│   │   ├── projects/
+│   │   ├── projets/
 │   │   └── contact/
 │   └── styles/         # Global styles
 │       └── global.css
+├── docs/ # Extra developer docs (e.g. animations, client handoff)
 ├── astro.config.mjs
 ├── tailwind.config.mjs
 └── package.json
@@ -188,15 +189,21 @@ import EmailMask from '../components/react/EmailMask.tsx';
 - Visual feedback on hover and copy
 - Accessible with proper ARIA labels
 
-### Letter Reveal Animation
+### Letter reveal (typing / SplitText)
 
-Character-by-character reveal using GSAP SplitText. Use the utility in a script (e.g. on the homepage):
+Character-by-character reveal using GSAP **SplitText**. Used on the homepage hero and contact form fields.
+
+**Quick example:**
 
 ```typescript
 import { initLetterReveal } from '../animations/letterReveal';
 
-initLetterReveal('.hero-title', 0, 0.05);
+initLetterReveal('.hero-title', 0.8, 0.05);
 ```
+
+**Homepage:** end-of-sentence caret blink is off by default. Toggle **`HERO_END_CURSOR_BLINK`** in `src/animations/letterReveal.ts` (`true` = keep blinking after the last character; `false` = hide when done). Wired from `src/pages/index.astro`.
+
+**Full API, options, and cleanup notes:** see [`docs/animations.md`](docs/animations.md).
 
 ## Development Notes
 
