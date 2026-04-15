@@ -30,6 +30,11 @@ interface OrbitNavProps {
  * - No route-specific text labels (removed from v1)
  * - Prepared for new circle animation
  * - Homepage section index from scroll (viewport center; no per-section ScrollTrigger)
+ *
+ * Orbit slot positions (same order as `HOMEPAGE_SECTION_SELECTORS`): indices 0–3 share the
+ * top-left of the track (where the top horizontal edge starts). Indices 4–`n-1` are evenly
+ * spaced by arc length along the clockwise run from that point to the left semicircle midpoint
+ * (so section 4 is not stacked near the hero slot); the last index sits on “middle left”.
  */
 function getBackTargetFromPath(normalisedPath: string): string | null {
   switch (normalisedPath) {
@@ -432,10 +437,9 @@ export default function OrbitNav({
     return 'dark'; // Default
   };
 
-  // Section positions along the pill path (same mapping as V1)
+  // Normalized progress [0,1) along pill path per homepage section (see file header).
   const sectionPositionsRef = useRef<number[]>([]);
 
-  // Set up pill path and compute section positions (same as V1)
   useEffect(() => {
     if (!pathRef.current) return;
     const path = pathRef.current;
@@ -443,39 +447,22 @@ export default function OrbitNav({
 
     const pathWidth = PATH_WIDTH;
     const pathHeight = PATH_HEIGHT;
-    const leftCenter = calculatePathPosition(path, pathWidth, pathHeight, 'left-center');
-    const rightCenter = calculatePathPosition(path, pathWidth, pathHeight, 'right-center');
-    const section5And7X = 0.85;
-    const section5TopX = calculatePathPosition(path, pathWidth, pathHeight, 'top-at-x', section5And7X);
-    let distanceFromRightCenterTo5 = section5TopX - rightCenter;
-    if (distanceFromRightCenterTo5 < 0) distanceFromRightCenterTo5 += 1.0;
-    const leftCenterPos = calculatePathPosition(path, pathWidth, pathHeight, 'left-center');
-    let section4And8Pos = leftCenterPos + distanceFromRightCenterTo5;
-    if (section4And8Pos >= 1.0) section4And8Pos -= 1.0;
-    const totalLength = path.getTotalLength();
-    const radius = pathHeight / 2;
-    const straightLength = pathWidth - pathHeight;
-    const topStraightEnd = straightLength / totalLength;
-    const rightSemicircleEnd = (straightLength + Math.PI * radius) / totalLength;
-    const bottomStraightEnd = (straightLength * 2 + Math.PI * radius) / totalLength;
-    const leftSemicircleStart = bottomStraightEnd;
-    let section4And8X = 0.15;
-    if (section4And8Pos >= 0 && section4And8Pos <= topStraightEnd) {
-      section4And8X = section4And8Pos / topStraightEnd;
-    } else if (section4And8Pos >= rightSemicircleEnd && section4And8Pos <= bottomStraightEnd) {
-      const bottomStart = rightSemicircleEnd;
-      const bottomEnd = bottomStraightEnd;
-      const positionOnBottom = section4And8Pos - bottomStart;
-      const bottomProgress = positionOnBottom / (bottomEnd - bottomStart);
-      section4And8X = 1.0 - bottomProgress;
+    /** Path starts at M: left end of top straight (horizontal segment begins). */
+    const topLeft = calculatePathPosition(path, pathWidth, pathHeight, 'top-at-x', 0);
+    /** Midpoint of left semicircle — last slot (section index n-1). */
+    const leftMid = calculatePathPosition(path, pathWidth, pathHeight, 'left-center');
+
+    const upperCount = 4;
+    const lowerCount = HOMEPAGE_SECTION_SELECTORS.length - upperCount;
+    /** Fifths of full loop put section 4 almost on top of `topLeft`; use arc [0 → leftMid] instead. */
+    const lowerSlots: number[] = [];
+    for (let k = 1; k <= lowerCount; k++) {
+      lowerSlots.push((leftMid * k) / lowerCount);
     }
-    const section4TopX = calculatePathPosition(path, pathWidth, pathHeight, 'top-at-x', section4And8X);
-    const section7BottomX = calculatePathPosition(path, pathWidth, pathHeight, 'bottom-at-x', section5And7X);
-    const section8BottomX = calculatePathPosition(path, pathWidth, pathHeight, 'bottom-at-x', section4And8X);
 
     sectionPositionsRef.current = [
-      leftCenter, leftCenter, leftCenter, leftCenter,
-      section4TopX, section5TopX, rightCenter, section7BottomX, section8BottomX,
+      ...Array.from({ length: upperCount }, () => topLeft),
+      ...lowerSlots,
     ];
     
     // Only initialize position on first mount, preserve it across navigation/resize
@@ -485,7 +472,7 @@ export default function OrbitNav({
       const onHome = pathForInit === '/';
       const mapped = getSectionIndexForSubpagePath(pathForInit);
       const initialIndex = onHome ? 0 : mapped ?? 0;
-      const initialProgress = sectionPositionsRef.current[initialIndex] ?? leftCenter;
+      const initialProgress = sectionPositionsRef.current[initialIndex] ?? topLeft;
       currentPathProgress.current = initialProgress;
       previousSectionIndexRef.current = initialIndex;
       hasInitializedPosition.current = true;
