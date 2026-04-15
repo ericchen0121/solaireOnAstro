@@ -213,12 +213,13 @@
     letter-spacing: normal;
   }
 
+  /* Copy-point display (why-work-with-us hero lines): tight tracking + leading */
   .typo-h3 {
     font-family: var(--font-f37moon-light);
     font-weight: 300;
     font-size: var(--typo-h3-size);
-    line-height: var(--typo-leading);
-    letter-spacing: normal;
+    line-height: 1.15;
+    letter-spacing: -0.04em;
   }
 
   .typo-h4 {

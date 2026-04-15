@@ -32,10 +32,10 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
     <section class="numbered-list-section bg-white text-black py-20 md:py-32">
       <div class="numbered-list-content">
         <!-- Numbered List -->
-        <ol class="numbered-list space-y-8 md:space-y-12">
+        <ol class="numbered-list space-y-5 md:space-y-7 lg:space-y-8">
           <li class="numbered-item">
             <div class="number-container">
-              <h2 class="typo-h2 number m-0">1</h2>
+              <h2 class="typo-h2 number">1</h2>
             </div>
             <p class="numbered-text typo-b1">
               Nous gérons 9 centrales photovoltaïques propres qui produisent 2.4
@@ -45,17 +45,17 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <h2 class="typo-h2 number m-0">2</h2>
+              <h2 class="typo-h2 number">2</h2>
             </div>
             <p class="numbered-text typo-b1">
-              Membre de Swissolar, RochatSolaire fait partie des Pros du
-              Solaire.
+              Membre de Swissolar, RochatSolaire fait partie des Pros
+              du&nbsp;Solaire.
             </p>
           </li>
 
           <li class="numbered-item">
             <div class="number-container">
-              <h2 class="typo-h2 number m-0">3</h2>
+              <h2 class="typo-h2 number">3</h2>
             </div>
             <p class="numbered-text typo-b1">
               Elle exécute des mandats pour des collectivités publiques, ou des
@@ -67,7 +67,7 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <h2 class="typo-h2 number m-0">4</h2>
+              <h2 class="typo-h2 number">4</h2>
             </div>
             <p class="numbered-text typo-b1">
               Elle offre des opportunités de placement financier à des
@@ -77,7 +77,7 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <h2 class="typo-h2 number m-0">5</h2>
+              <h2 class="typo-h2 number">5</h2>
             </div>
             <p class="numbered-text typo-b1">
               Nous cherchons à bien comprendre les besoins du client, ses
@@ -87,7 +87,7 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <h2 class="typo-h2 number m-0">6</h2>
+              <h2 class="typo-h2 number">6</h2>
             </div>
             <p class="numbered-text typo-b1">
               Notre logiciel financier exclusif permet de calculer tous les
@@ -97,7 +97,7 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <h2 class="typo-h2 number m-0">7</h2>
+              <h2 class="typo-h2 number">7</h2>
             </div>
             <p class="numbered-text typo-b1">
               Nous pouvons aider le client à financer son investissement auprès
@@ -107,7 +107,7 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
           <li class="numbered-item">
             <div class="number-container">
-              <h2 class="typo-h2 number m-0">8</h2>
+              <h2 class="typo-h2 number">8</h2>
             </div>
             <p class="numbered-text typo-b1">
               Nous effectuons ou faisons effectuer les démarches auprès des
@@ -172,13 +172,11 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
     flex-direction: row;
     align-items: flex-start;
     gap: 3rem;
-    margin-bottom: 4rem;
   }
 
   @media (min-width: 768px) {
     .numbered-item {
       gap: 4rem;
-      margin-bottom: 5rem;
     }
   }
 
@@ -188,7 +186,6 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
     align-items: flex-start;
     flex-shrink: 0;
     min-width: 48px;
-    padding-top: 0;
     margin-top: 0;
     align-self: flex-start;
   }
@@ -205,12 +202,39 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
     }
   }
 
-  /* .typo-h2 on digits — tight line box for alignment with b1 copy */
-  .number.typo-h2 {
+  /* Tighter leading than site b1 (130%); pretty wrap reduces lone short last lines where supported */
+  .numbered-list .numbered-text {
+    line-height: 1.22;
+    text-wrap: pretty;
+  }
+
+  @media (min-width: 768px) {
+    .numbered-list .numbered-text {
+      line-height: 1.2;
+    }
+  }
+
+  /*
+   * Tight line box; nudge numeral up on wide viewports only.
+   * clamp(MIN, preferred, MAX) needs MIN ≤ MAX. 0.5vh is never negative, so it could never yield -12px.
+   * Here: ~0 from narrow up to --num-nudge-start, then ramp to -12px by --num-nudge-end.
+   */
+  .numbered-list .number.typo-h2 {
     line-height: 1;
     text-align: center;
     width: 100%;
     display: block;
+    margin: 0;
+    --num-nudge-start: 480px;
+    --num-nudge-end: 1280px;
+    margin-top: clamp(
+      -12px,
+      calc(
+        -12px * (100vw - var(--num-nudge-start)) /
+          (var(--num-nudge-end) - var(--num-nudge-start))
+      ),
+      0px
+    );
   }
 
   .numbered-text {
