@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { gsap } from 'gsap';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import {
@@ -273,36 +274,74 @@ export default function OrbitNav({
    */
   const homeHashOverrideConsumedRef = useRef(true);
 
+  /** Epsilon avoids setState + “back” flicker when iOS/Chrome re-measures the same path point. */
+  const BACK_ANCHOR_EPS_PX = 0.35;
+
   const syncBackAnchor = () => {
     if (!pathRef.current || !containerRef.current) return;
     const path = pathRef.current;
     const progress = currentPathProgress.current;
     const totalLength = path.getTotalLength();
     const pt = path.getPointAtLength(progress * totalLength);
-    setBackAnchorLocal({ x: pt.x, y: pt.y });
+    setBackAnchorLocal((prev) => {
+      if (
+        prev &&
+        Math.abs(prev.x - pt.x) < BACK_ANCHOR_EPS_PX &&
+        Math.abs(prev.y - pt.y) < BACK_ANCHOR_EPS_PX
+      ) {
+        return prev;
+      }
+      return { x: pt.x, y: pt.y };
+    });
   };
 
   useEffect(() => {
     syncDotCenterRef.current = syncBackAnchor;
   });
 
-  // Responsive orbit and dot size
+  // Responsive orbit and dot size (debounced: iOS/Chrome fire rapid resize + visualViewport.resize when browser chrome shows/hides)
   useEffect(() => {
-    const update = () => {
-      const newPathDimensions = getOrbitPathDimensions();
-      const newDotSize = getDotSize();
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-      setPathDimensions(newPathDimensions);
-      setDotSize(newDotSize);
-      setOffsets(getOrbitContainerOffsets(newDotSize));
+    const applyLayout = () => {
+      const nextDim = getOrbitPathDimensions();
+      const nextDot = getDotSize();
+      const nextOff = getOrbitContainerOffsets(nextDot);
+      setPathDimensions((prev) =>
+        prev.w === nextDim.w && prev.h === nextDim.h ? prev : nextDim,
+      );
+      setDotSize((prev) => (prev === nextDot ? prev : nextDot));
+      setOffsets((prev) =>
+        prev.top === nextOff.top && prev.right === nextOff.right ? prev : nextOff,
+      );
       requestAnimationFrame(() => syncDotCenterRef.current());
     };
-    update();
-    window.addEventListener('resize', update);
-    window.addEventListener('orientationchange', update);
+
+    const scheduleApply = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        applyLayout();
+      }, 160);
+    };
+
+    const onOrientation = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = null;
+      applyLayout();
+    };
+
+    applyLayout();
+    window.addEventListener('resize', scheduleApply, { passive: true });
+    window.addEventListener('orientationchange', onOrientation);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', scheduleApply);
+
     return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('orientationchange', update);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      window.removeEventListener('resize', scheduleApply);
+      window.removeEventListener('orientationchange', onOrientation);
+      vv?.removeEventListener('resize', scheduleApply);
     };
   }, []);
 
@@ -806,14 +845,21 @@ export default function OrbitNav({
     updateColors();
 
     const observer = new MutationObserver(updateColors);
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ['class', 'style'],
-      childList: true,
-      subtree: true
-    });
+    if (isHomePage) {
+      observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style'],
+        childList: true,
+        subtree: true,
+      });
+    } else {
+      observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+    }
     return () => observer.disconnect();
-  }, [isDarkState, colorModeState]);
+  }, [isDarkState, colorModeState, isHomePage]);
 
   // Section tracking (only active on homepage)
   // Viewport-center index + boundary hysteresis (avoids rapid index toggles at section edges).
@@ -975,10 +1021,10 @@ export default function OrbitNav({
   const backTopPx =
     backAnchorLocal != null ? backAnchorLocal.y + dotSize / 2 + HIT_AREA_PADDING : 0;
 
-  return (
+  const orbitUi = (
     <div
       ref={containerRef}
-      className="orbit-nav-container fixed z-[100] pointer-events-none"
+      className="orbit-nav-container fixed z-[100] pointer-events-none [backface-visibility:hidden]"
       style={{
         top: offsets.top,
         right: offsets.right,
@@ -1063,6 +1109,11 @@ export default function OrbitNav({
       </div>
     </div>
   );
+
+  /* Portal keeps `position:fixed` anchored to the layout viewport (iOS/WebKit quirk with nested / view-transition wrappers). */
+  return typeof document !== 'undefined'
+    ? createPortal(orbitUi, document.body)
+    : orbitUi;
 }
 
 // Note: This is OrbitNav V2 - simplified version without text labels
