@@ -237,6 +237,9 @@ export default function OrbitNav({
     const initialDot = getDotSize();
     return getOrbitContainerOffsets(initialDot);
   });
+  /** Latest orbit layout; used to skip no-op resizes (iOS URL bar → innerHeight-only churn). */
+  const layoutSnapshotRef = useRef({ dot: 0, dim: { w: 0, h: 0 }, off: { top: 0, right: 0 } });
+  const lastStableInnerWidthRef = useRef<number | null>(null);
   const [isHomePage, setIsHomePage] = useState(() =>
     typeof window !== 'undefined' ? (window.location.pathname.replace(/\/+$/, '') || '/') === '/' : true,
   );
@@ -304,9 +307,28 @@ export default function OrbitNav({
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const applyLayout = () => {
+      if (typeof window === 'undefined') return;
+      const innerW = window.innerWidth;
       const nextDim = getOrbitPathDimensions();
       const nextDot = getDotSize();
       const nextOff = getOrbitContainerOffsets(nextDot);
+      const snap = layoutSnapshotRef.current;
+
+      const layoutUnchanged =
+        snap.dot === nextDot &&
+        snap.dim.w === nextDim.w &&
+        snap.dim.h === nextDim.h &&
+        snap.off.top === nextOff.top &&
+        snap.off.right === nextOff.right;
+      const widthUnchanged =
+        lastStableInnerWidthRef.current !== null && innerW === lastStableInnerWidthRef.current;
+
+      if (layoutUnchanged && widthUnchanged) {
+        return;
+      }
+
+      lastStableInnerWidthRef.current = innerW;
+
       setPathDimensions((prev) =>
         prev.w === nextDim.w && prev.h === nextDim.h ? prev : nextDim,
       );
@@ -417,6 +439,8 @@ export default function OrbitNav({
       window.removeEventListener('popstate', onHashOrPop);
     };
   }, []);
+
+  layoutSnapshotRef.current = { dot: dotSize, dim: pathDimensions, off: offsets };
 
   const PATH_WIDTH = pathDimensions.w;
   const PATH_HEIGHT = pathDimensions.h;
@@ -1026,8 +1050,8 @@ export default function OrbitNav({
       ref={containerRef}
       className="orbit-nav-container fixed z-[100] pointer-events-none [backface-visibility:hidden]"
       style={{
-        top: offsets.top,
-        right: offsets.right,
+        top: `calc(${offsets.top}px + env(safe-area-inset-top, 0px))`,
+        right: `calc(${offsets.right}px + env(safe-area-inset-right, 0px))`,
         width: PATH_WIDTH,
         height: PATH_HEIGHT,
       }}
