@@ -247,6 +247,73 @@
     font-size: var(--company-name-size);
   }
 
+  /*
+   * When Rochat / Solaire stack (flex-wrap), 130% leading + normal tracking reads too airy.
+   * Thresholds track each --company-name-size band so we don’t compress one-line lockups:
+   * 60px / 110px / 190px need different minimum widths for a single row.
+   */
+  .company-name-title {
+    min-width: 0;
+    container-type: inline-size;
+    container-name: company-name;
+  }
+
+  @media (max-width: 767.98px) {
+    @container company-name (max-width: 32rem) {
+      .company-name-title .typo-h4,
+      .company-name-title .typo-h4-light {
+        line-height: 1.02;
+        letter-spacing: -0.06em;
+      }
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1023.98px) {
+    @container company-name (max-width: 52rem) {
+      .company-name-title .typo-h4,
+      .company-name-title .typo-h4-light {
+        line-height: 1.02;
+        letter-spacing: -0.06em;
+      }
+    }
+  }
+
+  /* 190px type: ~80rem+ often fits one row; stay just under 80rem so max-w-7xl columns aren’t squeezed */
+  @media (min-width: 1024px) {
+    @container company-name (max-width: 79.99rem) {
+      .company-name-title .typo-h4,
+      .company-name-title .typo-h4-light {
+        line-height: 1.02;
+        letter-spacing: -0.06em;
+      }
+    }
+  }
+
+  /* Viewport-only fallback when container queries are unsupported (rare) */
+  @supports not (container-type: inline-size) {
+    @media (max-width: 479.98px) {
+      .company-name-title .typo-h4,
+      .company-name-title .typo-h4-light {
+        line-height: 1.02;
+        letter-spacing: -0.06em;
+      }
+    }
+    @media (min-width: 768px) and (max-width: 1023.98px) {
+      .company-name-title .typo-h4,
+      .company-name-title .typo-h4-light {
+        line-height: 1.02;
+        letter-spacing: -0.06em;
+      }
+    }
+    @media (min-width: 1024px) and (max-width: 1279.98px) {
+      .company-name-title .typo-h4,
+      .company-name-title .typo-h4-light {
+        line-height: 1.02;
+        letter-spacing: -0.06em;
+      }
+    }
+  }
+
   /* b1 — body copy: F37Moon Light, 16 → 20 → 24px, 130% leading */
   .typo-b1,
   .stat-copy {
@@ -480,11 +547,6 @@
       overflow-wrap: normal;
       hyphens: none;
     }
-  }
-
-  /* Company name title styling */
-  .company-name-title {
-    min-width: 0;
   }
 
   /* Hover flip: white section + black headline (anywhere on the slide-bar link) */
