@@ -23,6 +23,35 @@ let pinTrigger: ScrollTrigger | null = null;
 let processingWheel = false; // Lock to prevent multiple wheel events
 let processingTouch = false; // Lock to prevent multiple touch events
 
+/** After snap ends, keep suppressing hover so :hover doesn’t fire as content settles under the cursor */
+const SECTION_SNAP_HOVER_SUPPRESS_MS = 320;
+let sectionSnapHoverSuppressTimer: ReturnType<typeof setTimeout> | null = null;
+
+function setSectionSnapHoverSuppressed(on: boolean) {
+  if (typeof document === "undefined") return;
+  if (sectionSnapHoverSuppressTimer) {
+    clearTimeout(sectionSnapHoverSuppressTimer);
+    sectionSnapHoverSuppressTimer = null;
+  }
+  if (on) {
+    document.body.classList.add("section-snap-scrolling");
+    document.body.classList.remove("nav-or-text-hovered");
+  } else {
+    document.body.classList.remove("section-snap-scrolling");
+  }
+}
+
+function scheduleEndSectionSnapHoverSuppress() {
+  if (typeof document === "undefined") return;
+  if (sectionSnapHoverSuppressTimer) {
+    clearTimeout(sectionSnapHoverSuppressTimer);
+  }
+  sectionSnapHoverSuppressTimer = setTimeout(() => {
+    document.body.classList.remove("section-snap-scrolling");
+    sectionSnapHoverSuppressTimer = null;
+  }, SECTION_SNAP_HOVER_SUPPRESS_MS);
+}
+
 function isMobile(): boolean {
   if (typeof window === "undefined") return false;
   return "ontouchstart" in window || navigator.maxTouchPoints > 0;
@@ -121,6 +150,7 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
       console.log(`📍 SectionSnap: Snapping from ${currentPos.toFixed(0)}px to section ${index} at ${targetPos}px`);
 
       animating = true;
+      setSectionSnapHoverSuppressed(true);
 
       // Compute effective duration (allow special-case for video slide)
       const isVideoTransition =
@@ -147,6 +177,7 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
           lastWheelTime = Date.now();
           processingWheel = false;
           processingTouch = false;
+          scheduleEndSectionSnapHoverSuppress();
         },
       });
 
@@ -244,7 +275,7 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
       } else {
         console.log(`⬆️ SectionSnap: Wheel up detected, snapping from section ${actualCurrentIndex} to ${targetIndex}`);
       }
-      
+
       gotoSection(targetIndex, isScrollingDown);
     };
 
@@ -386,6 +417,7 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
     });
 
     cleanupFn = () => {
+      setSectionSnapHoverSuppressed(false);
       if (wheelListener) {
         window.removeEventListener("wheel", wheelListener);
         wheelListener = null;

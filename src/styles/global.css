@@ -563,6 +563,61 @@
     color: #000000 !important;
   }
 
+  /*
+   * Section snap (GSAP): content moves under a stationary cursor — :hover would flash white.
+   * Force default black/white until snap ends (+ short delay in JS). Skip when .active (click wipe).
+   */
+  body.section-snap-scrolling .why-solar-section:not(:has(.slide-bar-link.active)),
+  body.section-snap-scrolling .why-us-section:not(:has(.slide-bar-link.active)),
+  body.section-snap-scrolling .clients-section:not(:has(.slide-bar-link.active)) {
+    background-color: #000000 !important;
+    transition: none !important;
+  }
+
+  /* No hit-testing during snap — avoids :hover as copy slides under the cursor */
+  body.section-snap-scrolling
+    .why-solar-section:not(:has(.slide-bar-link.active)) .slide-bar-link,
+  body.section-snap-scrolling
+    .why-us-section:not(:has(.slide-bar-link.active)) .slide-bar-link,
+  body.section-snap-scrolling
+    .clients-section:not(:has(.slide-bar-link.active)) .slide-bar-link,
+  body.section-snap-scrolling
+    .why-solar-section:not(:has(.slide-bar-link.active)) #why-solar-text,
+  body.section-snap-scrolling
+    .why-us-section:not(:has(.slide-bar-link.active)) #why-us-text,
+  body.section-snap-scrolling
+    .clients-section:not(:has(.slide-bar-link.active)) #clients-text {
+    pointer-events: none;
+  }
+
+  /* Kill transitions so forced colors don’t blend from a stale hover frame */
+  body.section-snap-scrolling
+    .why-solar-section:not(:has(.slide-bar-link.active)) .slide-bar-bg,
+  body.section-snap-scrolling
+    .why-us-section:not(:has(.slide-bar-link.active)) .slide-bar-bg,
+  body.section-snap-scrolling
+    .clients-section:not(:has(.slide-bar-link.active)) .slide-bar-bg {
+    transition: none !important;
+  }
+
+  body.section-snap-scrolling
+    .why-solar-section:not(:has(.slide-bar-link.active))
+    #why-solar-text,
+  body.section-snap-scrolling
+    .why-solar-section:not(:has(.slide-bar-link.active))
+    #why-solar-text *,
+  body.section-snap-scrolling .why-us-section:not(:has(.slide-bar-link.active)) #why-us-text,
+  body.section-snap-scrolling .why-us-section:not(:has(.slide-bar-link.active)) #why-us-text *,
+  body.section-snap-scrolling
+    .clients-section:not(:has(.slide-bar-link.active))
+    #clients-text,
+  body.section-snap-scrolling
+    .clients-section:not(:has(.slide-bar-link.active))
+    #clients-text * {
+    color: #ffffff !important;
+    transition: none !important;
+  }
+
   /* Orbit nav color transition on text hover or nav hover */
   /* Add transitions to nav elements */
   .orbit-nav-container .bg-white,

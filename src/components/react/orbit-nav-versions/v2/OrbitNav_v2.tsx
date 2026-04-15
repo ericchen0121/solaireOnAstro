@@ -156,22 +156,25 @@ function homepageSectionIndexFromHash(hash: string): number | null {
 }
 
 /**
- * Scroll-driven section index, but while `/#...` is in the URL and the viewport center is still
- * above that element (fragment scroll not applied yet), keep the hash section so we don't flash
- * hero then tween to clients.
+ * Scroll-driven section index. While `/#...` is in the URL we may pin to that section **only
+ * until** the viewport center reaches it (fragment scroll finished). After that, `hashOverrideConsumed`
+ * stays true so scrolling back above the section (hash still in URL) follows real scroll position —
+ * otherwise the orbit would stay locked to e.g. clients when the user is at the hero.
  */
 function homepageScrollDerivedIndexOrHash(
   elements: HTMLElement[],
   centerY: number,
   lastCommitted: number,
+  hashOverrideConsumedRef: { current: boolean },
 ): number {
   const hashIdx =
     typeof window !== 'undefined' ? homepageSectionIndexFromHash(window.location.hash) : null;
-  if (hashIdx !== null && elements[hashIdx]) {
+  if (hashIdx !== null && elements[hashIdx] && !hashOverrideConsumedRef.current) {
     const top = elements[hashIdx].offsetTop;
     if (centerY < top - 1) {
       return hashIdx;
     }
+    hashOverrideConsumedRef.current = true;
   }
   return homepageIndexWithHysteresis(elements, centerY, lastCommitted);
 }
@@ -248,6 +251,11 @@ export default function OrbitNav({
   const skipNextHomeMoveTweenRef = useRef(false);
   /** Last `routeHash` we applied in home snap (SPA can set pathname before hash — need a second snap). */
   const lastHomeSnapHashRef = useRef<string>('');
+  /**
+   * After back nav to `/#section`, pin orbit to hash until viewport reaches that section once; then
+   * ignore hash for scroll math so the dot tracks real scroll while `location.hash` stays set.
+   */
+  const homeHashOverrideConsumedRef = useRef(true);
 
   const syncDotCenter = () => {
     if (!pathRef.current || !containerRef.current) return;
@@ -816,6 +824,10 @@ export default function OrbitNav({
     const elements = queryHomepageSectionElements();
     if (elements.length === 0) return;
 
+    if (homepageSectionIndexFromHash(window.location.hash) !== null) {
+      homeHashOverrideConsumedRef.current = false;
+    }
+
     let rafId = 0;
     let lastOrbitBlockedLogAt = 0;
     const tick = () => {
@@ -835,7 +847,12 @@ export default function OrbitNav({
       }
 
       const centerY = window.scrollY + window.innerHeight * 0.5;
-      const next = homepageScrollDerivedIndexOrHash(elements, centerY, sectionIndexHysteresisRef.current);
+      const next = homepageScrollDerivedIndexOrHash(
+        elements,
+        centerY,
+        sectionIndexHysteresisRef.current,
+        homeHashOverrideConsumedRef,
+      );
       setCurrentSectionIndex((prev) => {
         if (prev === next) return prev;
         sectionIndexHysteresisRef.current = next;
@@ -884,7 +901,7 @@ export default function OrbitNav({
       window.removeEventListener('orientationchange', onResize);
       if (rafId !== 0) cancelAnimationFrame(rafId);
     };
-  }, [isHomePage]);
+  }, [isHomePage, routeHash]);
 
   // Hover handlers (no scale effect; kept for potential drop-shadow / future use)
   const handleMouseEnter = () => setIsHovered(true);

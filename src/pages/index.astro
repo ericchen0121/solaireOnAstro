@@ -215,6 +215,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
     const SLIDE_BAR_LINK_SEL = ".slide-bar-link";
     function onSlideBarLinkHoverEnter() {
+      if (document.body.classList.contains("section-snap-scrolling")) return;
       document.body.classList.add("nav-or-text-hovered");
     }
     function onSlideBarLinkHoverLeave(e) {
