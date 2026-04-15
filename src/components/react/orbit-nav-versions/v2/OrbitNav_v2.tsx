@@ -7,6 +7,10 @@ import {
   getOrbitContainerOffsets,
   getOrbitPathDimensions,
 } from '../../orbit-nav-config';
+import {
+  SECTION_SNAP_INTENT_EVENT,
+  type SectionSnapIntentDetail,
+} from '../../../../utils/sectionSnapIntent';
 import { isScrollDiagnosticsEnabled, logScrollDiag } from '../../../../utils/scrollDiagnostics';
 import OrbitNavDot from './OrbitNavDot';
 
@@ -254,6 +258,8 @@ export default function OrbitNav({
   const prevIsHomeForSnapRef = useRef<boolean | null>(null);
   /** After subpage→home layout snap, skip one move-effect tween (scroll index already applied). */
   const skipNextHomeMoveTweenRef = useRef(false);
+  /** Next orbit path tween should match desktop section snap (duration + ease from intent). */
+  const orbitSnapTweenSyncRef = useRef<{ duration: number; ease: string } | null>(null);
   /** Last `routeHash` we applied in home snap (SPA can set pathname before hash — need a second snap). */
   const lastHomeSnapHashRef = useRef<string>('');
   /**
@@ -641,6 +647,7 @@ export default function OrbitNav({
 
     if (skipNextHomeMoveTweenRef.current) {
       skipNextHomeMoveTweenRef.current = false;
+      orbitSnapTweenSyncRef.current = null;
       currentPathProgress.current = targetProgress;
       previousSectionIndexRef.current = currentSectionIndex;
       if (animationRef.current) {
@@ -697,10 +704,16 @@ export default function OrbitNav({
           : startProgress + (1.0 - targetProgress)
         : Math.abs(targetProgress - startProgress) || 0.001;
 
+      const snapSync = orbitSnapTweenSyncRef.current;
+      orbitSnapTweenSyncRef.current = null;
+      const tweenDuration =
+        snapSync && snapSync.duration > 0 ? snapSync.duration : 0.35;
+      const tweenEase = snapSync?.ease ?? ease;
+
       animationRef.current = gsap.to(progressRef, {
         value: 1,
-        duration: 0.35,
-        ease: ease,
+        duration: tweenDuration,
+        ease: tweenEase,
         onUpdate: () => {
           const t = progressRef.value;
           let currentProgress: number;
@@ -749,6 +762,7 @@ export default function OrbitNav({
     if (Math.abs(targetProgress - startProgress) > 0.001 && !isAnimatingRef.current) {
       animateToTarget();
     } else {
+      orbitSnapTweenSyncRef.current = null;
       currentPathProgress.current = targetProgress;
       previousSectionIndexRef.current = currentSectionIndex;
       setCircleProgress(targetProgress);
@@ -799,7 +813,7 @@ export default function OrbitNav({
 
   // Section tracking (only active on homepage)
   // Viewport-center index + boundary hysteresis (avoids rapid index toggles at section edges).
-  // While the orbit dot is tweening (~0.35s), skip scroll-driven index updates so the motion
+  // While the orbit dot is tweening (default ~0.35s; matches section snap when driven by intent), skip scroll-driven index updates so the motion
   // path animation can run; updating index every frame during that window was killing/restarting
   // the tween and broke mobile track animation.
   useEffect(() => {
@@ -830,6 +844,11 @@ export default function OrbitNav({
             });
           }
         }
+        return;
+      }
+
+      /* GSAP snap moves scroll after intent; viewport center still lags — don’t overwrite index from scroll. */
+      if (typeof document !== 'undefined' && document.body.classList.contains('section-snap-scrolling')) {
         return;
       }
 
@@ -877,18 +896,35 @@ export default function OrbitNav({
       sectionIndexHysteresisRef.current = homepageRawIndexForCenter(elements, centerY0);
     }
 
+    const onSectionSnapIntent = (e: Event) => {
+      const ce = e as CustomEvent<SectionSnapIntentDetail>;
+      const detail = ce.detail;
+      const idx = detail?.sectionIndex;
+      if (typeof idx !== 'number' || idx < 0 || idx >= HOMEPAGE_SECTION_SELECTORS.length) return;
+      const d = detail.duration;
+      if (typeof d === 'number' && d > 0) {
+        orbitSnapTweenSyncRef.current = { duration: d, ease: detail.ease ?? ease };
+      } else {
+        orbitSnapTweenSyncRef.current = null;
+      }
+      sectionIndexHysteresisRef.current = idx;
+      setCurrentSectionIndex(idx);
+    };
+
     tick();
+    window.addEventListener(SECTION_SNAP_INTENT_EVENT, onSectionSnapIntent);
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
 
     return () => {
+      window.removeEventListener(SECTION_SNAP_INTENT_EVENT, onSectionSnapIntent);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('orientationchange', onResize);
       if (rafId !== 0) cancelAnimationFrame(rafId);
     };
-  }, [isHomePage, routeHash]);
+  }, [isHomePage, routeHash, ease]);
 
   // Hover handlers (no scale effect; kept for potential drop-shadow / future use)
   const handleMouseEnter = () => setIsHovered(true);

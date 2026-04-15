@@ -1,8 +1,14 @@
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { gsap } from "gsap";
+import {
+  SECTION_SNAP_INTENT_EVENT,
+  type SectionSnapIntentDetail,
+} from "../utils/sectionSnapIntent";
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+export { SECTION_SNAP_INTENT_EVENT, type SectionSnapIntentDetail } from "../utils/sectionSnapIntent";
 
 // Optional per-section overrides
 const VIDEO_SECTION_CLASS = "video-section";
@@ -161,6 +167,14 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
         : snapDuration;
 
       currentIndex = index;
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent<SectionSnapIntentDetail>(SECTION_SNAP_INTENT_EVENT, {
+            detail: { sectionIndex: index, duration: effectiveDuration, ease },
+          }),
+        );
+      }
 
       // Kill any existing scroll animation
       if (scrollTimeline) {
