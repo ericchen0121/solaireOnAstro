@@ -282,6 +282,27 @@ export default function OrbitNav({
     syncDotCenterRef.current = syncDotCenter;
   });
 
+  /**
+   * Subpages: `dotCenter` drives the fixed “back” label. Without re-measuring on scroll / visual
+   * viewport changes (mobile dynamic toolbars, iOS), the label can drift from the dot while the
+   * orbit container stays correct.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onLayout = () => {
+      requestAnimationFrame(() => syncDotCenterRef.current());
+    };
+    window.addEventListener('scroll', onLayout, { passive: true });
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', onLayout);
+    vv?.addEventListener('scroll', onLayout);
+    return () => {
+      window.removeEventListener('scroll', onLayout);
+      vv?.removeEventListener('resize', onLayout);
+      vv?.removeEventListener('scroll', onLayout);
+    };
+  }, []);
+
   // Responsive orbit and dot size
   useEffect(() => {
     const update = () => {
@@ -968,13 +989,12 @@ export default function OrbitNav({
       {shouldShowBack && dotCenter && (
         <button
           type="button"
-          className={`fixed z-[100] text-xs md:text-sm lg:text-base font-bold py-3 px-4 min-h-[44px] min-w-[44px] flex items-center justify-end transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none motion-reduce:opacity-100 ${backReveal ? 'pointer-events-auto opacity-100 hover:opacity-70' : 'pointer-events-none opacity-0'} ${backTextLight ? 'text-white' : 'text-black'}`}
+          className={`fixed z-[100] text-xs md:text-sm lg:text-base font-bold py-3 px-4 min-h-[44px] min-w-[44px] flex items-center justify-end transition-opacity duration-300 ease-out motion-reduce:transition-none motion-reduce:opacity-100 ${backReveal ? 'pointer-events-auto opacity-100 hover:opacity-70' : 'pointer-events-none opacity-0'} ${backTextLight ? 'text-white' : 'text-black'}`}
           style={{
             right: `calc(100vw - ${dotCenter.x}px + ${dotSize/2}px - ${HIT_AREA_PADDING*2}px)`,
             top: dotCenter.y + dotSize/2 + HIT_AREA_PADDING,
-            transform: backReveal
-              ? 'translateY(-50%)'
-              : 'translateY(calc(-50% + 6px))',
+            /* No transition on transform — it must track `dotCenter` immediately on scroll / visualViewport */
+            transform: backReveal ? 'translateY(-50%)' : 'translateY(calc(-50% + 6px))',
           }}
           onClick={navigateBack}
         >
