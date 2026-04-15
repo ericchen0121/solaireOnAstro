@@ -282,27 +282,6 @@ export default function OrbitNav({
     syncDotCenterRef.current = syncDotCenter;
   });
 
-  /**
-   * Subpages: `dotCenter` drives the fixed “back” label. Without re-measuring on scroll / visual
-   * viewport changes (mobile dynamic toolbars, iOS), the label can drift from the dot while the
-   * orbit container stays correct.
-   */
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onLayout = () => {
-      requestAnimationFrame(() => syncDotCenterRef.current());
-    };
-    window.addEventListener('scroll', onLayout, { passive: true });
-    const vv = window.visualViewport;
-    vv?.addEventListener('resize', onLayout);
-    vv?.addEventListener('scroll', onLayout);
-    return () => {
-      window.removeEventListener('scroll', onLayout);
-      vv?.removeEventListener('resize', onLayout);
-      vv?.removeEventListener('scroll', onLayout);
-    };
-  }, []);
-
   // Responsive orbit and dot size
   useEffect(() => {
     const update = () => {
@@ -993,7 +972,7 @@ export default function OrbitNav({
           style={{
             right: `calc(100vw - ${dotCenter.x}px + ${dotSize/2}px - ${HIT_AREA_PADDING*2}px)`,
             top: dotCenter.y + dotSize/2 + HIT_AREA_PADDING,
-            /* No transition on transform — it must track `dotCenter` immediately on scroll / visualViewport */
+            /* No transform transition — `dotCenter` only updates on layout/resize/orbit changes, not scroll */
             transform: backReveal ? 'translateY(-50%)' : 'translateY(calc(-50% + 6px))',
           }}
           onClick={navigateBack}
