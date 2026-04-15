@@ -250,7 +250,12 @@ export default function OrbitNav({
   const [colorModeState, setColorModeState] = useState(colorMode);
   const [showBackState, setShowBackState] = useState(showBackOverride);
   const [isDarkState, setIsDarkState] = useState(isDark);
-  const [dotCenter, setDotCenter] = useState<{ x: number; y: number } | null>(null);
+  /**
+   * Dot center on the pill path in **orbit-container local px** (same space as `path.getPointAtLength`).
+   * Used to place the “back” label inside the fixed container so it does not depend on
+   * `getBoundingClientRect()` (avoids jitter when the visual viewport / subpixel layout shifts on scroll).
+   */
+  const [backAnchorLocal, setBackAnchorLocal] = useState<{ x: number; y: number } | null>(null);
   /** Bumped after pill path + sectionPositionsRef are computed (useLayoutEffect snaps subpage dot after this). */
   const [orbitPathVersion, setOrbitPathVersion] = useState(0);
   const syncDotCenterRef = useRef<() => void>(() => {});
@@ -268,18 +273,17 @@ export default function OrbitNav({
    */
   const homeHashOverrideConsumedRef = useRef(true);
 
-  const syncDotCenter = () => {
+  const syncBackAnchor = () => {
     if (!pathRef.current || !containerRef.current) return;
     const path = pathRef.current;
     const progress = currentPathProgress.current;
     const totalLength = path.getTotalLength();
     const pt = path.getPointAtLength(progress * totalLength);
-    const rect = containerRef.current.getBoundingClientRect();
-    setDotCenter({ x: rect.left + pt.x, y: rect.top + pt.y });
+    setBackAnchorLocal({ x: pt.x, y: pt.y });
   };
 
   useEffect(() => {
-    syncDotCenterRef.current = syncDotCenter;
+    syncDotCenterRef.current = syncBackAnchor;
   });
 
   // Responsive orbit and dot size
@@ -933,7 +937,8 @@ export default function OrbitNav({
   /** Homepage only: slide-bar white hover flips dot; ignore stale body class on subpages. */
   const displayInverted = isInverted !== (navOrTextHovered && isHomePage);
 
-  const shouldShowBack = (isInverted || showBackState) && !isHomePage && !!backTarget && dotCenter;
+  const shouldShowBack =
+    (isInverted || showBackState) && !isHomePage && !!backTarget && backAnchorLocal;
   const backTextLight = showBackState && !isInverted;
   const canNavigateBack = !isHomePage && !!backTarget;
 
@@ -963,16 +968,31 @@ export default function OrbitNav({
   // Minimum touch target (px); dot hit area extends by this much on each side
   const HIT_AREA_PADDING = 20;
 
+  const backRightPx =
+    backAnchorLocal != null
+      ? PATH_WIDTH - backAnchorLocal.x + dotSize / 2 - HIT_AREA_PADDING * 2
+      : 0;
+  const backTopPx =
+    backAnchorLocal != null ? backAnchorLocal.y + dotSize / 2 + HIT_AREA_PADDING : 0;
+
   return (
-    <>
-      {shouldShowBack && dotCenter && (
+    <div
+      ref={containerRef}
+      className="orbit-nav-container fixed z-[100] pointer-events-none"
+      style={{
+        top: offsets.top,
+        right: offsets.right,
+        width: PATH_WIDTH,
+        height: PATH_HEIGHT,
+      }}
+    >
+      {shouldShowBack && backAnchorLocal && (
         <button
           type="button"
-          className={`fixed z-[100] text-xs md:text-sm lg:text-base font-bold py-3 px-4 min-h-[44px] min-w-[44px] flex items-center justify-end transition-opacity duration-300 ease-out motion-reduce:transition-none motion-reduce:opacity-100 ${backReveal ? 'pointer-events-auto opacity-100 hover:opacity-70' : 'pointer-events-none opacity-0'} ${backTextLight ? 'text-white' : 'text-black'}`}
+          className={`absolute z-[110] text-xs md:text-sm lg:text-base font-bold py-3 px-4 min-h-[44px] min-w-[44px] flex items-center justify-end transition-opacity duration-300 ease-out motion-reduce:transition-none motion-reduce:opacity-100 ${backReveal ? 'pointer-events-auto opacity-100 hover:opacity-70' : 'pointer-events-none opacity-0'} ${backTextLight ? 'text-white' : 'text-black'}`}
           style={{
-            right: `calc(100vw - ${dotCenter.x}px + ${dotSize/2}px - ${HIT_AREA_PADDING*2}px)`,
-            top: dotCenter.y + dotSize/2 + HIT_AREA_PADDING,
-            /* No transform transition — `dotCenter` only updates on layout/resize/orbit changes, not scroll */
+            right: `${backRightPx}px`,
+            top: `${backTopPx}px`,
             transform: backReveal ? 'translateY(-50%)' : 'translateY(calc(-50% + 6px))',
           }}
           onClick={navigateBack}
@@ -981,78 +1001,67 @@ export default function OrbitNav({
         </button>
       )}
 
-      <div
-        ref={containerRef}
-        className="orbit-nav-container fixed z-[100] pointer-events-none"
-        style={{
-          top: offsets.top,
-          right: offsets.right,
-          width: PATH_WIDTH,
-          height: PATH_HEIGHT,
-        }}
+      <svg
+        width={PATH_WIDTH}
+        height={PATH_HEIGHT}
+        className="absolute top-0 left-0 pointer-events-none"
+        style={{ overflow: 'visible' }}
+        viewBox={`0 0 ${PATH_WIDTH} ${PATH_HEIGHT}`}
       >
-        <svg
-          width={PATH_WIDTH}
-          height={PATH_HEIGHT}
-          className="absolute top-0 left-0 pointer-events-none"
-          style={{ overflow: 'visible' }}
-          viewBox={`0 0 ${PATH_WIDTH} ${PATH_HEIGHT}`}
-        >
-          <path
-            ref={pathRef}
-            fill="none"
-            stroke={debugMarkers ? 'rgba(255,255,255,0.3)' : 'transparent'}
+        <path
+          ref={pathRef}
+          fill="none"
+          stroke={debugMarkers ? 'rgba(255,255,255,0.3)' : 'transparent'}
+          strokeWidth="1"
+          strokeDasharray={debugMarkers ? '2,2' : 'none'}
+        />
+        {debugMarkers && debugPositions.map((pos, i) => (
+          <circle
+            key={i}
+            cx={pos.x}
+            cy={pos.y}
+            r="4"
+            fill={i === currentSectionIndex ? '#00ff00' : 'rgba(255,255,255,0.6)'}
+            stroke="rgba(255,255,255,0.8)"
             strokeWidth="1"
-            strokeDasharray={debugMarkers ? '2,2' : 'none'}
           />
-          {debugMarkers && debugPositions.map((pos, i) => (
-            <circle
-              key={i}
-              cx={pos.x}
-              cy={pos.y}
-              r="4"
-              fill={i === currentSectionIndex ? '#00ff00' : 'rgba(255,255,255,0.6)'}
-              stroke="rgba(255,255,255,0.8)"
-              strokeWidth="1"
-            />
-          ))}
-        </svg>
+        ))}
+      </svg>
 
-        {/* Dot: larger hit area (HIT_AREA_PADDING on each side), visual dot centered */}
-        <div
-          ref={circleRef}
-          className={`absolute flex items-center justify-center pointer-events-auto ${canNavigateBack ? 'cursor-pointer' : 'cursor-default'}`}
-          style={{
-            width: dotSize + HIT_AREA_PADDING * 2,
-            height: dotSize + HIT_AREA_PADDING * 2,
-            transformOrigin: 'center center',
-            willChange: 'transform',
-          }}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onClick={canNavigateBack ? navigateBack : undefined}
-          onKeyDown={canNavigateBack ? (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              navigateBack();
-            }
-          } : undefined}
-          role={canNavigateBack ? 'button' : undefined}
-          tabIndex={canNavigateBack ? 0 : undefined}
-          aria-label={canNavigateBack ? 'Back' : 'Navigation'}
-          title={canNavigateBack ? 'Back' : 'Navigation'}
-        >
-          <OrbitNavDot
-            size={dotSize}
-            circleFill={displayInverted ? "black" : "white"}
-            rectFill={displayInverted ? "white" : "black"}
-            running={true}
-            lineAxis={isHomePage ? 'y' : 'x'}
-            className={isHovered ? 'drop-shadow-md' : ''}
-          />
-        </div>
+      {/* Dot: larger hit area (HIT_AREA_PADDING on each side), visual dot centered */}
+      <div
+        ref={circleRef}
+        className={`absolute flex items-center justify-center pointer-events-auto ${canNavigateBack ? 'cursor-pointer' : 'cursor-default'}`}
+        style={{
+          width: dotSize + HIT_AREA_PADDING * 2,
+          height: dotSize + HIT_AREA_PADDING * 2,
+          transformOrigin: 'center center',
+          willChange: 'transform',
+        }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={canNavigateBack ? navigateBack : undefined}
+        onKeyDown={canNavigateBack ? (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            navigateBack();
+          }
+        } : undefined}
+        role={canNavigateBack ? 'button' : undefined}
+        tabIndex={canNavigateBack ? 0 : undefined}
+        aria-label={canNavigateBack ? 'Back' : 'Navigation'}
+        title={canNavigateBack ? 'Back' : 'Navigation'}
+      >
+        <OrbitNavDot
+          size={dotSize}
+          circleFill={displayInverted ? "black" : "white"}
+          rectFill={displayInverted ? "white" : "black"}
+          running={true}
+          lineAxis={isHomePage ? 'y' : 'x'}
+          className={isHovered ? 'drop-shadow-md' : ''}
+        />
       </div>
-    </>
+    </div>
   );
 }
 

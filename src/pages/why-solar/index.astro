@@ -9,9 +9,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 >
   <main class="why-solar-page">
     <section
-      class="why-solar-section min-h-[100dvh] xl:min-h-screen bg-white text-black flex justify-center items-center xl:items-end pt-[max(0.5rem,env(safe-area-inset-top,0px))] pb-[max(6rem,min(28svh,13rem),env(safe-area-inset-bottom,0px))] xl:pt-64 xl:pb-20"
+      class="why-solar-section min-h-screen bg-white text-black flex items-end justify-center pt-64"
     >
-      <div class="container mx-auto px-4">
+      <div class="container mx-auto px-4 pb-20">
         <div class="content-sections">
           <!-- Rentabilité -->
           <div class="content-item">
@@ -73,7 +73,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   .content-sections {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 2rem;
   }
 
   /* Title + detail stay aligned top-to-bottom */
