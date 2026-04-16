@@ -17,7 +17,14 @@ export type LetterRevealOptions = {
    * When `false`, cursor is hidden once typing completes.
    */
   endCursorBlink?: boolean;
+  /**
+   * Skip getComputedStyle visibility filtering on inner spans. Use during Astro view transitions
+   * or when a parent (e.g. opacity fade-in) makes “visible” spans report as hidden briefly.
+   */
+  skipSpanVisibilityFilter?: boolean;
 };
+
+export type LetterRevealTarget = string | HTMLElement;
 
 /**
  * Initialize letter reveal animation on elements with spans
@@ -38,13 +45,15 @@ export function letterRevealDurationMs(
 }
 
 export function initLetterReveal(
-  selector: string,
+  target: LetterRevealTarget,
   delay: number = 0,
   stagger: number = 0.05,
   options: LetterRevealOptions = {},
 ): () => void {
   const endCursorBlink = options.endCursorBlink ?? true;
-  const container = document.querySelector(selector);
+  const skipSpanVisibilityFilter = options.skipSpanVisibilityFilter ?? false;
+  const container =
+    typeof target === 'string' ? document.querySelector(target) : target;
   if (!container) {
     return noopCleanup;
   }
@@ -52,6 +61,7 @@ export function initLetterReveal(
   const allSpans = container.querySelectorAll('span');
   const spans = Array.from(allSpans).filter((s) => {
     if (s.classList.contains('hero-cursor')) return false;
+    if (skipSpanVisibilityFilter) return true;
     // Only include spans that are actually visible (desktop vs mobile)
     const style = window.getComputedStyle(s);
     return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
@@ -61,6 +71,7 @@ export function initLetterReveal(
   }
 
   const allChars: HTMLElement[] = [];
+  const splitInstances: InstanceType<typeof SplitText>[] = [];
 
   // Split every span into characters (skip hero-cursor)
   spans.forEach((span) => {
@@ -71,6 +82,7 @@ export function initLetterReveal(
         wordsClass: 'hero-word',
         charsClass: 'hero-char',
       });
+      splitInstances.push(split);
       if (split.chars && split.chars.length > 0) {
         allChars.push(...(split.chars as HTMLElement[]));
       }
@@ -131,6 +143,7 @@ export function initLetterReveal(
 
   let endBlinkTl: gsap.core.Timeline | null = null;
   let endPhaseDelay: gsap.core.Tween | null = null;
+  let initialBlinkTl: gsap.core.Timeline | null = null;
 
   if (cursor) {
     cursor.style.display = 'inline-block';
@@ -140,13 +153,14 @@ export function initLetterReveal(
     cursor.style.animation = 'none';
     
     // Initial blink before typing starts (0.5s on, 0.5s off)
-    const initialBlinkTl = gsap.timeline({ repeat: -1 });
+    initialBlinkTl = gsap.timeline({ repeat: -1 });
     initialBlinkTl.to(cursor, { opacity: 1, duration: 0.5, ease: 'none' })
                   .to(cursor, { opacity: 0, duration: 0.5, ease: 'none' });
     
     // Stop initial blink and make solid when typing starts
     gsap.delayedCall(delay, () => {
-      initialBlinkTl.kill();
+      initialBlinkTl?.kill();
+      initialBlinkTl = null;
       gsap.set(cursor, { opacity: 1 });
     });
 
@@ -203,13 +217,28 @@ export function initLetterReveal(
     endPhaseDelay = null;
     endBlinkTl?.kill();
     endBlinkTl = null;
-    if (!cursor) return;
+    initialBlinkTl?.kill();
+    initialBlinkTl = null;
+    gsap.killTweensOf(allChars);
+    if (cursor) {
+      gsap.killTweensOf(cursor);
+    }
+    for (let i = splitInstances.length - 1; i >= 0; i--) {
+      try {
+        splitInstances[i].revert();
+      } catch {
+        /* ignore */
+      }
+    }
+    splitInstances.length = 0;
     resizeObserver?.disconnect();
     resizeObserver = null;
-    window.removeEventListener('resize', onViewportChange);
-    window.removeEventListener('orientationchange', onViewportChange);
-    window.visualViewport?.removeEventListener('resize', onViewportChange);
-    window.visualViewport?.removeEventListener('scroll', onViewportChange);
+    if (cursor) {
+      window.removeEventListener('resize', onViewportChange);
+      window.removeEventListener('orientationchange', onViewportChange);
+      window.visualViewport?.removeEventListener('resize', onViewportChange);
+      window.visualViewport?.removeEventListener('scroll', onViewportChange);
+    }
   };
 }
 

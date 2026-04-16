@@ -166,7 +166,9 @@ export default function ContactForm() {
 
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
-        cleanup = initLetterReveal(selector, 0.45, 0.05);
+        cleanup = initLetterReveal(selector, 0.45, 0.05, {
+          skipSpanVisibilityFilter: true,
+        });
         timeoutId = window.setTimeout(() => {
           cleanup?.();
           cleanup = null;
