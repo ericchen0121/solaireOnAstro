@@ -217,6 +217,8 @@ export default function OrbitNav({
   const circleRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
+  /** Pill `d` string for MotionPath when the `<path>` node is missing or detached (e.g. Astro view transitions). */
+  const orbitPathDRef = useRef('');
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [isInverted, setIsInverted] = useState(false);
   /** Mirrors `body.nav-or-text-hovered` (slide-bar sections + nav hover) for SVG fills — V2 ignores global.css orbit rules. */
@@ -283,6 +285,7 @@ export default function OrbitNav({
   const syncBackAnchor = () => {
     if (!pathRef.current || !containerRef.current) return;
     const path = pathRef.current;
+    if (!path.isConnected || !path.getAttribute('d')?.trim()) return;
     const progress = currentPathProgress.current;
     const totalLength = path.getTotalLength();
     const pt = path.getPointAtLength(progress * totalLength);
@@ -450,6 +453,35 @@ export default function OrbitNav({
     return `M ${radius},0 H ${width - radius} A ${radius},${radius} 0 0 1 ${width - radius},${height} H ${radius} A ${radius},${radius} 0 0 1 ${radius},0 Z`;
   };
 
+  const orbitPathD = createPillPath(PATH_WIDTH, PATH_HEIGHT);
+  orbitPathDRef.current = orbitPathD;
+
+  /** MotionPathPlugin throws if `path` is null/invalid or `<path>` has no `d`. */
+  const applyCircleMotionProgress = (
+    circle: HTMLElement | null,
+    progress: number,
+  ): boolean => {
+    if (!circle) return false;
+    const el = pathRef.current;
+    let pathTarget: SVGPathElement | string | undefined;
+    if (el?.isConnected && el.getAttribute('d')?.trim()) {
+      pathTarget = el;
+    } else {
+      const d = orbitPathDRef.current.trim();
+      if (!d) return false;
+      pathTarget = d;
+    }
+    gsap.set(circle, {
+      motionPath: {
+        path: pathTarget,
+        autoRotate: false,
+        start: progress,
+        end: progress,
+      },
+    });
+    return true;
+  };
+
   const calculatePathPosition = (
     pathElement: SVGPathElement,
     pathWidth: number,
@@ -516,7 +548,6 @@ export default function OrbitNav({
   useEffect(() => {
     if (!pathRef.current) return;
     const path = pathRef.current;
-    path.setAttribute('d', createPillPath(PATH_WIDTH, PATH_HEIGHT));
 
     const pathWidth = PATH_WIDTH;
     const pathHeight = PATH_HEIGHT;
@@ -553,14 +584,7 @@ export default function OrbitNav({
       // Path dimensions changed (e.g. resize), reposition circle at current progress
       const circle = circleRef.current;
       const progress = currentPathProgress.current;
-      gsap.set(circle, {
-        motionPath: {
-          path: path,
-          autoRotate: false,
-          start: progress,
-          end: progress,
-        },
-      });
+      applyCircleMotionProgress(circle, progress);
     }
 
     if (debugMarkers && pathRef.current) {
@@ -599,14 +623,7 @@ export default function OrbitNav({
         currentPathProgress.current = targetProgress;
         previousSectionIndexRef.current = next;
         sectionIndexHysteresisRef.current = next;
-        gsap.set(circleRef.current, {
-          motionPath: {
-            path: pathRef.current,
-            autoRotate: false,
-            start: targetProgress,
-            end: targetProgress,
-          },
-        });
+        applyCircleMotionProgress(circleRef.current, targetProgress);
         syncDotCenterRef.current();
         skipNextHomeMoveTweenRef.current = true;
         setCurrentSectionIndex(next);
@@ -638,14 +655,7 @@ export default function OrbitNav({
             currentPathProgress.current = targetProgress2;
             previousSectionIndexRef.current = next2;
             sectionIndexHysteresisRef.current = next2;
-            gsap.set(circleRef.current, {
-              motionPath: {
-                path: pathRef.current,
-                autoRotate: false,
-                start: targetProgress2,
-                end: targetProgress2,
-              },
-            });
+            applyCircleMotionProgress(circleRef.current, targetProgress2);
             syncDotCenterRef.current();
             skipNextHomeMoveTweenRef.current = true;
             setCurrentSectionIndex(next2);
@@ -688,14 +698,7 @@ export default function OrbitNav({
     const targetProgress = positions[idx] ?? positions[0];
     currentPathProgress.current = targetProgress;
     previousSectionIndexRef.current = idx;
-    gsap.set(circleRef.current, {
-      motionPath: {
-        path: pathRef.current,
-        autoRotate: false,
-        start: targetProgress,
-        end: targetProgress,
-      },
-    });
+    applyCircleMotionProgress(circleRef.current, targetProgress);
     syncDotCenterRef.current();
     setCurrentSectionIndex(idx);
   }, [isHomePage, pathKey, PATH_WIDTH, PATH_HEIGHT, orbitPathVersion, routeHash]);
@@ -707,7 +710,6 @@ export default function OrbitNav({
     if (!circleRef.current || !pathRef.current || sectionPositionsRef.current.length === 0) return;
 
     const circle = circleRef.current;
-    const path = pathRef.current;
     const positions = sectionPositionsRef.current;
     const targetProgress = positions[currentSectionIndex] ?? 0;
     const startProgress = currentPathProgress.current;
@@ -725,14 +727,7 @@ export default function OrbitNav({
       let p = targetProgress;
       if (p >= 1.0) p -= 1.0;
       if (p < 0.0) p += 1.0;
-      gsap.set(circle, {
-        motionPath: {
-          path,
-          autoRotate: false,
-          start: p,
-          end: p,
-        },
-      });
+      applyCircleMotionProgress(circle, p);
       requestAnimationFrame(() => syncDotCenterRef.current());
       return;
     }
@@ -751,14 +746,7 @@ export default function OrbitNav({
       if (p >= 1.0) p -= 1.0;
       if (p < 0.0) p += 1.0;
       currentPathProgress.current = p;
-      gsap.set(circle, {
-        motionPath: {
-          path: path,
-          autoRotate: false,
-          start: p,
-          end: p,
-        },
-      });
+      applyCircleMotionProgress(circle, p);
       requestAnimationFrame(() => syncDotCenterRef.current());
     };
 
@@ -1080,6 +1068,7 @@ export default function OrbitNav({
       >
         <path
           ref={pathRef}
+          d={orbitPathD}
           fill="none"
           stroke={debugMarkers ? 'rgba(255,255,255,0.3)' : 'transparent'}
           strokeWidth="1"
