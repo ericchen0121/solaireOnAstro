@@ -314,6 +314,24 @@
     }
   }
 
+  /* "Solaire" — a touch heavier than Moon Light: stroke fattens the silhouette; keep Light vs "Rochat" Demi */
+  .company-name-title .company-name-solaire {
+    -webkit-text-stroke: 0.45px #ffffff;
+    paint-order: stroke fill;
+  }
+
+  @media (min-width: 768px) {
+    .company-name-title .company-name-solaire {
+      -webkit-text-stroke: 0.65px #ffffff;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .company-name-title .company-name-solaire {
+      -webkit-text-stroke: 0.85px #ffffff;
+    }
+  }
+
   /* b1 — body copy: F37Moon Light, 16 → 20 → 24px, 130% leading */
   .typo-b1,
   .stat-copy {
