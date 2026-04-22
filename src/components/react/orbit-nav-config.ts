@@ -55,23 +55,26 @@ if (typeof window !== 'undefined') {
 // Container offsets: top/right from viewport in px = ratio × dot (or ratio × multiplier × dot for right).
 // Dot scales by breakpoint: desktop ≥1024px, tablet 768–1023px, mobile <768px (+ compact-phone landscape).
 export const ORBIT_NAV_LAYOUT = {
-  DOT_SIZE_DESKTOP: 32,
-  DOT_SIZE_TABLET: 24,
-  DOT_SIZE_MOBILE: 20,
+  /** Orbit dot diameter (px); ~+10% vs base 32/24/20. */
+  DOT_SIZE_DESKTOP: 35,
+  DOT_SIZE_TABLET: 26,
+  DOT_SIZE_MOBILE: 22,
   /** Default: more breathing room from top edge */
   TOP_OFFSET_RATIO: 2,
   /** Mobile dot tier: sit closer to top edge */
   TOP_OFFSET_RATIO_MOBILE: 1,
   RIGHT_OFFSET_RATIO: 1,
-  /** right offset = RIGHT_OFFSET_RATIO × multiplier × dot (desktop/tablet) */
+  /**
+   * Right inset = RIGHT_OFFSET_RATIO × multiplier × dot (dot = orbit circle / hit target size).
+   * 3 on desktop = 3×32px; same 3 on mobile = 3×20px = 60px from the right (was 2×, too tight to the edge once the pill widened).
+   */
   RIGHT_OFFSET_MULTIPLIER_DEFAULT: 3,
-  /** Mobile: closer to right edge */
-  RIGHT_OFFSET_MULTIPLIER_MOBILE: 2,
-  ORBIT_WIDTH_DESKTOP: 160,
+  RIGHT_OFFSET_MULTIPLIER_MOBILE: 3,
+  /** Desktop/tablet pill: 2.5:1 (w:h). Mobile racetrack: 2:1 (e.g. 80×40). */
+  ORBIT_WIDTH_DESKTOP: 200,
   ORBIT_HEIGHT_DESKTOP: 80,
-  ORBIT_WIDTH_TABLET: 140,
+  ORBIT_WIDTH_TABLET: 175,
   ORBIT_HEIGHT_TABLET: 70,
-  /** 2:1 ratio with desktop/tablet pill shape; smaller footprint on phones */
   ORBIT_WIDTH_MOBILE: 80,
   ORBIT_HEIGHT_MOBILE: 40,
   TABLET_BREAKPOINT_PX: 1024,

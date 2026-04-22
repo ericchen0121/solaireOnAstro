@@ -4,14 +4,15 @@ import { ORBIT_NAV_LAYOUT } from '../../orbit-nav-config';
 
 /**
  * OrbitNavDot - Circle with animating rectangle inside (design spec).
- * Proportions: rectangle height ~inner radius, width ~18% of diameter.
+ * Proportions: bar height ~inner radius, width ~18% of diameter; square ends (no rx/ry).
  * Inner boundary (racetrack): line travels to offset concentric boundary (~90% of radius).
  * lineAxis 'y' = home: line on center x-axis, animates up/down. 'x' = subpage: line on center y-axis, animates left/right.
  */
 
 const INNER_BOUNDARY_RATIO = 0.9;
-const RECT_WIDTH_RATIO = 0.18;
-const INNER_STROKE_SCALE = 0.3 / 32; // stroke 0.3 at 32px → proportional
+const RECT_WIDTH_RATIO = 0.14;
+/** Inner racetrack ring — thinner than original (0.3 @ 32px). */
+const INNER_STROKE_SCALE = 0.4 / 32;
 const TRANSITION_DURATION = 0.35;
 /** Home ↔ subpage switches `lineAxis`; keep this short to avoid a visible “morph flash” on client navigations. */
 const AXIS_CHANGE_DURATION = 0.06;
@@ -180,7 +181,6 @@ export default function OrbitNavDot({
     durationReturn,
   ]);
 
-  const pillRadius = rectFullWidth / 2;
   const initialRect = lineAxis === 'y' ? centerStateY : centerStateX;
 
   const svgPaintTransition =
@@ -227,8 +227,8 @@ export default function OrbitNavDot({
         y={initialRect.y}
         width={initialRect.width}
         height={initialRect.height}
-        rx={pillRadius}
-        ry={pillRadius}
+        rx={0}
+        ry={0}
         fill={rectFill}
         style={{
           shapeRendering: 'geometricPrecision',

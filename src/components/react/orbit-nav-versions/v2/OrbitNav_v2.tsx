@@ -14,6 +14,7 @@ import {
 } from '../../../../utils/sectionSnapIntent';
 import { isScrollDiagnosticsEnabled, logScrollDiag } from '../../../../utils/scrollDiagnostics';
 import OrbitNavDot from './OrbitNavDot';
+import OrbitNavBackArrow from './OrbitNavBackArrow';
 
 gsap.registerPlugin(MotionPathPlugin);
 
@@ -258,7 +259,7 @@ export default function OrbitNav({
   const [isDarkState, setIsDarkState] = useState(isDark);
   /**
    * Dot center on the pill path in **orbit-container local px** (same space as `path.getPointAtLength`).
-   * Used to place the “back” label inside the fixed container so it does not depend on
+   * Used to place the back arrow control inside the fixed container so it does not depend on
    * `getBoundingClientRect()` (avoids jitter when the visual viewport / subpixel layout shifts on scroll).
    */
   const [backAnchorLocal, setBackAnchorLocal] = useState<{ x: number; y: number } | null>(null);
@@ -1002,6 +1003,28 @@ export default function OrbitNav({
 
   /** Fade / slide “back” in after route + dot layout settle (avoids abrupt pop-in). */
   const [backReveal, setBackReveal] = useState(false);
+  /** Fine-pointer devices: back arrow is shown only when pointer is over the orbit nav box. */
+  const [prefersHoverDevice, setPrefersHoverDevice] = useState(true);
+  const [reducedMotionNav, setReducedMotionNav] = useState(false);
+  const [orbitNavHovered, setOrbitNavHovered] = useState(false);
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return;
+    const h = window.matchMedia('(hover: hover)');
+    const m = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => {
+      setPrefersHoverDevice(h.matches);
+      setReducedMotionNav(m.matches);
+    };
+    apply();
+    h.addEventListener('change', apply);
+    m.addEventListener('change', apply);
+    return () => {
+      h.removeEventListener('change', apply);
+      m.removeEventListener('change', apply);
+    };
+  }, []);
+
   useEffect(() => {
     if (!shouldShowBack) {
       setBackReveal(false);
@@ -1017,6 +1040,10 @@ export default function OrbitNav({
     });
     return () => cancelAnimationFrame(id);
   }, [shouldShowBack, pathKey]);
+
+  const showBackArrowControl =
+    backReveal &&
+    (reducedMotionNav || !prefersHoverDevice || orbitNavHovered);
 
   const navigateBack = () => {
     if (!backTarget) return;
@@ -1036,7 +1063,9 @@ export default function OrbitNav({
   const orbitUi = (
     <div
       ref={containerRef}
-      className="orbit-nav-container fixed z-[100] pointer-events-none [backface-visibility:hidden]"
+      className="orbit-nav-container fixed z-[100] pointer-events-auto [backface-visibility:hidden]"
+      onMouseEnter={() => setOrbitNavHovered(true)}
+      onMouseLeave={() => setOrbitNavHovered(false)}
       style={{
         top: `calc(${offsets.top}px + env(safe-area-inset-top, 0px))`,
         right: `calc(${offsets.right}px + env(safe-area-inset-right, 0px))`,
@@ -1047,15 +1076,17 @@ export default function OrbitNav({
       {shouldShowBack && backAnchorLocal && (
         <button
           type="button"
-          className={`absolute z-[110] text-xs md:text-sm lg:text-base font-bold py-3 px-4 min-h-[44px] min-w-[44px] flex items-center justify-end transition-opacity duration-300 ease-out motion-reduce:transition-none motion-reduce:opacity-100 ${backReveal ? 'pointer-events-auto opacity-100 hover:opacity-70' : 'pointer-events-none opacity-0'} ${backTextLight ? 'text-white' : 'text-black'}`}
+          className={`absolute z-[110] min-h-[44px] min-w-[44px] flex items-center justify-end rounded py-2 pl-2 pr-1 transition-opacity duration-200 ease-out motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${showBackArrowControl ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'} ${backReveal && showBackArrowControl ? 'hover:opacity-80' : ''} ${backTextLight ? 'text-white' : 'text-black'}`}
           style={{
             right: `${backRightPx}px`,
             top: `${backTopPx}px`,
             transform: backReveal ? 'translateY(-50%)' : 'translateY(calc(-50% + 6px))',
           }}
           onClick={navigateBack}
+          tabIndex={showBackArrowControl ? 0 : -1}
+          aria-label="Back to previous page"
         >
-          back
+          <OrbitNavBackArrow className="shrink-0" />
         </button>
       )}
 
