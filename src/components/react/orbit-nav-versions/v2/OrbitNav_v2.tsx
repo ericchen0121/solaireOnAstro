@@ -1149,7 +1149,7 @@ export default function OrbitNav({
   const [prefersHoverDevice, setPrefersHoverDevice] = useState(true);
   const [reducedMotionNav, setReducedMotionNav] = useState(false);
   const [orbitNavHovered, setOrbitNavHovered] = useState(false);
-  /** Subpage: two slow flash pulses (hover devices) so users notice the back control; then normal hover-to-show. */
+  /** Subpage: quick double flash (hover devices); ends early if orbit is hovered; then hover-to-show. */
   const [backArrowHintRunning, setBackArrowHintRunning] = useState(false);
 
   useLayoutEffect(() => {
@@ -1197,12 +1197,29 @@ export default function OrbitNav({
     setBackArrowHintRunning(true);
   }, [shouldShowBack, pathKey, backReveal, reducedMotionNav, prefersHoverDevice]);
 
+  /** If the pointer is already over the nav when the hint starts, skip pulses (no mouseenter). */
+  useEffect(() => {
+    if (!backArrowHintRunning) return;
+    const id = requestAnimationFrame(() => {
+      const el = containerRef.current;
+      if (el?.matches(':hover')) {
+        setOrbitNavHovered(true);
+        setBackArrowHintRunning(false);
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [backArrowHintRunning]);
+
   const showBackArrowControl =
     backReveal &&
     (reducedMotionNav || !prefersHoverDevice || orbitNavHovered);
 
+  /** Stops as soon as the orbit is hovered so normal opacity / interaction wins over the keyframes. */
   const useBackArrowHintAnimation =
-    backArrowHintRunning && prefersHoverDevice && !reducedMotionNav;
+    backArrowHintRunning &&
+    !orbitNavHovered &&
+    prefersHoverDevice &&
+    !reducedMotionNav;
 
   const navigateBack = () => {
     if (!backTarget) return;
@@ -1238,7 +1255,10 @@ export default function OrbitNav({
     <div
       ref={containerRef}
       className="orbit-nav-container fixed z-[100] pointer-events-auto [backface-visibility:hidden]"
-      onMouseEnter={() => setOrbitNavHovered(true)}
+      onMouseEnter={() => {
+        setOrbitNavHovered(true);
+        setBackArrowHintRunning(false);
+      }}
       onMouseLeave={() => setOrbitNavHovered(false)}
       style={{
         top: `calc(${offsets.top}px + env(safe-area-inset-top, 0px))`,

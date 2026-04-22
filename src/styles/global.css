@@ -835,7 +835,7 @@
     color: #000000 !important;
   }
 
-  /* Orbit V2: back arrow — two slow opacity pulses on subpage (fine-pointer only), then “show on orbit hover” */
+  /* Orbit V2: back arrow — two quick opacity pulses (fine-pointer), then “show on orbit hover”; hover cancels mid-animation */
   @keyframes orbit-back-arrow-hint {
     0% {
       opacity: 0;
@@ -858,7 +858,7 @@
   }
 
   .orbit-back-arrow-hint {
-    animation: orbit-back-arrow-hint 4.25s ease-in-out forwards;
+    animation: orbit-back-arrow-hint 1.75s ease-in-out forwards;
     transition: none;
   }
 }
