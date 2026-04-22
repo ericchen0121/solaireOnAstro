@@ -702,6 +702,33 @@
   body.nav-or-text-hovered .orbit-nav-container .text-white {
     color: #000000 !important;
   }
+
+  /* Orbit V2: back arrow — two slow opacity pulses on subpage (fine-pointer only), then “show on orbit hover” */
+  @keyframes orbit-back-arrow-hint {
+    0% {
+      opacity: 0;
+    }
+    14% {
+      opacity: 1;
+    }
+    28% {
+      opacity: 0;
+    }
+    42% {
+      opacity: 1;
+    }
+    56% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  .orbit-back-arrow-hint {
+    animation: orbit-back-arrow-hint 4.25s ease-in-out forwards;
+    transition: none;
+  }
 }
 
 @layer utilities {

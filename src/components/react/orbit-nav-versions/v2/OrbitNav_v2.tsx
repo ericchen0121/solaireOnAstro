@@ -1149,6 +1149,8 @@ export default function OrbitNav({
   const [prefersHoverDevice, setPrefersHoverDevice] = useState(true);
   const [reducedMotionNav, setReducedMotionNav] = useState(false);
   const [orbitNavHovered, setOrbitNavHovered] = useState(false);
+  /** Subpage: two slow flash pulses (hover devices) so users notice the back control; then normal hover-to-show. */
+  const [backArrowHintRunning, setBackArrowHintRunning] = useState(false);
 
   useLayoutEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1183,9 +1185,24 @@ export default function OrbitNav({
     return () => cancelAnimationFrame(id);
   }, [shouldShowBack, pathKey]);
 
+  useEffect(() => {
+    if (!shouldShowBack || !backReveal) {
+      setBackArrowHintRunning(false);
+      return;
+    }
+    if (reducedMotionNav || !prefersHoverDevice) {
+      setBackArrowHintRunning(false);
+      return;
+    }
+    setBackArrowHintRunning(true);
+  }, [shouldShowBack, pathKey, backReveal, reducedMotionNav, prefersHoverDevice]);
+
   const showBackArrowControl =
     backReveal &&
     (reducedMotionNav || !prefersHoverDevice || orbitNavHovered);
+
+  const useBackArrowHintAnimation =
+    backArrowHintRunning && prefersHoverDevice && !reducedMotionNav;
 
   const navigateBack = () => {
     if (!backTarget) return;
@@ -1232,18 +1249,38 @@ export default function OrbitNav({
     >
       {shouldShowBack && backAnchorLocal && (
         <button
+          key={`orbit-back-hint-${pathKey}`}
           type="button"
-          className={`absolute z-[110] min-h-[44px] min-w-[44px] flex items-center justify-end rounded py-2 pl-2 pr-1 transition-opacity duration-200 ease-out motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${showBackArrowControl ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'} ${backReveal && showBackArrowControl ? 'hover:opacity-80' : ''} ${backTextLight ? 'text-white' : 'text-black'}`}
+          className={`absolute z-[110] min-h-[44px] min-w-[44px] flex items-center justify-end rounded py-2 pl-2 pr-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
+            useBackArrowHintAnimation
+              ? 'orbit-back-arrow-hint pointer-events-none'
+              : `transition-opacity duration-500 ease-in-out motion-reduce:duration-0 motion-reduce:transition-none ${
+                  showBackArrowControl ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+                }`
+          } ${backTextLight ? 'text-white' : 'text-black'}`}
           style={{
             right: `${backRightPx}px`,
             top: `${backTopPx}px`,
             transform: backReveal ? 'translateY(-50%)' : 'translateY(calc(-50% + 6px))',
           }}
           onClick={navigateBack}
+          onAnimationEnd={(e) => {
+            if (e.animationName === 'orbit-back-arrow-hint') {
+              setBackArrowHintRunning(false);
+            }
+          }}
           tabIndex={showBackArrowControl ? 0 : -1}
           aria-label="Back to previous page"
         >
-          <OrbitNavBackArrow className="shrink-0" />
+          <span
+            className={`shrink-0 block transition-opacity duration-200 ease-out motion-reduce:transition-none ${
+              backReveal && showBackArrowControl && !useBackArrowHintAnimation
+                ? 'opacity-100 hover:opacity-80'
+                : 'opacity-100'
+            }`}
+          >
+            <OrbitNavBackArrow className="shrink-0" />
+          </span>
         </button>
       )}
 
