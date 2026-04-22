@@ -10,7 +10,7 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
   <main class="why-us-page">
     <!-- Top Section - 100vh -->
     <section
-      class="why-us-section md:min-h-0 md:h-screen bg-white text-black flex items-start justify-center md:items-center pt-[max(1.125rem,calc(env(safe-area-inset-top,0px)+0.625rem))] pb-6 md:pt-0 md:pb-0"
+      class="why-us-section md:min-h-screen bg-white text-black flex items-start justify-center md:items-center pt-[max(1.125rem,calc(env(safe-area-inset-top,0px)+0.625rem))] pb-6 md:pt-0 md:pb-0"
     >
       <div class="top-section-content">
         <h3 class="typo-h3 mt-0 mb-10 md:mt-28 md:mb-20 lg:mt-40 lg:mb-24">
@@ -30,7 +30,7 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
 
     <!-- Numbered List Section -->
     <section class="numbered-list-section bg-white text-black pt-9 pb-20 md:py-32">
-      <div class="numbered-list-content">
+      <div class="top-section-content">
         <!-- Numbered List -->
         <ol class="numbered-list space-y-5 md:space-y-7 lg:space-y-8">
           <li class="numbered-item">
@@ -131,75 +131,10 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
     scroll-behavior: smooth;
   }
 
-  /* Top Section Content Container */
-  .top-section-content {
-    max-width: 1200px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 0 2rem;
-  }
-
-  @media (min-width: 768px) {
-    .top-section-content {
-      max-width: 1400px;
-      padding: 0 4rem;
-    }
-  }
-
-  /* Numbered List Content Container */
-  .numbered-list-content {
-    max-width: 1200px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 0 2rem;
-  }
-
-  @media (min-width: 768px) {
-    .numbered-list-content {
-      max-width: 1400px;
-      padding: 0 4rem;
-    }
-  }
-
   .numbered-list {
     list-style: none;
     padding: 0;
     margin: 0;
-  }
-
-  .numbered-item {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 3rem;
-  }
-
-  @media (min-width: 768px) {
-    .numbered-item {
-      gap: 4rem;
-    }
-  }
-
-  .number-container {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    flex-shrink: 0;
-    min-width: 48px;
-    margin-top: 0;
-    align-self: flex-start;
-  }
-
-  @media (min-width: 768px) {
-    .number-container {
-      min-width: 72px;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .number-container {
-      min-width: 108px;
-    }
   }
 
   /* Tighter leading than site b1 (130%); pretty wrap reduces lone short last lines where supported */
@@ -235,13 +170,5 @@ import LenisLayout from "../../layouts/LenisLayout.astro";
       ),
       0px
     );
-  }
-
-  .numbered-text {
-    width: 50%;
-    text-align: left;
-    margin: 0;
-    padding-top: 0;
-    margin-top: 0;
   }
 </style>

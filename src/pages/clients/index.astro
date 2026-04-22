@@ -1,5 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import SubpageHoverSections from "../../components/SubpageHoverSections.astro";
+import SubpageHoverSectionItem from "../../components/SubpageHoverSectionItem.astro";
 ---
 
 <BaseLayout
@@ -11,40 +13,26 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     <section
       class="clients-section min-h-screen bg-white text-black flex items-end justify-center pt-64"
     >
-      <div class="container mx-auto px-4 pb-20">
-        <div class="content-sections">
-          <!-- Propriétaires -->
-          <div class="content-item">
-            <h2 class="typo-h2 section-title">Propriétaires</h2>
-            <div class="section-detail">
-              <p class="typo-b1 max-w-2xl">
-                De bâtiments qui veulent produire de l'énergie avec leur toit,
-                ou le mettre à disposition d'un tiers investisseur: Industriel,
-                résidentiel, école, rural et hôpital.
-              </p>
-            </div>
-          </div>
-
-          <!-- Investisseurs -->
-          <div class="content-item">
-            <h2 class="typo-h2 section-title">Investisseurs</h2>
-            <div class="section-detail">
-              <p class="typo-b1 max-w-2xl">
-                Dans l'énergie renouvelable qui cherchent la rentabilité.
-              </p>
-            </div>
-          </div>
-
-          <!-- Entreprises -->
-          <div class="content-item">
-            <h2 class="typo-h2 section-title">Entreprises</h2>
-            <div class="section-detail">
-              <p class="typo-b1 max-w-2xl">
-                Qui veulent produire leur propre énergie.
-              </p>
-            </div>
-          </div>
-        </div>
+      <div class="top-section-content pb-20">
+        <SubpageHoverSections>
+          <SubpageHoverSectionItem title="Propriétaires">
+            <p class="typo-b1 max-w-2xl">
+              De bâtiments qui veulent produire de l'énergie avec leur toit,
+              ou le mettre à disposition d'un tiers investisseur: Industriel,
+              résidentiel, école, rural et hôpital.
+            </p>
+          </SubpageHoverSectionItem>
+          <SubpageHoverSectionItem title="Investisseurs">
+            <p class="typo-b1 max-w-2xl">
+              Dans l'énergie renouvelable qui cherchent la rentabilité.
+            </p>
+          </SubpageHoverSectionItem>
+          <SubpageHoverSectionItem title="Entreprises">
+            <p class="typo-b1 max-w-2xl">
+              Qui veulent produire leur propre énergie.
+            </p>
+          </SubpageHoverSectionItem>
+        </SubpageHoverSections>
       </div>
     </section>
   </main>
@@ -53,54 +41,5 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 <style>
   .clients-page {
     font-family: var(--font-primary);
-  }
-
-  /* Vertical stacking */
-  .content-sections {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  /* Title + detail stay aligned top-to-bottom */
-  .content-item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    position: relative;
-  }
-
-  .section-title {
-    margin: 0;
-    padding: 0;
-    z-index: 1;
-  }
-
-  /* Collapsed by default */
-  .section-detail {
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    margin-top: 0;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-
-    transition:
-      max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-      opacity 0.3s ease-out,
-      margin-top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Expand downward only */
-  .content-item:hover .section-detail {
-    max-height: 500px;
-    opacity: 1;
-    margin-top: 1rem;
-  }
-
-  .section-detail p {
-    color: rgba(0, 0, 0, 0.8);
-    margin: 0 auto;
   }
 </style>

@@ -379,6 +379,120 @@
     }
   }
 
+  /* Subpage top content width / horizontal padding (aligns with why-work-with-us `.top-section-content`) */
+  .top-section-content {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .top-section-content {
+      max-width: 1400px;
+      padding: 0 4rem;
+    }
+  }
+
+  /*
+   * Subpage body copy column: same left offset and max width as why-work-with-us numbered list
+   * (`.number-container` min-width + `.numbered-item` gap). Keep in sync with that page’s list layout.
+   */
+  :root {
+    --subpage-body-num-col: 48px;
+    --subpage-body-num-gap: 3rem;
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      --subpage-body-num-col: 72px;
+      --subpage-body-num-gap: 4rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --subpage-body-num-col: 108px;
+    }
+  }
+
+  .numbered-list .numbered-item {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--subpage-body-num-gap);
+  }
+
+  .numbered-list .number-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-shrink: 0;
+    min-width: var(--subpage-body-num-col);
+    margin-top: 0;
+    align-self: flex-start;
+  }
+
+  /* Numbered list (why-work-with-us): same b1 box as hover subpages (42rem) */
+  .numbered-list .numbered-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 42rem;
+    width: auto;
+    text-align: left;
+    margin: 0;
+  }
+
+  /* Subpages: hover expand title → body (why-solar, clients, …) — `SubpageHoverSections` + `SubpageHoverSectionItem` */
+  .subpage-hover-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .subpage-hover-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+  }
+
+  .subpage-hover-heading {
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+  }
+
+  .subpage-hover-detail {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding-inline-start: calc(
+      var(--subpage-body-num-gap) + var(--subpage-body-num-col)
+    );
+    display: block;
+    transition:
+      max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.3s ease-out,
+      margin-top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .subpage-hover-item:hover .subpage-hover-detail {
+    max-height: 500px;
+    opacity: 1;
+    margin-top: 1rem;
+  }
+
+  .subpage-hover-detail p {
+    color: rgba(0, 0, 0, 0.8);
+    margin: 0;
+    max-width: 42rem;
+    width: 100%;
+  }
+
   .typo-b2 {
     font-family: var(--font-f37moon-demi);
     font-weight: 600;

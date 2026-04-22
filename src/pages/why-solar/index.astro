@@ -1,5 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import SubpageHoverSections from "../../components/SubpageHoverSections.astro";
+import SubpageHoverSectionItem from "../../components/SubpageHoverSectionItem.astro";
 ---
 
 <BaseLayout
@@ -11,54 +13,35 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     <section
       class="why-solar-section min-h-screen bg-white text-black flex items-end justify-center pt-64"
     >
-      <div class="container mx-auto px-4 pb-20">
-        <div class="content-sections">
-          <!-- Rentabilité -->
-          <div class="content-item">
-            <h2 class="typo-h2 section-title">Rentabilité</h2>
-            <div class="section-detail">
-              <p class="typo-b1 max-w-2xl">
-                Si le projet est bien situé, bien conçu et réalisé au bon
-                moment, il peut être rentable. Notre logiciel exclusif calcule
-                la rentabilité; critère prédominant pour investisseurs.
-              </p>
-            </div>
-          </div>
-
-          <!-- Ecologie -->
-          <div class="content-item">
-            <h2 class="typo-h2 section-title">Ecologie</h2>
-            <div class="section-detail">
-              <p class="typo-b1 max-w-2xl">
-                Un module photovoltaïque produit dix à quinze fois plus
-                d'énergie durant sa vie qu'il n'en faut pour le produire et le
-                transporter.
-              </p>
-            </div>
-          </div>
-
-          <!-- Fiabilité -->
-          <div class="content-item">
-            <h2 class="typo-h2 section-title">Fiabilité et Sécurité</h2>
-            <div class="section-detail">
-              <p class="typo-b1 max-w-2xl">
-                Dans une centrale photovoltaïque il n'y a aucune partie mobile,
-                donc guère d'usure, et peu de frais d'entretien.
-              </p>
-            </div>
-          </div>
-
-          <!-- Esthétique -->
-          <div class="content-item">
-            <h2 class="typo-h2 section-title">Esthétique</h2>
-            <div class="section-detail">
-              <p class="typo-b1 max-w-2xl">
-                Bien étudiée, une installation photovoltaïque peut être belle et
-                peut enrichir la valeur architecturale d'un immeuble.
-              </p>
-            </div>
-          </div>
-        </div>
+      <div class="top-section-content pb-20">
+        <SubpageHoverSections>
+          <SubpageHoverSectionItem title="Rentabilité">
+            <p class="typo-b1 max-w-2xl">
+              Si le projet est bien situé, bien conçu et réalisé au bon
+              moment, il peut être rentable. Notre logiciel exclusif calcule
+              la rentabilité; critère prédominant pour investisseurs.
+            </p>
+          </SubpageHoverSectionItem>
+          <SubpageHoverSectionItem title="Ecologie">
+            <p class="typo-b1 max-w-2xl">
+              Un module photovoltaïque produit dix à quinze fois plus
+              d'énergie durant sa vie qu'il n'en faut pour le produire et le
+              transporter.
+            </p>
+          </SubpageHoverSectionItem>
+          <SubpageHoverSectionItem title="Fiabilité et Sécurité">
+            <p class="typo-b1 max-w-2xl">
+              Dans une centrale photovoltaïque il n'y a aucune partie mobile,
+              donc guère d'usure, et peu de frais d'entretien.
+            </p>
+          </SubpageHoverSectionItem>
+          <SubpageHoverSectionItem title="Esthétique">
+            <p class="typo-b1 max-w-2xl">
+              Bien étudiée, une installation photovoltaïque peut être belle et
+              peut enrichir la valeur architecturale d'un immeuble.
+            </p>
+          </SubpageHoverSectionItem>
+        </SubpageHoverSections>
       </div>
     </section>
   </main>
@@ -67,54 +50,5 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 <style>
   .why-solar-page {
     font-family: var(--font-primary);
-  }
-
-  /* Vertical stacking */
-  .content-sections {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  /* Title + detail stay aligned top-to-bottom */
-  .content-item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    position: relative;
-  }
-
-  .section-title {
-    margin: 0;
-    padding: 0;
-    z-index: 1;
-  }
-
-  /* Collapsed by default */
-  .section-detail {
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    margin-top: 0;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-
-    transition:
-      max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-      opacity 0.3s ease-out,
-      margin-top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Expand downward only */
-  .content-item:hover .section-detail {
-    max-height: 500px;
-    opacity: 1;
-    margin-top: 1rem;
-  }
-
-  .section-detail p {
-    color: rgba(0, 0, 0, 0.8);
-    margin: 0 auto;
   }
 </style>

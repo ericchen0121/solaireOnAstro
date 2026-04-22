@@ -1,0 +1,16 @@
+---
+/**
+ * One heading + expandable body row (e.g. why-solar, clients). Slot: body (usually `<p class="typo-b1 max-w-2xl">`).
+ */
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+<div class="subpage-hover-item">
+  <h2 class="typo-h2 subpage-hover-heading">{title}</h2>
+  <div class="subpage-hover-detail">
+    <slot />
+  </div>
+</div>
