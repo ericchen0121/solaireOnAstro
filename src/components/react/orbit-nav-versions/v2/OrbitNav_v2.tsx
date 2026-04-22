@@ -12,8 +12,9 @@ import {
   SECTION_SNAP_INTENT_EVENT,
   type SectionSnapIntentDetail,
 } from '../../../../utils/sectionSnapIntent';
+import { ORBIT_PILL_SUBPAGE_REQUEST } from '../../../../animations/orbitNavSubpagePill';
 import { isScrollDiagnosticsEnabled, logScrollDiag } from '../../../../utils/scrollDiagnostics';
-import OrbitNavDot from './OrbitNavDot';
+import OrbitNavDot, { type OrbitNavDotHandle } from './OrbitNavDot';
 import OrbitNavBackArrow from './OrbitNavBackArrow';
 
 gsap.registerPlugin(MotionPathPlugin);
@@ -279,6 +280,9 @@ export default function OrbitNav({
    * ignore hash for scroll math so the dot tracks real scroll while `location.hash` stays set.
    */
   const homeHashOverrideConsumedRef = useRef(true);
+  const orbitDotAnimRef = useRef<OrbitNavDotHandle | null>(null);
+  const homeToSubpageNavLockRef = useRef(false);
+  const subpageToHomeNavLockRef = useRef(false);
 
   /** Epsilon avoids setState + “back” flicker when iOS/Chrome re-measures the same path point. */
   const BACK_ANCHOR_EPS_PX = 0.35;
@@ -443,6 +447,144 @@ export default function OrbitNav({
       window.removeEventListener('popstate', onHashOrPop);
     };
   }, []);
+
+  /** Home → subpage: center pill, 90° CW w/ elastic settle, then Astro `navigate` (runs in capture before ClientRouter). */
+  useEffect(() => {
+    if (typeof document === 'undefined' || !isHomePage) return;
+
+    const onClickCapture = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+      const target = e.target;
+      if (!(target instanceof Node)) return;
+      const link = (target as Element).closest?.('a[href], area[href]');
+      if (!link || !(link instanceof HTMLAnchorElement || link instanceof HTMLAreaElement)) return;
+      if (link.hasAttribute('download')) return;
+      const targetWindow = 'target' in link ? (link as HTMLAnchorElement).target : '';
+      if (targetWindow && targetWindow !== '_self') return;
+      if ((link as HTMLElement).dataset.astroReload !== undefined) return;
+
+      /* Slide-bar links: local handler + `requestOrbitPillSubpageFromPage()` for the pill; must not
+       * stopImmediatePropagation here or the white-bar handler never runs. */
+      if (link.closest?.('.slide-bar-link')) return;
+
+      const hrefAttr = link.getAttribute('href');
+      if (hrefAttr == null || hrefAttr === '') return;
+
+      let url: URL;
+      try {
+        url = new URL(hrefAttr, window.location.href);
+      } catch {
+        return;
+      }
+      if (url.origin !== window.location.origin) return;
+      const nextPath = url.pathname.replace(/\/+$/, '') || '/';
+      if (nextPath === '/') return;
+
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      if (homeToSubpageNavLockRef.current) return;
+      homeToSubpageNavLockRef.current = true;
+
+      void (async () => {
+        try {
+          await orbitDotAnimRef.current?.playSubpageDepartureAnimation();
+          const { navigate } = await import('astro:transitions/client');
+          const historyMode =
+            (link as HTMLAnchorElement).dataset.astroHistory === 'replace' ? 'replace' : 'auto';
+          await navigate(url.href, {
+            history: historyMode,
+            sourceElement: link as HTMLElement,
+          });
+        } catch {
+          window.location.assign(url.href);
+        } finally {
+          homeToSubpageNavLockRef.current = false;
+        }
+      })();
+    };
+
+    document.addEventListener('click', onClickCapture, true);
+    return () => document.removeEventListener('click', onClickCapture, true);
+  }, [isHomePage]);
+
+  /** Subpage → home: horizontal pill, −90° w/ same ease as home→subpage, then Astro `navigate` (before ClientRouter). */
+  useEffect(() => {
+    if (typeof document === 'undefined' || isHomePage) return;
+
+    const onClickCapture = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+      const target = e.target;
+      if (!(target instanceof Node)) return;
+      const link = (target as Element).closest?.('a[href], area[href]');
+      if (!link || !(link instanceof HTMLAnchorElement || link instanceof HTMLAreaElement)) return;
+      if (link.hasAttribute('download')) return;
+      const targetWindow = 'target' in link ? (link as HTMLAnchorElement).target : '';
+      if (targetWindow && targetWindow !== '_self') return;
+      if ((link as HTMLElement).dataset.astroReload !== undefined) return;
+      if (link.closest?.('.slide-bar-link')) return;
+
+      const hrefAttr = link.getAttribute('href');
+      if (hrefAttr == null || hrefAttr === '') return;
+
+      let url: URL;
+      try {
+        url = new URL(hrefAttr, window.location.href);
+      } catch {
+        return;
+      }
+      if (url.origin !== window.location.origin) return;
+      const nextPath = url.pathname.replace(/\/+$/, '') || '/';
+      if (nextPath !== '/') return;
+
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      if (subpageToHomeNavLockRef.current) return;
+      subpageToHomeNavLockRef.current = true;
+
+      void (async () => {
+        try {
+          await orbitDotAnimRef.current?.playSubpageReturnToHomeAnimation();
+          const { navigate } = await import('astro:transitions/client');
+          const historyMode =
+            (link as HTMLAnchorElement).dataset.astroHistory === 'replace' ? 'replace' : 'auto';
+          await navigate(url.href, {
+            history: historyMode,
+            sourceElement: link as HTMLElement,
+          });
+        } catch {
+          window.location.assign(url.href);
+        } finally {
+          subpageToHomeNavLockRef.current = false;
+        }
+      })();
+    };
+
+    document.addEventListener('click', onClickCapture, true);
+    return () => document.removeEventListener('click', onClickCapture, true);
+  }, [isHomePage]);
+
+  /** `requestOrbitPillSubpageFromPage()` (e.g. homepage slide-bar sections) reuses the same pill sequence. */
+  useEffect(() => {
+    const onPillRequest = (e: Event) => {
+      const d = (e as CustomEvent<{ done: () => void }>).detail;
+      if (!d?.done) return;
+      if (!isHomePage) {
+        d.done();
+        return;
+      }
+      void orbitDotAnimRef.current
+        ?.playSubpageDepartureAnimation()
+        .then(d.done, d.done);
+    };
+    window.addEventListener(ORBIT_PILL_SUBPAGE_REQUEST, onPillRequest);
+    return () => window.removeEventListener(ORBIT_PILL_SUBPAGE_REQUEST, onPillRequest);
+  }, [isHomePage]);
 
   layoutSnapshotRef.current = { dot: dotSize, dim: pathDimensions, off: offsets };
 
@@ -1047,7 +1189,22 @@ export default function OrbitNav({
 
   const navigateBack = () => {
     if (!backTarget) return;
-    window.location.href = backTarget;
+    if (subpageToHomeNavLockRef.current) return;
+    subpageToHomeNavLockRef.current = true;
+    void (async () => {
+      try {
+        await orbitDotAnimRef.current?.playSubpageReturnToHomeAnimation();
+        const { navigate } = await import('astro:transitions/client');
+        await navigate(backTarget, {
+          history: 'auto',
+          sourceElement: circleRef.current ?? undefined,
+        });
+      } catch {
+        window.location.assign(backTarget);
+      } finally {
+        subpageToHomeNavLockRef.current = false;
+      }
+    })();
   };
 
   // Minimum touch target (px); dot hit area extends by this much on each side
@@ -1143,6 +1300,7 @@ export default function OrbitNav({
         title={canNavigateBack ? 'Back' : 'Navigation'}
       >
         <OrbitNavDot
+          ref={orbitDotAnimRef}
           size={dotSize}
           circleFill={displayInverted ? "black" : "white"}
           rectFill={displayInverted ? "white" : "black"}

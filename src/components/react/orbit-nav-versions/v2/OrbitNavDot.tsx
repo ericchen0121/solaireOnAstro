@@ -1,12 +1,22 @@
-import { useEffect, useRef } from 'react';
+import {
+  useEffect,
+  useRef,
+  useImperativeHandle,
+  forwardRef,
+  useLayoutEffect,
+} from 'react';
 import { gsap } from 'gsap';
+import {
+  buildOrbitPillSubpageDepartureTimeline,
+  buildOrbitPillSubpageReturnToHomeTimeline,
+} from '../../../../animations/orbitNavSubpagePill';
 import { ORBIT_NAV_LAYOUT } from '../../orbit-nav-config';
 
 /**
  * OrbitNavDot - Circle with animating rectangle inside (design spec).
- * Proportions: bar height ~inner radius, width ~18% of diameter; square ends (no rx/ry).
+ * Proportions: bar height ~inner radius, width ~% of diameter; square ends (no rx/ry).
  * Inner boundary (racetrack): line travels to offset concentric boundary (~90% of radius).
- * lineAxis 'y' = home: line on center x-axis, animates up/down. 'x' = subpage: line on center y-axis, animates left/right.
+ * lineAxis 'y' = home: vertical line, up/down animation. 'x' = subpage: horizontal line, left/right.
  */
 
 const INNER_BOUNDARY_RATIO = 0.9;
@@ -16,6 +26,13 @@ const INNER_STROKE_SCALE = 0.4 / 32;
 const TRANSITION_DURATION = 0.35;
 /** Home ↔ subpage switches `lineAxis`; keep this short to avoid a visible “morph flash” on client navigations. */
 const AXIS_CHANGE_DURATION = 0.06;
+
+export type OrbitNavDotHandle = {
+  /** Center pill (home, vertical) then 90° CW w/ elastic settle; no-op if not on home Y-axis. */
+  playSubpageDepartureAnimation: () => Promise<void>;
+  /** Subpage: center horizontal bar then 90° CCW; no-op if not on subpage X-axis. Run before navigate home. */
+  playSubpageReturnToHomeAnimation: () => Promise<void>;
+};
 
 interface OrbitNavDotProps {
   size?: number;
@@ -27,18 +44,23 @@ interface OrbitNavDotProps {
   lineAxis?: 'y' | 'x';
 }
 
-export default function OrbitNavDot({
-  size = ORBIT_NAV_LAYOUT.DOT_SIZE_DESKTOP,
-  className = '',
-  circleFill = 'white',
-  rectFill = 'black',
-  running = true,
-  lineAxis = 'y',
-}: OrbitNavDotProps) {
+const OrbitNavDot = forwardRef<OrbitNavDotHandle, OrbitNavDotProps>(function OrbitNavDot(
+  {
+    size = ORBIT_NAV_LAYOUT.DOT_SIZE_DESKTOP,
+    className = '',
+    circleFill = 'white',
+    rectFill = 'black',
+    running = true,
+    lineAxis = 'y',
+  },
+  ref,
+) {
   const rectRef = useRef<SVGRectElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const transitionRef = useRef<gsap.core.Tween | null>(null);
   const previousAxisRef = useRef<'y' | 'x'>(lineAxis);
+  const lineAxisRef = useRef(lineAxis);
+  const departureRef = useRef<gsap.core.Timeline | null>(null);
 
   const center = size / 2;
   const outerRadius = size / 2;
@@ -69,6 +91,79 @@ export default function OrbitNavDot({
     width: rectFullHeight,
     height: rectFullWidth,
   };
+
+  useLayoutEffect(() => {
+    lineAxisRef.current = lineAxis;
+  }, [lineAxis]);
+
+  useEffect(
+    () => () => {
+      departureRef.current?.kill();
+      departureRef.current = null;
+    },
+    [],
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      playSubpageDepartureAnimation: () => {
+        const rect = rectRef.current;
+        if (!rect || !running) return Promise.resolve();
+        if (lineAxisRef.current !== 'y') return Promise.resolve();
+
+        if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          return Promise.resolve();
+        }
+
+        return new Promise<void>((resolve) => {
+          departureRef.current?.kill();
+          timelineRef.current?.kill();
+          transitionRef.current?.kill();
+          timelineRef.current = null;
+          transitionRef.current = null;
+
+          const tl = buildOrbitPillSubpageDepartureTimeline(
+            rect,
+            { center, rectFullWidth, rectFullHeight },
+            () => {
+              departureRef.current = null;
+              resolve();
+            },
+          );
+          departureRef.current = tl;
+        });
+      },
+      playSubpageReturnToHomeAnimation: () => {
+        const rect = rectRef.current;
+        if (!rect || !running) return Promise.resolve();
+        if (lineAxisRef.current !== 'x') return Promise.resolve();
+
+        if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          return Promise.resolve();
+        }
+
+        return new Promise<void>((resolve) => {
+          departureRef.current?.kill();
+          timelineRef.current?.kill();
+          transitionRef.current?.kill();
+          timelineRef.current = null;
+          transitionRef.current = null;
+
+          const tl = buildOrbitPillSubpageReturnToHomeTimeline(
+            rect,
+            { center, rectFullWidth, rectFullHeight },
+            () => {
+              departureRef.current = null;
+              resolve();
+            },
+          );
+          departureRef.current = tl;
+        });
+      },
+    }),
+    [running, center, rectFullWidth, rectFullHeight],
+  );
 
   useEffect(() => {
     const rect = rectRef.current;
@@ -144,6 +239,9 @@ export default function OrbitNavDot({
 
     if (axisChanged) {
       const targetCenter = lineAxis === 'y' ? centerStateY : centerStateX;
+      /* Drop any pill departure/return rotation before morphing to the new axis (y→x, x→y). */
+      gsap.killTweensOf(rect);
+      gsap.set(rect, { clearProps: 'transform' });
       runTransitionTo(
         targetCenter,
         () => {
@@ -179,6 +277,8 @@ export default function OrbitNavDot({
     compressAmount,
     durationCompress,
     durationReturn,
+    centerStateY,
+    centerStateX,
   ]);
 
   const initialRect = lineAxis === 'y' ? centerStateY : centerStateX;
@@ -237,4 +337,8 @@ export default function OrbitNavDot({
       />
     </svg>
   );
-}
+});
+
+OrbitNavDot.displayName = 'OrbitNavDot';
+
+export default OrbitNavDot;
