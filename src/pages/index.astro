@@ -76,7 +76,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           <span class="stat-number text-white mb-6 block">15</span>
           <div class="stat-copy-wrap">
             <p class="stat-copy text-white/90">
-              fois plus d'énergie est produite par un module qu'il ne faut pour
+              Fois plus d'énergie est produite par un module qu'il ne faut pour
               le produire.
             </p>
           </div>
@@ -292,7 +292,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       slideBarOrbitHoverLinks = Array.from(
         document.querySelectorAll(SLIDE_BAR_LINK_SEL),
       );
-      console.log("🎯 Found slide-bar-link elements:", slideBarOrbitHoverLinks.length);
+      console.log(
+        "🎯 Found slide-bar-link elements:",
+        slideBarOrbitHoverLinks.length,
+      );
 
       slideBarOrbitHoverLinks.forEach((link) => {
         link.addEventListener("mouseenter", onSlideBarLinkHoverEnter);
