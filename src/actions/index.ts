@@ -3,21 +3,32 @@ import { Resend } from "resend";
 import { z } from "zod";
 
 /** RFC 5321-friendly email; min 3 covers minimal addresses like a@b. */
-const emailSchema = z.string().trim().min(3).max(254).email();
+const emailSchema = z
+  .string()
+  .trim()
+  .min(3, "L'adresse e-mail est trop courte.")
+  .max(254, "L'adresse e-mail est trop longue.")
+  .email("Adresse e-mail invalide.");
 
 /** Optional: empty or 5–100 chars (scannable inbox subject). */
 const subjectSchema = z
   .string()
-  .max(100)
+  .max(100, "L'objet est trop long (100 caractères maximum).")
   .refine(
     (s) => {
       const t = s.trim();
       return t.length === 0 || (t.length >= 5 && t.length <= 100);
     },
-    { message: "Subject must be 5–100 characters or left empty." },
+    {
+      message:
+        "L'objet doit comporter entre 5 et 100 caractères, ou rester vide.",
+    },
   );
 
-const messageSchema = z.string().min(10).max(5000);
+const messageSchema = z
+  .string()
+  .min(10, "Le message doit contenir au moins 10 caractères.")
+  .max(5000, "Le message ne peut pas dépasser 5000 caractères.");
 
 const contactInput = z.object({
   subject: subjectSchema,
@@ -33,7 +44,7 @@ export const server = {
       if (!apiKey) {
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Email service is not configured.",
+          message: "Le service d'envoi d'e-mails n'est pas configuré.",
         });
       }
 
@@ -41,7 +52,7 @@ export const server = {
       if (!to) {
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Contact recipient is not configured.",
+          message: "Le destinataire du formulaire n'est pas configuré.",
         });
       }
 
@@ -49,12 +60,12 @@ export const server = {
       if (!from) {
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Contact sender address is not configured.",
+          message: "L'adresse d'expéditeur n'est pas configurée.",
         });
       }
 
       const subjectLine =
-        subject.trim() || "Contact form — Rochat Solaire";
+        subject.trim() || "Formulaire de contact — Rochat Solaire";
 
       const resend = new Resend(apiKey);
       const teamSend = await resend.emails.send({
@@ -68,7 +79,7 @@ export const server = {
       if (teamSend.error) {
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",
-          message: teamSend.error.message,
+          message: `Échec de l'envoi : ${teamSend.error.message}`,
         });
       }
 
@@ -76,14 +87,14 @@ export const server = {
         from,
         to: email,
         replyTo: to,
-        subject: "We received your message — Rochat Solaire",
+        subject: "Nous avons bien reçu votre message — Rochat Solaire",
         text: [
-          "Thank you for contacting Rochat Solaire.",
+          "Merci d'avoir contacté Rochat Solaire.",
           "",
-          "We have received your message and will get back to you soon.",
+          "Nous avons bien reçu votre message et vous répondrons dans les meilleurs délais.",
           "",
           "—",
-          "This is an automated confirmation. For follow-up, you can reply to the message we send from our team inbox.",
+          "Ce message est une confirmation automatique. Pour toute relance, vous pourrez répondre au courrier envoyé depuis notre boîte équipe.",
         ].join("\n"),
       });
 

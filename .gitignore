@@ -2,6 +2,9 @@
 dist/
 .output/
 
+# Astro (machine-local; run `astro dev` or `astro sync` — avoids committing absolute paths in e.g. actions.d.ts)
+.astro/
+
 # Wrangler local deploy metadata (points at dist/; must not be committed — breaks CI)
 .wrangler/
 

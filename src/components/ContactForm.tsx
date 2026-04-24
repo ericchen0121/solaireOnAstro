@@ -1,4 +1,3 @@
-import { actions, isInputError } from "astro:actions";
 import {
   useEffect,
   useLayoutEffect,
@@ -12,10 +11,10 @@ import {
   letterRevealDurationMs,
 } from "../animations/letterReveal";
 
-const TITLE_REVEAL = "Let's Talk";
-const DEFAULT_SUBJECT = "RochatSolaire inquiry";
-const EMAIL_PLACEHOLDER = "your.email@example.com";
-const MESSAGE_PLACEHOLDER = "Your message (at least 10 characters)";
+const TITLE_REVEAL = "Parlons-en";
+const DEFAULT_SUBJECT = "Demande Rochat Solaire";
+const EMAIL_PLACEHOLDER = "votre.email@exemple.com";
+const MESSAGE_PLACEHOLDER = "Votre message (10 caractères minimum)";
 
 /** 0–3 = reveal that step; 4 = all fields interactive */
 type RevealStep = 0 | 1 | 2 | 3 | 4;
@@ -198,6 +197,7 @@ export default function ContactForm() {
     const email = String(formData.get("email") ?? "");
     const message = String(formData.get("message") ?? "");
 
+    const { actions, isInputError } = await import("astro:actions");
     const { error } = await actions.sendContactEmail({
       subject,
       email,
@@ -216,10 +216,12 @@ export default function ContactForm() {
         setFieldErrors(fe);
         const parts = [fe.subject, fe.email, fe.message].filter(Boolean);
         setErrorMessage(
-          parts.join(" ") || "Please check the fields and try again.",
+          parts.join(" ") || "Vérifiez les champs et réessayez.",
         );
       } else {
-        setErrorMessage(error.message ?? "Something went wrong. Try again.");
+        setErrorMessage(
+          error.message ?? "Une erreur s'est produite. Veuillez réessayer.",
+        );
       }
       setFeedback("error");
       return;
@@ -282,16 +284,16 @@ export default function ContactForm() {
           label={
             step > 1 ? (
               <label htmlFor="contact-subject" className="contents">
-                Subject{" "}
+                Sujet{" "}
                 <span className="font-normal normal-case tracking-normal text-white/35">
-                  (optional)
+                  (facultatif)
                 </span>
               </label>
             ) : (
               <>
-                Subject{" "}
+                Sujet{" "}
                 <span className="font-normal normal-case tracking-normal text-white/35">
-                  (optional)
+                  (facultatif)
                 </span>
               </>
             )
@@ -321,7 +323,7 @@ export default function ContactForm() {
                 fieldErrors.subject ? "contact-subject-error" : undefined
               }
               className={INPUT_CLASS}
-              placeholder="Subject line"
+              placeholder="Objet"
             />
           )}
         </ContactFieldSection>
@@ -343,10 +345,10 @@ export default function ContactForm() {
           label={
             step > 2 ? (
               <label htmlFor="contact-email" className="contents">
-                Email
+                E-mail
               </label>
             ) : (
-              "Email"
+              "E-mail"
             )
           }
         >
@@ -448,9 +450,9 @@ export default function ContactForm() {
           type="submit"
           disabled={loading || blockSubmit}
           aria-busy={loading}
-          className="font-f37moon-light flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-full border border-white bg-white text-sm tracking-[0.06em] text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 md:h-20 md:w-20 md:text-base"
+          className="font-f37moon-light flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-white bg-white text-sm tracking-[0.06em] text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 md:h-24 md:w-24 md:text-base"
         >
-          {loading ? "…" : "send"}
+          {loading ? "…" : "Envoyer"}
         </button>
       </div>
         </form>
@@ -463,10 +465,10 @@ export default function ContactForm() {
           aria-live="polite"
         >
           <p className="font-f37moon-light text-lg leading-snug tracking-[0.02em] md:text-xl">
-            Thanks for contacting us.
+            Merci de nous avoir contactés.
           </p>
           <p className="font-f37moon-light text-lg leading-snug tracking-[0.02em] md:text-xl">
-            Your message has been sent!
+            Votre message a bien été envoyé !
           </p>
           <ContactSuccessIcon />
           <button
@@ -474,7 +476,7 @@ export default function ContactForm() {
             onClick={resetToForm}
             className="font-f37moon-light mt-2 text-sm tracking-[0.12em] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
           >
-            Send another message
+            Envoyer un autre message
           </button>
         </div>
       )}
@@ -486,7 +488,7 @@ export default function ContactForm() {
           aria-live="assertive"
         >
           <p className="max-w-md font-f37moon-light text-base leading-relaxed tracking-[0.02em] text-white/95 md:text-lg">
-            ERROR: {errorMessage}
+            Erreur : {errorMessage}
           </p>
           <ContactErrorIcon />
           <button
@@ -494,7 +496,7 @@ export default function ContactForm() {
             onClick={resetToForm}
             className="font-f37moon-light mt-2 text-sm tracking-[0.12em] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
           >
-            Try again
+            Réessayer
           </button>
         </div>
       )}
