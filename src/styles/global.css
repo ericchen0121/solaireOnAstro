@@ -419,6 +419,7 @@
   :root {
     --subpage-body-num-col: 48px;
     --subpage-body-num-gap: 3rem;
+    --subpage-body-copy-max: 36rem;
   }
 
   @media (min-width: 768px) {
@@ -451,11 +452,11 @@
     align-self: flex-start;
   }
 
-  /* Numbered list (why-work-with-us): same b1 box as hover subpages (42rem) */
+  /* Numbered list (why-work-with-us): same b1 max width as hover subpages */
   .numbered-list .numbered-text {
     flex: 1 1 auto;
     min-width: 0;
-    max-width: 42rem;
+    max-width: var(--subpage-body-copy-max);
     width: auto;
     text-align: left;
     margin: 0;
@@ -507,7 +508,7 @@
   .subpage-hover-detail p {
     color: rgba(0, 0, 0, 0.8);
     margin: 0;
-    max-width: 42rem;
+    max-width: var(--subpage-body-copy-max);
     width: 100%;
   }
 

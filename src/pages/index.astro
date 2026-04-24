@@ -54,8 +54,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           <span class="stat-number text-white mb-6 block">1482</span>
           <div class="stat-copy-wrap">
             <p class="stat-copy text-white/90">
-              Vinet Rochat exploite le flu des rivières à la vallée de Joux, une
-              source d'énergie renouvelable que nous a accordée la nature.
+              Vinet Rochat exploite le flux des rivières à la Vallée de Joux,
+              une source d'énergie renouvelable que nous a accordée la nature.
             </p>
           </div>
         </div>
@@ -66,7 +66,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           <div class="stat-copy-wrap">
             <p class="stat-copy text-white/90">
               Dès 2007, pionniers en production d'énergie photovoltaïque,
-              conseil, investissement et service clients.
+              conseil, investissement et service
+              <span class="inline xl:block">clients.</span>
             </p>
           </div>
         </div>
@@ -114,10 +115,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     id="why-solar-section"
     class="why-solar-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
-    <a
-      href="/why-solar"
-      class="home-subpage-section-link slide-bar-link"
-    >
+    <a href="/why-solar" class="home-subpage-section-link slide-bar-link">
       <h2
         class="slide-bar-title text-center px-[4.5rem] md:px-[8rem] cursor-pointer"
       >
@@ -328,7 +326,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       homeSubpageOrbitHoverLinks = Array.from(
         document.querySelectorAll(HOME_SUBPAGE_LINK_SEL),
       );
-      console.log("🎯 Found home-subpage-section links:", homeSubpageOrbitHoverLinks.length);
+      console.log(
+        "🎯 Found home-subpage-section links:",
+        homeSubpageOrbitHoverLinks.length,
+      );
 
       homeSubpageOrbitHoverLinks.forEach((link) => {
         link.addEventListener("mouseenter", onHomeSubpageLinkHoverEnter);
