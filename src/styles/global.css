@@ -617,10 +617,15 @@
     background-color: transparent !important;
   }
   
-  section.bg-black.text-white a:not(.slide-bar-link),
-  section.bg-black.text-white a:not(.slide-bar-link):hover,
-  section.bg-black.text-white a:not(.slide-bar-link) *,
-  section.bg-black.text-white a:not(.slide-bar-link):hover * {
+  /* Exclude slide-bar + homepage subpage section links (projets/contact use default section text) */
+  section.bg-black.text-white
+    a:not(.slide-bar-link):not(.home-subpage-section-link),
+  section.bg-black.text-white
+    a:not(.slide-bar-link):not(.home-subpage-section-link):hover,
+  section.bg-black.text-white
+    a:not(.slide-bar-link):not(.home-subpage-section-link) *,
+  section.bg-black.text-white
+    a:not(.slide-bar-link):not(.home-subpage-section-link):hover * {
     color: #ffffff !important;
   }
 
@@ -683,7 +688,7 @@
     }
   }
 
-  /* Hover flip: white section + black headline (anywhere on the slide-bar link) */
+  /* Hover flip: white section + black headline (slide-bar strips only) */
   .why-solar-section,
   .why-us-section,
   .clients-section {
@@ -745,6 +750,8 @@
   .clients-section:has(.slide-bar-link.active) #clients-text * {
     color: #000000 !important;
   }
+
+  /* no-wipe strips never get .active for bar — no extra click palette block */
 
   /* When nav is hovered, also flip the section colors */
   body.nav-or-text-hovered .why-solar-section,

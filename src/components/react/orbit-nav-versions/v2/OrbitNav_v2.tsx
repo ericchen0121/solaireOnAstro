@@ -13,6 +13,7 @@ import {
   type SectionSnapIntentDetail,
 } from '../../../../utils/sectionSnapIntent';
 import { ORBIT_PILL_SUBPAGE_REQUEST } from '../../../../animations/orbitNavSubpagePill';
+import { HOME_SUBPAGE_SECTION_LINK_CLASS } from '../../../../utils/homeSubpageSectionNav';
 import { isScrollDiagnosticsEnabled, logScrollDiag } from '../../../../utils/scrollDiagnostics';
 import OrbitNavDot, { type OrbitNavDotHandle } from './OrbitNavDot';
 import OrbitNavBackArrow from './OrbitNavBackArrow';
@@ -465,9 +466,8 @@ export default function OrbitNav({
       if (targetWindow && targetWindow !== '_self') return;
       if ((link as HTMLElement).dataset.astroReload !== undefined) return;
 
-      /* Slide-bar links: local handler + `requestOrbitPillSubpageFromPage()` for the pill; must not
-       * stopImmediatePropagation here or the white-bar handler never runs. */
-      if (link.closest?.('.slide-bar-link')) return;
+      /* Homepage section → subpage links: `index.astro` handles hard nav (see homeSubpageSectionNav). */
+      if (link.closest?.(`a.${HOME_SUBPAGE_SECTION_LINK_CLASS}`)) return;
 
       const hrefAttr = link.getAttribute('href');
       if (hrefAttr == null || hrefAttr === '') return;
@@ -526,7 +526,7 @@ export default function OrbitNav({
       const targetWindow = 'target' in link ? (link as HTMLAnchorElement).target : '';
       if (targetWindow && targetWindow !== '_self') return;
       if ((link as HTMLElement).dataset.astroReload !== undefined) return;
-      if (link.closest?.('.slide-bar-link')) return;
+      if (link.closest?.(`a.${HOME_SUBPAGE_SECTION_LINK_CLASS}`)) return;
 
       const hrefAttr = link.getAttribute('href');
       if (hrefAttr == null || hrefAttr === '') return;

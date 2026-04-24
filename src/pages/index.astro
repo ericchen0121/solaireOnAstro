@@ -114,7 +114,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     id="why-solar-section"
     class="why-solar-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
-    <a href="/why-solar" class="slide-bar-link">
+    <a
+      href="/why-solar"
+      class="home-subpage-section-link slide-bar-link"
+    >
       <h2
         class="slide-bar-title text-center px-[4.5rem] md:px-[8rem] cursor-pointer"
       >
@@ -133,7 +136,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     id="why-us-section"
     class="why-us-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
-    <a href="/why-work-with-us" class="slide-bar-link">
+    <a
+      href="/why-work-with-us"
+      class="home-subpage-section-link slide-bar-link"
+    >
       <h2
         class="slide-bar-title text-center px-[4.5rem] md:px-[8rem] cursor-pointer"
       >
@@ -152,7 +158,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     id="clients-section"
     class="clients-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
-    <a href="/clients" class="slide-bar-link">
+    <a href="/clients" class="home-subpage-section-link slide-bar-link">
       <h2
         class="slide-bar-title text-center px-[4.5rem] md:px-[8rem] cursor-pointer"
       >
@@ -166,24 +172,44 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     </a>
   </section>
 
-  <!-- Section 8: Projets -->
+  <!-- Section 8: Projets — same nav contract; no white bar (data-subpage-wipe="false") -->
   <section
     id="projets-section"
     class="projets-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
-    <h2 class="typo-h2 font-f37moon-light text-center px-[4.5rem] md:px-[8rem]">
-      <a id="projets-text" href="/projets" class="cursor-pointer"> Projets </a>
-    </h2>
+    <a
+      href="/projets"
+      class="home-subpage-section-link"
+      data-subpage-wipe="false"
+    >
+      <h2
+        class="slide-bar-title text-center px-[4.5rem] md:px-[8rem] cursor-pointer"
+      >
+        <span class="slide-bar-text-stack">
+          <span id="projets-text" class="slide-bar-fill-text">Projets</span>
+        </span>
+      </h2>
+    </a>
   </section>
 
-  <!-- Section 9: Contact -->
+  <!-- Section 9: Contact — same as projets -->
   <section
     id="contact-section"
     class="contact-section h-screen w-screen flex items-center justify-center bg-black text-white"
   >
-    <h2 class="typo-h2 font-f37moon-light text-center px-[4.5rem] md:px-[8rem]">
-      <a id="contact-text" href="/contact" class="cursor-pointer">contact</a>
-    </h2>
+    <a
+      href="/contact"
+      class="home-subpage-section-link"
+      data-subpage-wipe="false"
+    >
+      <h2
+        class="slide-bar-title text-center px-[4.5rem] md:px-[8rem] cursor-pointer"
+      >
+        <span class="slide-bar-text-stack">
+          <span id="contact-text" class="slide-bar-fill-text">contact</span>
+        </span>
+      </h2>
+    </a>
   </section>
 </BaseLayout>
 
@@ -202,7 +228,15 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   import { initVideoSectionScale } from "../animations/videoSectionScale";
   import { initSectionSnap } from "../animations/sectionSnap";
   import { tryPlayVideo } from "../utils/ensureVideoPlayback";
+  import {
+    HOME_SUBPAGE_SECTION_LINK_CLASS,
+    shouldPlaySubpageWipeAnims,
+  } from "../utils/homeSubpageSectionNav";
   import { requestOrbitPillSubpageFromPage } from "../animations/orbitNavSubpagePill";
+
+  /** Bar wipe + tail; no-wipe uses pill timing only (see `shouldPlaySubpageWipeAnims`). */
+  const SUBPAGE_WIPE_NAV_DELAY_MS = 920;
+  const SUBPAGE_NO_WIPE_NAV_DELAY_MS = 880;
 
   // Using native browser scrolling for better section snap reliability
   // ScrollTrigger works natively with window scrolling
@@ -214,18 +248,18 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     let cleanupLetterReveal = null;
     const cleanupFunctions = [];
 
-    const SLIDE_BAR_LINK_SEL = ".slide-bar-link";
-    function onSlideBarLinkHoverEnter() {
+    const HOME_SUBPAGE_LINK_SEL = `a.${HOME_SUBPAGE_SECTION_LINK_CLASS}`;
+    function onHomeSubpageLinkHoverEnter() {
       if (document.body.classList.contains("section-snap-scrolling")) return;
       document.body.classList.add("nav-or-text-hovered");
     }
-    function onSlideBarLinkHoverLeave(e) {
+    function onHomeSubpageLinkHoverLeave(e) {
       const rt = e.relatedTarget;
-      if (rt instanceof Element && rt.closest(SLIDE_BAR_LINK_SEL)) return;
+      if (rt instanceof Element && rt.closest(HOME_SUBPAGE_LINK_SEL)) return;
       document.body.classList.remove("nav-or-text-hovered");
     }
-    /** Slide-bar links: teardown hover → body class on beforeunload */
-    let slideBarOrbitHoverLinks = [];
+    /** Teardown hover → body class on beforeunload */
+    let homeSubpageOrbitHoverLinks = [];
 
     function scrollToHashSectionIfNeeded() {
       const { hash } = window.location;
@@ -288,33 +322,35 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         });
       });
 
-      // 5. Scroll letter reveals (other sections) - MUST come after slide-bar setup
-      // Slide-bar links: hover → body.nav-or-text-hovered (OrbitNav V2); click → wipe then navigate
-      slideBarOrbitHoverLinks = Array.from(
-        document.querySelectorAll(SLIDE_BAR_LINK_SEL),
+      // 5. Scroll letter reveals (other sections) - MUST come after subpage link setup
+      // Home subpage section links: hover → body.nav-or-text-hovered; click → orbit pill + hard nav
+      // (`data-subpage-wipe="false"` skips white-bar + shorter delay; see homeSubpageSectionNav.ts)
+      homeSubpageOrbitHoverLinks = Array.from(
+        document.querySelectorAll(HOME_SUBPAGE_LINK_SEL),
       );
-      console.log(
-        "🎯 Found slide-bar-link elements:",
-        slideBarOrbitHoverLinks.length,
-      );
+      console.log("🎯 Found home-subpage-section links:", homeSubpageOrbitHoverLinks.length);
 
-      slideBarOrbitHoverLinks.forEach((link) => {
-        link.addEventListener("mouseenter", onSlideBarLinkHoverEnter);
-        link.addEventListener("mouseleave", onSlideBarLinkHoverLeave);
+      homeSubpageOrbitHoverLinks.forEach((link) => {
+        link.addEventListener("mouseenter", onHomeSubpageLinkHoverEnter);
+        link.addEventListener("mouseleave", onHomeSubpageLinkHoverLeave);
         link.addEventListener("click", (e) => {
           e.preventDefault();
           const href = link.getAttribute("href");
           if (!href) return;
 
-          console.log("🖱️ Slide bar link clicked");
-          link.classList.add("active");
+          const wipe = shouldPlaySubpageWipeAnims(link);
+          console.log("🖱️ Home subpage section link clicked", { wipe });
+          if (wipe) {
+            link.classList.add("active");
+          }
           void requestOrbitPillSubpageFromPage();
-
-          /* After .slide-bar-bg transform (0.8s + ease-out tail); keep margin so wipe finishes before hard nav */
-          setTimeout(() => {
+          const delay = wipe
+            ? SUBPAGE_WIPE_NAV_DELAY_MS
+            : SUBPAGE_NO_WIPE_NAV_DELAY_MS;
+          window.setTimeout(() => {
             console.log("🚀 Navigating to:", href);
             window.location.href = href;
-          }, 920);
+          }, delay);
         });
       });
 
@@ -338,11 +374,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       cleanupStatsReveal?.();
       cleanupVideoScale?.();
       cleanupFunctions.forEach((fn) => fn());
-      slideBarOrbitHoverLinks.forEach((link) => {
-        link.removeEventListener("mouseenter", onSlideBarLinkHoverEnter);
-        link.removeEventListener("mouseleave", onSlideBarLinkHoverLeave);
+      homeSubpageOrbitHoverLinks.forEach((link) => {
+        link.removeEventListener("mouseenter", onHomeSubpageLinkHoverEnter);
+        link.removeEventListener("mouseleave", onHomeSubpageLinkHoverLeave);
       });
-      slideBarOrbitHoverLinks = [];
+      homeSubpageOrbitHoverLinks = [];
     });
 
     function playHomeVideoIfPresent() {
