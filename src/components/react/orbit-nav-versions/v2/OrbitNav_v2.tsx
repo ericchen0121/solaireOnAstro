@@ -7,6 +7,8 @@ import {
   getDotSize,
   getOrbitContainerOffsets,
   getOrbitPathDimensions,
+  getOrbitPillLongLengthPx,
+  ORBIT_NAV_LAYOUT,
 } from '../../orbit-nav-config';
 import {
   SECTION_SNAP_INTENT_EVENT,
@@ -1243,10 +1245,24 @@ export default function OrbitNav({
 
   // Minimum touch target (px); dot hit area extends by this much on each side
   const HIT_AREA_PADDING = 20;
+  /**
+   * Extra space between the back chevron and the orbit dot (higher = arrow sits further left).
+   * Tablet/mobile use a much larger gap: smaller dot + same formula otherwise reads as cramped.
+   */
+  const backArrowToNavGapPx =
+    dotSize === ORBIT_NAV_LAYOUT.DOT_SIZE_DESKTOP
+      ? 6
+      : dotSize === ORBIT_NAV_LAYOUT.DOT_SIZE_TABLET
+        ? 6
+        : 8;
 
   const backRightPx =
     backAnchorLocal != null
-      ? PATH_WIDTH - backAnchorLocal.x + dotSize / 2 - HIT_AREA_PADDING * 2
+      ? PATH_WIDTH -
+        backAnchorLocal.x +
+        dotSize / 2 -
+        HIT_AREA_PADDING * 2 +
+        backArrowToNavGapPx
       : 0;
   const backTopPx =
     backAnchorLocal != null ? backAnchorLocal.y + dotSize / 2 + HIT_AREA_PADDING : 0;
@@ -1299,7 +1315,10 @@ export default function OrbitNav({
                 : 'opacity-100'
             }`}
           >
-            <OrbitNavBackArrow className="shrink-0" />
+            <OrbitNavBackArrow
+              className="shrink-0"
+              segmentLength={getOrbitPillLongLengthPx(dotSize)}
+            />
           </span>
         </button>
       )}

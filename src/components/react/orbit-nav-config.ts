@@ -84,6 +84,16 @@ export const ORBIT_NAV_LAYOUT = {
 } as const;
 
 /**
+ * Long edge of the inner pill/rectangle (inner racetrack radius), same as `OrbitNavDot` bar length in center position.
+ * Kept in config so the back chevron and dot stay visually aligned.
+ */
+export const ORBIT_PILL_INNER_BOUNDARY_RATIO = 0.9 as const;
+
+export function getOrbitPillLongLengthPx(dotSize: number): number {
+  return (dotSize / 2) * ORBIT_PILL_INNER_BOUNDARY_RATIO;
+}
+
+/**
  * True for typical phones in landscape: short edge under 768px and long edge at most PHONE_MAX_EDGE_PX,
  * so orbit/dot use the same tier as portrait (matching right/top px from viewport edges).
  */

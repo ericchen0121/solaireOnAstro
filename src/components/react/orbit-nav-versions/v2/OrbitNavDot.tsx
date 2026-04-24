@@ -10,7 +10,10 @@ import {
   buildOrbitPillSubpageDepartureTimeline,
   buildOrbitPillSubpageReturnToHomeTimeline,
 } from '../../../../animations/orbitNavSubpagePill';
-import { ORBIT_NAV_LAYOUT } from '../../orbit-nav-config';
+import {
+  ORBIT_NAV_LAYOUT,
+  ORBIT_PILL_INNER_BOUNDARY_RATIO,
+} from '../../orbit-nav-config';
 
 /**
  * OrbitNavDot - Circle with animating rectangle inside (design spec).
@@ -19,7 +22,6 @@ import { ORBIT_NAV_LAYOUT } from '../../orbit-nav-config';
  * lineAxis 'y' = home: vertical line, up/down animation. 'x' = subpage: horizontal line, left/right.
  */
 
-const INNER_BOUNDARY_RATIO = 0.9;
 const RECT_WIDTH_RATIO = 0.14;
 /** Inner racetrack ring — thinner than original (0.3 @ 32px). */
 const INNER_STROKE_SCALE = 0.4 / 32;
@@ -64,7 +66,7 @@ const OrbitNavDot = forwardRef<OrbitNavDotHandle, OrbitNavDotProps>(function Orb
 
   const center = size / 2;
   const outerRadius = size / 2;
-  const innerRadius = outerRadius * INNER_BOUNDARY_RATIO;
+  const innerRadius = outerRadius * ORBIT_PILL_INNER_BOUNDARY_RATIO;
   const rectFullHeight = innerRadius;
   const rectFullWidth = size * RECT_WIDTH_RATIO;
   const topBoundary = center - innerRadius;
