@@ -13,6 +13,7 @@ import {
 import {
   ORBIT_NAV_LAYOUT,
   ORBIT_PILL_INNER_BOUNDARY_RATIO,
+  ORBIT_PILL_WIDTH_RATIO,
 } from '../../orbit-nav-config';
 
 /**
@@ -22,7 +23,6 @@ import {
  * lineAxis 'y' = home: vertical line, up/down animation. 'x' = subpage: horizontal line, left/right.
  */
 
-const RECT_WIDTH_RATIO = 0.14;
 /** Inner racetrack ring — thinner than original (0.3 @ 32px). */
 const INNER_STROKE_SCALE = 0.4 / 32;
 const TRANSITION_DURATION = 0.35;
@@ -68,7 +68,7 @@ const OrbitNavDot = forwardRef<OrbitNavDotHandle, OrbitNavDotProps>(function Orb
   const outerRadius = size / 2;
   const innerRadius = outerRadius * ORBIT_PILL_INNER_BOUNDARY_RATIO;
   const rectFullHeight = innerRadius;
-  const rectFullWidth = size * RECT_WIDTH_RATIO;
+  const rectFullWidth = size * ORBIT_PILL_WIDTH_RATIO;
   const topBoundary = center - innerRadius;
   const bottomBoundary = center + innerRadius;
   const leftBoundary = center - innerRadius;

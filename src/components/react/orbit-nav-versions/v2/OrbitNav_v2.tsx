@@ -7,8 +7,8 @@ import {
   getDotSize,
   getOrbitContainerOffsets,
   getOrbitPathDimensions,
+  getOrbitBackArrowToCircleGapPx,
   getOrbitPillLongLengthPx,
-  ORBIT_NAV_LAYOUT,
 } from '../../orbit-nav-config';
 import {
   SECTION_SNAP_INTENT_EVENT,
@@ -1245,16 +1245,8 @@ export default function OrbitNav({
 
   // Minimum touch target (px); dot hit area extends by this much on each side
   const HIT_AREA_PADDING = 20;
-  /**
-   * Extra space between the back chevron and the orbit dot (higher = arrow sits further left).
-   * Tablet/mobile use a much larger gap: smaller dot + same formula otherwise reads as cramped.
-   */
-  const backArrowToNavGapPx =
-    dotSize === ORBIT_NAV_LAYOUT.DOT_SIZE_DESKTOP
-      ? 6
-      : dotSize === ORBIT_NAV_LAYOUT.DOT_SIZE_TABLET
-        ? 6
-        : 8;
+  /** Space from the back chevron to the circle: pill narrow width, with a floor on the smallest dot. */
+  const backArrowToNavGapPx = getOrbitBackArrowToCircleGapPx(dotSize);
 
   const backRightPx =
     backAnchorLocal != null

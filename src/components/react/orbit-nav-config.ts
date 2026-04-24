@@ -88,9 +88,28 @@ export const ORBIT_NAV_LAYOUT = {
  * Kept in config so the back chevron and dot stay visually aligned.
  */
 export const ORBIT_PILL_INNER_BOUNDARY_RATIO = 0.9 as const;
+/** Short edge of the inner bar = `size * this`; same as `OrbitNavDot` `rectFullWidth`. */
+export const ORBIT_PILL_WIDTH_RATIO = 0.14 as const;
 
 export function getOrbitPillLongLengthPx(dotSize: number): number {
   return (dotSize / 2) * ORBIT_PILL_INNER_BOUNDARY_RATIO;
+}
+
+/** Width of the inner pill/rectangle in px (narrow edge of the bar in either axis). */
+export function getOrbitPillNarrowWidthPx(dotSize: number): number {
+  return dotSize * ORBIT_PILL_WIDTH_RATIO;
+}
+
+/**
+ * Horizontal offset for the back chevron vs the orbit circle: at least the pill’s narrow width.
+ * On the smallest dot tier that value is only ~3px, so we floor it so the arrow doesn’t sit on the circle.
+ */
+export function getOrbitBackArrowToCircleGapPx(dotSize: number): number {
+  const narrow = getOrbitPillNarrowWidthPx(dotSize);
+  if (dotSize <= ORBIT_NAV_LAYOUT.DOT_SIZE_MOBILE) {
+    return Math.max(narrow, 8);
+  }
+  return narrow;
 }
 
 /**
