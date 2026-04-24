@@ -5,9 +5,9 @@ import { gsap } from 'gsap';
  * One place to tune center + 90° CW rotation timing and ease.
  */
 export const ORBIT_PILL_SUBPAGE = {
-  centrDuration: 0.16,
-  rotateDuration: 0.65,
-  ease: 'elastic.out(0.95, 0.3)',
+  centrDuration: 0.12,
+  rotateDuration: 0.25,
+  ease: 'elastic.out(0.24, 0.12)'
 } as const;
 
 export type OrbitPillSubpageMetrics = {
