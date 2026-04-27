@@ -1,5 +1,7 @@
 # Section Snap Scrolling Implementation Plan
 
+> **Note (2026):** The site no longer uses Lenis. The implemented approach is **GSAP `ScrollTo` + wheel capture** in `src/animations/sectionSnap.ts` (native window scroll). The Lenis options below are historical.
+
 ## Overview
 Transform the index page into a slideshow-like experience where each section acts as a "slide" that snaps into view when scrolling past a threshold.
 

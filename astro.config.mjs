@@ -33,7 +33,6 @@ export default defineConfig({
         'gsap/SplitText',
         'gsap/ScrollToPlugin',
         'gsap/MotionPathPlugin',
-        'lenis',
       ],
     },
   },

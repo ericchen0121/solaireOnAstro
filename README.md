@@ -1,11 +1,11 @@
 # Rochat Solaire - Switzerland Solar Brand Site
 
-A modern marketing website built with Astro, featuring smooth scroll animations powered by GSAP and Lenis.
+A modern marketing website built with Astro, featuring scroll-driven animations powered by GSAP.
 
 ## Tech Stack
 
 - **Framework**: Astro
-- **Animations**: GSAP + Lenis
+- **Animations**: GSAP (native scroll; homepage uses full-screen section snap on large viewports)
 - **Styling**: TailwindCSS
 - **React**: Used only for interactive animation components (islands architecture)
 - Uses Astro's built-in islands architecture for interactive components
@@ -22,13 +22,11 @@ A modern marketing website built with Astro, featuring smooth scroll animations 
 │   │   ├── scrollLetterReveal.ts
 │   │   └── sectionSnap.ts
 │   ├── components/     # Components (Astro + React)
-│   │   ├── LenisProvider.astro  # Lenis smooth scroll provider
-│   │   └── react/               # React islands
+│   │   ├── react/               # React islands
 │   │       ├── OrbitNav.tsx     # Orbiting navigation
 │   │       └── EmailMask.tsx    # Email masking, click-to-copy
 │   ├── layouts/
-│   │   ├── BaseLayout.astro
-│   │   └── LenisLayout.astro
+│   │   └── BaseLayout.astro
 │   ├── pages/          # Route pages
 │   │   ├── index.astro
 │   │   ├── why-solar/
@@ -72,9 +70,9 @@ A modern marketing website built with Astro, featuring smooth scroll animations 
 
 1. **Orbiting Navigation** - Physics-based orbiting nav in upper right corner
 
-### GSAP + Lenis Integration
+### GSAP and scroll
 
-Smooth scroll and ScrollTrigger sync are set up in `LenisProvider.astro`. Pages that need Lenis use `LenisLayout.astro`; others use `BaseLayout.astro`.
+`ScrollTrigger` and scroll-bound timelines live in `src/animations/`. The homepage’s desktop section-to-section behavior is implemented in `sectionSnap.ts` (native `window` scroll + GSAP `ScrollTo`, not a smooth-scroll library). All main routes use `BaseLayout.astro`.
 
 ### 1. OrbitNav Component
 
@@ -131,7 +129,7 @@ export function initMyAnimation() {
 
 - **No autoplay**: All animations should trigger on scroll
 - **Use ScrollTrigger**: Bind animations to scroll position
-- **Lenis integration**: The smooth scroll is already set up, animations will work automatically
+- **Scroll model**: Use native scroll + ScrollTrigger; respect homepage section snap on desktop when adding wheel-driven behavior
 - **Performance**: Use `scrub: true` for smooth scroll-linked animations
 
 ## Design System
@@ -162,7 +160,7 @@ export function initMyAnimation() {
 - `/projets/` - Projets (video portfolio)
 - `/contact/` - Contact form
 
-Most pages use `BaseLayout.astro`; `why-work-with-us` uses `LenisLayout.astro` (adds Lenis smooth scroll). Both include:
+All main routes use `BaseLayout.astro`, which includes:
 - TailwindCSS base styles, SEO meta tags, OrbitNav, Google Fonts (Poppins)
 
 ### Email Masking
@@ -208,11 +206,10 @@ initLetterReveal('.hero-title', 0.8, 0.05);
 ## Development Notes
 
 - **OrbitNav** is automatically included in all pages via `BaseLayout.astro`
-- **Lenis smooth scroll** is automatically initialized via `LenisProvider.astro`
-- **GSAP ScrollTrigger** is pre-configured to work with Lenis
+- **GSAP ScrollTrigger** is used from animation modules as needed
 - **React components** use `client:load` directive for hydration
 - **Page background detection** automatically inverts OrbitNav colors
-- **Mobile-friendly** vertical scroll with Lenis
+- **Mobile-friendly** vertical scroll on subpages; homepage uses full-screen sections on the main viewport
 - All animations trigger on scroll (no autoplay)
 - Use full-screen sections matching Figma structure
 - Clean utility classes from Tailwind are available

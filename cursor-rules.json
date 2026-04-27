@@ -17,7 +17,7 @@
       "description": "Follow the established folder structure and naming conventions",
       "rules": [
         "Components: src/components/ for Astro components, src/components/react/ for React components",
-        "Animations: src/animations/ for GSAP/Lenis animation utilities",
+        "Animations: src/animations/ for GSAP animation utilities",
         "Layouts: src/layouts/ for page layouts",
         "Pages: src/pages/ following Astro file-based routing",
         "Styles: src/styles/global.css for global styles and Tailwind configuration",
@@ -40,11 +40,11 @@
     },
     {
       "name": "Animation Patterns",
-      "description": "GSAP and Lenis integration patterns",
+      "description": "GSAP integration patterns (native / window scroll; homepage uses section snap on desktop)",
       "rules": [
         "All GSAP animations should be in src/animations/ as reusable utilities",
-        "Use Lenis for smooth scrolling - initialized via LenisProvider.astro",
-        "Always bind GSAP ScrollTrigger to Lenis using setupSmoothScroll() from gsapLenis.ts",
+        "The site does not use Lenis; use native document/window scroll with ScrollTrigger unless a route explicitly needs something else",
+        "Bind ScrollTrigger to the scroller the animation uses (typically document/window; see sectionSnap and per-animation files)",
         "Use physics-based easing (power1.inOut, power2.inOut, sine.inOut) for natural motion",
         "Clean up GSAP timelines and animations in useEffect cleanup functions",
         "Use GSAP SplitText for character-by-character animations (now free, no membership required)",
@@ -151,7 +151,7 @@
         "Don't mix Astro and React JSX syntax in the same file",
         "Ensure React components are in src/components/react/ directory",
         "Don't forget to clean up GSAP animations in useEffect cleanup",
-        "Check that Lenis is initialized before using ScrollTrigger"
+        "Ensure ScrollTrigger’s scroller matches the page (native scroll vs. any custom scroller in that file)"
       ]
     }
   ]

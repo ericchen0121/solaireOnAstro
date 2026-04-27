@@ -542,11 +542,10 @@ export function initHeroScrollAnimation(options: HeroScrollAnimationOptions): ()
     });
   };
 
-  // Wait for DOM and Lenis to be ready
+  // Defer init until layout/scroll is stable
   const waitAndInit = () => {
     if (typeof window === 'undefined' || !mounted) return;
 
-    // Wait a bit for Lenis to initialize
     setTimeout(() => {
       if (mounted) {
         initAnimation();
