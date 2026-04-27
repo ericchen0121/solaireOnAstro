@@ -96,6 +96,9 @@ const projetsVideoSrc =
     display: flex;
     align-items: center;
     justify-content: center;
+    /* Parallax roll: 3D plane vs flat black + video (foreground “rolls” on its own track) */
+    perspective: 1400px;
+    perspective-origin: 50% 45%;
   }
 
   .projets-text-slot .projets-text {
@@ -107,6 +110,7 @@ const projetsVideoSrc =
     display: flex;
     align-items: center;
     justify-content: center;
+    transform-style: preserve-3d;
   }
 
   .projets-text[data-projets-role="current"] {
@@ -118,6 +122,11 @@ const projetsVideoSrc =
   }
 
   .projets-text {
+    --projets-title-enter-dur: 0.24s;
+    --projets-title-leave-dur: 0.1s;
+    /* Snappy lock-in / snappy take-off (limit linear “cruise” in the middle) */
+    --projets-title-ease-in: cubic-bezier(0.15, 0.9, 0.1, 1);
+    --projets-title-ease-out: cubic-bezier(0.75, 0, 0.9, 0.2);
     font-family:
       "F37Moon",
       -apple-system,
@@ -132,23 +141,38 @@ const projetsVideoSrc =
     letter-spacing: 0.02em; /* 2% */
     color: white;
     text-align: center;
+    transform-origin: 50% 95%;
     opacity: 0;
-    transform: translateY(var(--projets-title-line-height));
-    transition:
-      /* opacity 0.2s ease-out, */ transform 0.35s
-      cubic-bezier(0.22, 1, 0.36, 1);
+    /* Parallax roll: Y + slight skew + Z depth (reads as a layer over the black field) */
+    transform: translate3d(0, var(--projets-title-line-height), -48px) rotateX(14deg)
+      skewX(-1.2deg) scale(0.98);
+    transition: transform var(--projets-title-enter-dur) var(--projets-title-ease-in),
+      opacity 0.16s var(--projets-title-ease-in);
+    will-change: transform, opacity;
   }
 
   .projets-text.active {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0) rotateX(0) skewX(0deg) scale(1);
   }
 
-  /* Move up then disappear (content swap); no opacity transition */
   .projets-text.leaving {
     opacity: 1;
-    transform: translateY(calc(-1.55 * var(--projets-title-line-height)));
-    transition: transform 0.1s ease-out;
+    transform: translate3d(0, calc(-1.4 * var(--projets-title-line-height)), -36px) rotateX(-11deg)
+      skewX(0.8deg) scale(0.99);
+    transition: transform var(--projets-title-leave-dur) var(--projets-title-ease-out);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .projets-text {
+      transform: translateY(var(--projets-title-line-height));
+    }
+    .projets-text.active {
+      transform: translateY(0);
+    }
+    .projets-text.leaving {
+      transform: translateY(calc(-1.4 * var(--projets-title-line-height)));
+    }
   }
 
   @media (max-width: 1024px) {
@@ -186,66 +210,108 @@ const projetsVideoSrc =
   import { tryPlayVideo } from "../../utils/ensureVideoPlayback";
 
   const texts = ["Industriel", "Résidentiel", "École", "Rural", "Hôpital"];
-  const leaveDuration = 140;
-  const enterDelay = 140;
-  const segmentLeadTime = 0.3;
+  /** Title appears this many seconds after its segment’s video start. */
+  const TITLE_APPEAR_OFFSET_S = 0.1;
+  /** Start leaving this many seconds before the *next* segment’s “start” (same t-grid as the video). */
+  const TITLE_END_BEFORE_NEXT_S = 0.06;
+  /** Must match .projets-text `leave` / `--projets-title-leave-dur` (~0.1s). */
+  const TITLE_LEAVE_DURATION_S = 0.1;
+
+  type ProjetsViz = {
+    k: number | null;
+    m: "idle" | "active" | "leaving";
+  };
 
   let cleanup: (() => void) | null = null;
-  let currentIndex = 0;
   let videoDuration = 0;
-  let intervalDuration = 0;
   let currentTextEl: HTMLSpanElement | null = null;
   let nextTextEl: HTMLSpanElement | null = null;
+  let rafId = 0;
+  let lastT = 0;
+  let lastViz: ProjetsViz | null = null;
 
-  function getLeavingTransformValue(element: HTMLSpanElement) {
-    const lineHeight =
-      getComputedStyle(element)
-        .getPropertyValue("--projets-title-line-height")
-        .trim() || getComputedStyle(element).lineHeight;
+  /**
+   * Per-segment windows on the shared video timeline: black holds are explicit so titles line up
+   * with the edit (0.1s in / 0.06s out before the next “cut”).
+   * @param {number} t
+   * @param {number} duration
+   */
+  function computeProjetsViz(t: number, duration: number): ProjetsViz {
+    const n = texts.length;
+    if (!Number.isFinite(t) || !Number.isFinite(duration) || duration <= 0) {
+      return { k: null, m: "idle" };
+    }
+    t = ((t % duration) + duration) % duration;
+    const D = duration / n;
 
-    return `translateY(-${lineHeight})`;
+    if (t < TITLE_APPEAR_OFFSET_S) {
+      return { k: null, m: "idle" };
+    }
+    for (let i = 0; i < n; i++) {
+      const a0 = i * D + TITLE_APPEAR_OFFSET_S;
+      const a1 = (i + 1) * D - TITLE_END_BEFORE_NEXT_S;
+      if (t >= a0 && t < a1) {
+        return { k: i, m: "active" };
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      const l0 = (i + 1) * D - TITLE_END_BEFORE_NEXT_S;
+      const l1 = l0 + TITLE_LEAVE_DURATION_S;
+      if (t >= l0 && t < l1) {
+        return { k: i, m: "leaving" };
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      const l0 = (i + 1) * D - TITLE_END_BEFORE_NEXT_S;
+      const i0 = l0 + TITLE_LEAVE_DURATION_S;
+      const i1 = (i + 1) * D + TITLE_APPEAR_OFFSET_S;
+      if (t >= i0 && t < i1) {
+        return { k: null, m: "idle" };
+      }
+    }
+    return { k: null, m: "idle" };
   }
 
-  function updateText(index: number) {
-    if (!currentTextEl || !nextTextEl) return;
-    const isFirstShow =
-      !currentTextEl.classList.contains("active") || !currentTextEl.textContent;
+  function vizEqual(
+    a: ProjetsViz | null,
+    b: ProjetsViz | null,
+  ): boolean {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return a.k === b.k && a.m === b.m;
+  }
 
-    if (isFirstShow) {
-      currentTextEl.textContent = texts[index];
-      currentTextEl.classList.remove("leaving");
-      currentTextEl.classList.remove("active");
-      void currentTextEl.offsetHeight;
-      currentTextEl.classList.add("active");
+  /** Single visible layer on `data-projets-role=current`; the “next” span stays inert. */
+  function applyProjetsViz(viz: ProjetsViz) {
+    const cur = currentTextEl;
+    const nx = nextTextEl;
+    if (!cur || !nx) return;
+
+    if (viz.m === "idle" && viz.k == null) {
+      cur.removeAttribute("style");
+      nx.removeAttribute("style");
+      cur.classList.remove("active", "leaving");
+      nx.classList.remove("active", "leaving");
+      cur.textContent = "";
+      nx.textContent = "";
       return;
     }
-
-    nextTextEl.textContent = texts[index];
-    nextTextEl.style.transition = "";
-    nextTextEl.style.opacity = "";
-    nextTextEl.style.transform = "";
-    nextTextEl.classList.remove("leaving", "active");
-    void nextTextEl.offsetHeight;
-
-    currentTextEl.classList.add("leaving");
-    currentTextEl.classList.remove("active");
-    setTimeout(() => {
-      nextTextEl?.classList.add("active");
-    }, enterDelay);
-
-    setTimeout(() => {
-      const leavingEl = currentTextEl;
-      const incomingEl = nextTextEl;
-      if (!leavingEl || !incomingEl) return;
-      leavingEl.style.transition = "none";
-      leavingEl.style.opacity = "0";
-      leavingEl.style.transform = getLeavingTransformValue(leavingEl);
-      leavingEl.classList.remove("leaving");
-      currentTextEl = incomingEl;
-      nextTextEl = leavingEl;
-      currentTextEl.setAttribute("data-projets-role", "current");
-      nextTextEl.setAttribute("data-projets-role", "next");
-    }, leaveDuration);
+    if (viz.m === "leaving" && viz.k != null) {
+      nx.textContent = "";
+      nx.classList.remove("active", "leaving");
+      cur.textContent = texts[viz.k];
+      cur.classList.remove("active");
+      cur.classList.add("leaving");
+      return;
+    }
+    if (viz.m === "active" && viz.k != null) {
+      cur.textContent = texts[viz.k];
+      nx.textContent = "";
+      nx.classList.remove("active", "leaving");
+      cur.classList.remove("leaving");
+      void cur.offsetHeight;
+      cur.classList.add("active");
+    }
   }
 
   function initProjetsPage() {
@@ -265,47 +331,74 @@ const projetsVideoSrc =
     if (!video || !currentTextEl || !nextTextEl) return;
 
     const v = video;
-
-    currentIndex = 0;
+    let didInitTiming = false;
     videoDuration = 0;
-    intervalDuration = 0;
+    lastT = 0;
+    lastViz = null;
 
     const ac = new AbortController();
-    cleanup = () => ac.abort();
 
-    function syncTextWithVideo() {
-      if (videoDuration === 0) return;
-      const currentTime = v.currentTime;
-      const adjustedTime = (currentTime + segmentLeadTime) % videoDuration;
-      const segmentIndex = Math.floor(adjustedTime / intervalDuration);
-      const newIndex = Math.min(segmentIndex, texts.length - 1);
-
-      if (newIndex !== currentIndex) {
-        currentIndex = newIndex;
-        updateText(currentIndex);
+    const stopRaf = () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
       }
+    };
+
+    const tick = () => {
+      rafId = requestAnimationFrame(tick);
+      if (videoDuration <= 0) return;
+      const tRaw = v.currentTime;
+      const t = ((tRaw % videoDuration) + videoDuration) % videoDuration;
+      if (lastT - t > 0.2 && lastT > 0.5) {
+        lastViz = null;
+      }
+      const viz = computeProjetsViz(t, videoDuration);
+      if (lastViz == null || !vizEqual(viz, lastViz)) {
+        applyProjetsViz(viz);
+        lastViz = viz;
+      }
+      lastT = t;
+    };
+
+    function startRaf() {
+      stopRaf();
+      rafId = requestAnimationFrame(tick);
     }
 
     function onLoadedMetadata() {
-      videoDuration = v.duration;
-      if (!Number.isFinite(videoDuration) || videoDuration <= 0) return;
-      intervalDuration = videoDuration / 5;
-      currentIndex = 0;
-      updateText(0);
+      const d = v.duration;
+      if (!Number.isFinite(d) || d <= 0) return;
+      if (didInitTiming) {
+        return;
+      }
+      didInitTiming = true;
+      videoDuration = d;
+      lastViz = null;
+      lastT = 0;
+      const t = ((v.currentTime % videoDuration) + videoDuration) % videoDuration;
+      const viz = computeProjetsViz(t, videoDuration);
+      applyProjetsViz(viz);
+      lastViz = viz;
+      startRaf();
       tryPlayVideo(v);
     }
 
     v.addEventListener("loadedmetadata", onLoadedMetadata, {
       signal: ac.signal,
     });
-    v.addEventListener("timeupdate", syncTextWithVideo, {
-      signal: ac.signal,
-    });
     v.addEventListener(
       "ended",
       () => {
-        currentIndex = 0;
-        updateText(0);
+        lastViz = null;
+        lastT = 0;
+        if (Number.isFinite(v.duration) && v.duration > 0) {
+          videoDuration = v.duration;
+        }
+        const t = 0;
+        const viz = computeProjetsViz(t, videoDuration);
+        applyProjetsViz(viz);
+        lastViz = viz;
       },
       { signal: ac.signal },
     );
@@ -314,9 +407,13 @@ const projetsVideoSrc =
 
     if (v.readyState >= 2 && Number.isFinite(v.duration) && v.duration > 0) {
       videoDuration = v.duration;
-      intervalDuration = videoDuration / 5;
-      updateText(0);
+      onLoadedMetadata();
     }
+
+    cleanup = () => {
+      ac.abort();
+      stopRaf();
+    };
   }
 
   document.addEventListener("astro:page-load", initProjetsPage);
