@@ -614,6 +614,8 @@
     position: relative;
     font-family: var(--font-hero);
     line-height: var(--typo-hero-h2-leading);
+    /* -5pt ≈ -6.67px at default CSS reference (96px/in) */
+    letter-spacing: -5pt;
   }
 
   /* SplitText (words + chars): whole words stay on one line; line breaks only between words */

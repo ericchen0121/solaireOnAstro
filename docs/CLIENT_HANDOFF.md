@@ -11,6 +11,8 @@ The site is an **Astro** marketing site deployed as a **Cloudflare Worker** (SSR
 
 ## Part A — Notes for the client
 
+**Shorter client summary (GitHub + Cloudflare + Resend + ownership checklist):** see [`CLIENT_RESEND_AND_GITHUB.md`](./CLIENT_RESEND_AND_GITHUB.md).
+
 ### What you are receiving
 
 - A **website codebase** (HTML/CSS/JS) managed in **GitHub**.
