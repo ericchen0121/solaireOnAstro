@@ -36,10 +36,10 @@ const REVEAL_LENGTHS = [
 const FIELD_LINE_MIN =
   "min-h-[3.25rem] md:min-h-[3.5rem] flex items-end pb-2";
 const INPUT_CLASS =
-  "contact-type-field w-full border-0 border-b-0 bg-transparent px-0 py-0 font-f37moon-light text-xl leading-tight tracking-[0.02em] text-white caret-hero-match placeholder:text-white/35 focus:outline-none focus:ring-0 disabled:opacity-50 md:text-2xl md:leading-tight";
+  "contact-type-field w-full border-0 border-b-0 bg-transparent px-0 py-0 font-f37moon-light text-xl leading-tight tracking-[var(--tracking-neutral)] text-white caret-hero-match placeholder:text-white/50 focus:outline-none focus:ring-0 disabled:opacity-50 md:text-2xl md:leading-tight";
 const MESSAGE_BLOCK_MIN = "min-h-[6.5rem] md:min-h-[7rem]";
 const TEXTAREA_CLASS =
-  `contact-type-field ${MESSAGE_BLOCK_MIN} w-full resize-y border-0 border-b-0 bg-transparent px-0 py-0 font-f37moon-light text-xl leading-snug tracking-[0.02em] text-white caret-hero-match placeholder:text-white/35 focus:outline-none focus:ring-0 disabled:opacity-50 md:text-2xl md:leading-snug`;
+  `contact-type-field ${MESSAGE_BLOCK_MIN} w-full resize-y border-0 border-b-0 bg-transparent px-0 py-0 font-f37moon-light text-xl leading-snug tracking-[var(--tracking-neutral)] text-white caret-hero-match placeholder:text-white/50 focus:outline-none focus:ring-0 disabled:opacity-50 md:text-2xl md:leading-snug`;
 
 type FormFeedback = "form" | "success" | "error";
 
@@ -109,7 +109,7 @@ function ContactFieldSection({
       }`}
     >
       <div
-        className={`mb-1 block font-f37moon-light text-xs uppercase tracking-[0.2em] text-white/50 transition-all duration-500 ease-out motion-reduce:duration-150 motion-reduce:transition-none ${
+        className={`mb-1 block font-f37moon-light text-xs uppercase tracking-[var(--tracking-neutral)] text-white/[0.82] transition-all duration-500 ease-out motion-reduce:duration-150 motion-reduce:transition-none ${
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-1 opacity-0 motion-reduce:translate-y-0"
@@ -264,13 +264,13 @@ export default function ContactForm() {
         {step === 0 ? (
           <h1
             id="contact-reveal-title"
-            className="contact-type-title font-f37moon-light text-left"
+            className="contact-type-title tracking-[var(--tracking-neutral)] font-f37moon-light text-left"
           >
             <span className="hero-cursor" aria-hidden="true" />
             <span className="hero-headline">{TITLE_REVEAL}</span>
           </h1>
         ) : (
-          <h1 className="contact-type-title font-f37moon-light text-left">
+          <h1 className="contact-type-title tracking-[var(--tracking-neutral)] font-f37moon-light text-left">
             {TITLE_REVEAL}
           </h1>
         )}
@@ -285,14 +285,14 @@ export default function ContactForm() {
             step > 1 ? (
               <label htmlFor="contact-subject" className="contents">
                 Sujet{" "}
-                <span className="font-normal normal-case tracking-normal text-white/35">
+                <span className="font-normal normal-case tracking-[var(--tracking-neutral)] text-white/[0.62]">
                   (facultatif)
                 </span>
               </label>
             ) : (
               <>
                 Sujet{" "}
-                <span className="font-normal normal-case tracking-normal text-white/35">
+                <span className="font-normal normal-case tracking-[var(--tracking-neutral)] text-white/[0.62]">
                   (facultatif)
                 </span>
               </>
@@ -304,7 +304,7 @@ export default function ContactForm() {
           ) : step === 1 ? (
             <div
               id="contact-reveal-subject"
-              className="contact-subject-reveal font-f37moon-light relative w-full text-left text-xl leading-snug tracking-[0.02em] text-white md:text-2xl"
+              className="contact-subject-reveal font-f37moon-light relative w-full text-left text-xl leading-snug tracking-[var(--tracking-neutral)] text-white md:text-2xl"
             >
               <span className="hero-cursor" aria-hidden="true" />
               <span className="hero-headline">{DEFAULT_SUBJECT}</span>
@@ -330,7 +330,7 @@ export default function ContactForm() {
         {fieldErrors.subject && (
           <p
             id="contact-subject-error"
-            className="mt-2 font-f37moon-light text-sm tracking-[0.02em] text-red-300/90"
+            className="mt-2 font-f37moon-light text-sm tracking-[var(--tracking-neutral)] text-red-300/90"
           >
             {fieldErrors.subject}
           </p>
@@ -357,7 +357,7 @@ export default function ContactForm() {
         ) : step === 2 ? (
           <div
             id="contact-reveal-email"
-            className="contact-email-reveal font-f37moon-light relative w-full text-left text-xl leading-tight tracking-[0.02em] text-white md:text-2xl md:leading-tight"
+            className="contact-email-reveal font-f37moon-light relative w-full text-left text-xl leading-tight tracking-[var(--tracking-neutral)] text-white md:text-2xl md:leading-tight"
           >
             <span className="hero-cursor" aria-hidden="true" />
             <span className="hero-headline">{EMAIL_PLACEHOLDER}</span>
@@ -384,7 +384,7 @@ export default function ContactForm() {
         {fieldErrors.email && (
           <p
             id="contact-email-error"
-            className="mt-2 font-f37moon-light text-sm tracking-[0.02em] text-red-300/90"
+            className="mt-2 font-f37moon-light text-sm tracking-[var(--tracking-neutral)] text-red-300/90"
           >
             {fieldErrors.email}
           </p>
@@ -411,7 +411,7 @@ export default function ContactForm() {
         ) : step === 3 ? (
           <div
             id="contact-reveal-message"
-            className={`contact-message-reveal font-f37moon-light relative ${MESSAGE_BLOCK_MIN} w-full text-left text-xl leading-snug tracking-[0.02em] text-white md:text-2xl md:leading-snug`}
+            className={`contact-message-reveal font-f37moon-light relative ${MESSAGE_BLOCK_MIN} w-full text-left text-xl leading-snug tracking-[var(--tracking-neutral)] text-white md:text-2xl md:leading-snug`}
           >
             <span className="hero-cursor" aria-hidden="true" />
             <span className="hero-headline">{MESSAGE_PLACEHOLDER}</span>
@@ -438,7 +438,7 @@ export default function ContactForm() {
         {fieldErrors.message && (
           <p
             id="contact-message-error"
-            className="mt-2 font-f37moon-light text-sm tracking-[0.02em] text-red-300/90"
+            className="mt-2 font-f37moon-light text-sm tracking-[var(--tracking-neutral)] text-red-300/90"
           >
             {fieldErrors.message}
           </p>
@@ -450,7 +450,7 @@ export default function ContactForm() {
           type="submit"
           disabled={loading || blockSubmit}
           aria-busy={loading}
-          className="font-f37moon-light flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-white bg-white text-sm tracking-[0.06em] text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 md:h-24 md:w-24 md:text-base"
+          className="font-f37moon-light flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-white bg-white text-sm tracking-[var(--tracking-neutral)] text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 md:h-24 md:w-24 md:text-base"
         >
           {loading ? "…" : "Envoyer"}
         </button>
@@ -464,17 +464,17 @@ export default function ContactForm() {
           role="status"
           aria-live="polite"
         >
-          <p className="font-f37moon-light text-lg leading-snug tracking-[0.02em] md:text-xl">
+          <p className="font-f37moon-light text-lg leading-snug tracking-[var(--tracking-neutral)] md:text-xl">
             Merci de nous avoir contactés.
           </p>
-          <p className="font-f37moon-light text-lg leading-snug tracking-[0.02em] md:text-xl">
+          <p className="font-f37moon-light text-lg leading-snug tracking-[var(--tracking-neutral)] md:text-xl">
             Votre message a bien été envoyé !
           </p>
           <ContactSuccessIcon />
           <button
             type="button"
             onClick={resetToForm}
-            className="font-f37moon-light mt-2 text-sm tracking-[0.12em] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
+            className="font-f37moon-light mt-2 text-sm tracking-[var(--tracking-neutral)] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
           >
             Envoyer un autre message
           </button>
@@ -487,14 +487,14 @@ export default function ContactForm() {
           role="alert"
           aria-live="assertive"
         >
-          <p className="max-w-md font-f37moon-light text-base leading-relaxed tracking-[0.02em] text-white/95 md:text-lg">
+          <p className="max-w-md font-f37moon-light text-base leading-relaxed tracking-[var(--tracking-neutral)] text-white/95 md:text-lg">
             Erreur : {errorMessage}
           </p>
           <ContactErrorIcon />
           <button
             type="button"
             onClick={resetToForm}
-            className="font-f37moon-light mt-2 text-sm tracking-[0.12em] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
+            className="font-f37moon-light mt-2 text-sm tracking-[var(--tracking-neutral)] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
           >
             Réessayer
           </button>

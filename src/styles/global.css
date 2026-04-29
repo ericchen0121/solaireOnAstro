@@ -66,6 +66,13 @@
     --typo-b1-size: 16px;
     /* b2 — Menu caption: 12 → 16 → 20px */
     --typo-b2-size: 12px;
+
+    /*
+     * Letter-spacing (tracking) — design tokens
+     * Large display: track in | Body / detail: neutral (designer ref: track in large, neutral small)
+     */
+    --tracking-neutral: 0;
+    --tracking-display-in: -5pt;
   }
 
   @media (min-width: 768px) {
@@ -226,6 +233,11 @@
     font-size: var(--company-name-size);
   }
 
+  .home-page .company-name-title .typo-h4,
+  .home-page .company-name-title .typo-h4-light {
+    letter-spacing: var(--tracking-display-in);
+  }
+
   /*
    * When Rochat / Solaire stack (flex-wrap), 130% leading + normal tracking reads too airy.
    * Thresholds track each --company-name-size band so we don’t compress one-line lockups:
@@ -239,20 +251,20 @@
 
   @media (max-width: 767.98px) {
     @container company-name (max-width: 32rem) {
-      .company-name-title .typo-h4,
-      .company-name-title .typo-h4-light {
+      .home-page .company-name-title .typo-h4,
+      .home-page .company-name-title .typo-h4-light {
         line-height: 1.02;
-        letter-spacing: -0.06em;
+        letter-spacing: var(--tracking-display-in);
       }
     }
   }
 
   @media (min-width: 768px) and (max-width: 1023.98px) {
     @container company-name (max-width: 52rem) {
-      .company-name-title .typo-h4,
-      .company-name-title .typo-h4-light {
+      .home-page .company-name-title .typo-h4,
+      .home-page .company-name-title .typo-h4-light {
         line-height: 1.02;
-        letter-spacing: -0.06em;
+        letter-spacing: var(--tracking-display-in);
       }
     }
   }
@@ -260,10 +272,10 @@
   /* 190px type: ~80rem+ often fits one row; stay just under 80rem so max-w-7xl columns aren’t squeezed */
   @media (min-width: 1024px) {
     @container company-name (max-width: 79.99rem) {
-      .company-name-title .typo-h4,
-      .company-name-title .typo-h4-light {
+      .home-page .company-name-title .typo-h4,
+      .home-page .company-name-title .typo-h4-light {
         line-height: 1.02;
-        letter-spacing: -0.06em;
+        letter-spacing: var(--tracking-display-in);
       }
     }
   }
@@ -271,24 +283,24 @@
   /* Viewport-only fallback when container queries are unsupported (rare) */
   @supports not (container-type: inline-size) {
     @media (max-width: 479.98px) {
-      .company-name-title .typo-h4,
-      .company-name-title .typo-h4-light {
+      .home-page .company-name-title .typo-h4,
+      .home-page .company-name-title .typo-h4-light {
         line-height: 1.02;
-        letter-spacing: -0.06em;
+        letter-spacing: var(--tracking-display-in);
       }
     }
     @media (min-width: 768px) and (max-width: 1023.98px) {
-      .company-name-title .typo-h4,
-      .company-name-title .typo-h4-light {
+      .home-page .company-name-title .typo-h4,
+      .home-page .company-name-title .typo-h4-light {
         line-height: 1.02;
-        letter-spacing: -0.06em;
+        letter-spacing: var(--tracking-display-in);
       }
     }
     @media (min-width: 1024px) and (max-width: 1279.98px) {
-      .company-name-title .typo-h4,
-      .company-name-title .typo-h4-light {
+      .home-page .company-name-title .typo-h4,
+      .home-page .company-name-title .typo-h4-light {
         line-height: 1.02;
-        letter-spacing: -0.06em;
+        letter-spacing: var(--tracking-display-in);
       }
     }
   }
@@ -491,6 +503,26 @@
     width: 100%;
   }
 
+  /* why-solar + clients — section titles track in; detail copy neutral (design tokens) */
+  .why-solar-page .subpage-hover-heading,
+  .clients-page .subpage-hover-heading {
+    letter-spacing: var(--tracking-display-in);
+  }
+
+  .why-solar-page .subpage-hover-detail,
+  .clients-page .subpage-hover-detail {
+    letter-spacing: var(--tracking-neutral);
+  }
+
+  /* why-work-with-us — hero copy (.typo-h3) track in; numbered list paragraphs neutral */
+  .why-us-page > .why-us-section .typo-h3 {
+    letter-spacing: var(--tracking-display-in);
+  }
+
+  .why-us-page .numbered-list .numbered-text {
+    letter-spacing: var(--tracking-neutral);
+  }
+
   .typo-b2 {
     font-family: var(--font-f37moon-demi);
     font-weight: 600;
@@ -609,13 +641,24 @@
     color: #ffffff !important;
   }
 
-  /* Hero headline — size follows .typo-h2 / --typo-h2-size; tighter leading than other .typo-h2 */
-  .hero .hero-title {
+  /* Hero headline — homepage only (`main.home-page`); tracking token */
+  .home-page .hero .hero-title {
     position: relative;
     font-family: var(--font-hero);
     line-height: var(--typo-hero-h2-leading);
-    /* -5pt ≈ -6.67px at default CSS reference (96px/in) */
-    letter-spacing: -5pt;
+    letter-spacing: var(--tracking-display-in);
+  }
+
+  /* Homepage display type — track in (stats numerals, video title, slide strips) */
+  .home-page .stats-section .stat-number,
+  .home-page .video-section .typo-h2,
+  .home-page .slide-bar-title {
+    letter-spacing: var(--tracking-display-in);
+  }
+
+  /* Stats section body copy — neutral tracking per design */
+  .home-page .stats-section .stat-copy {
+    letter-spacing: var(--tracking-neutral);
   }
 
   /* SplitText (words + chars): whole words stay on one line; line breaks only between words */
