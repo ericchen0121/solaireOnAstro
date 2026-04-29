@@ -489,42 +489,86 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    /*
+     * Orchestrate grid expansion vs opacity:
+     * `--subpage-hover-fade-in-delay` matches grid duration so body copy fades in after height settles (less perceived lift).
+     */
+    --subpage-hover-grid-dur: 0.2s;
+    --subpage-hover-fade-in-delay: var(--subpage-hover-grid-dur);
+    --subpage-hover-fade-in-dur: 0.12s;
+    --subpage-hover-fade-out-dur: 0.14s;
   }
 
+  /*
+   * Expand/collapse: single-axis grid row animation (0fr → 1fr). Padding lives on `.subpage-hover-detail-inner`
+   * so the row can collapse to zero without fighting margin + max-height timings (reads “jumpy”).
+   * Collapsed copy uses opacity + visibility so body text never peeks past strict grid clipping (subpixels).
+   * Fade-in waits until after `--subpage-hover-grid-dur` so motion finishes before copy appears (pairs with bottom-aligned sections).
+   */
   .subpage-hover-item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    display: grid;
+    grid-template-rows: auto 0fr;
+    align-items: start;
     position: relative;
+    isolation: isolate;
+    transition: grid-template-rows var(--subpage-hover-grid-dur) ease-out;
+  }
+
+  .subpage-hover-item:hover,
+  .subpage-hover-item:focus-within {
+    grid-template-rows: auto 1fr;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .subpage-hover-sections {
+      --subpage-hover-fade-in-delay: 0s;
+    }
+
+    .subpage-hover-item {
+      transition: none;
+    }
+
+    .subpage-hover-detail {
+      transition: none;
+    }
   }
 
   .subpage-hover-heading {
+    position: relative;
     margin: 0;
     padding: 0;
-    z-index: 1;
+    z-index: 2;
   }
 
   .subpage-hover-detail {
-    max-height: 0;
     overflow: hidden;
-    opacity: 0;
-    margin-top: 0;
+    min-height: 0;
     width: 100%;
     box-sizing: border-box;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity var(--subpage-hover-fade-out-dur) ease-out,
+      visibility 0s linear var(--subpage-hover-fade-out-dur);
+  }
+
+  .subpage-hover-item:hover .subpage-hover-detail,
+  .subpage-hover-item:focus-within .subpage-hover-detail {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+      opacity var(--subpage-hover-fade-in-dur) ease-out var(--subpage-hover-fade-in-delay),
+      visibility 0s linear 0s;
+  }
+
+  .subpage-hover-detail-inner {
     padding-inline-start: calc(
       var(--subpage-body-num-gap) + var(--subpage-body-num-col)
     );
-    display: block;
-    transition:
-      max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-      opacity 0.3s ease-out,
-      margin-top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .subpage-hover-item:hover .subpage-hover-detail {
-    max-height: 500px;
-    opacity: 1;
-    margin-top: 1rem;
+    padding-block-start: 1rem;
+    box-sizing: border-box;
   }
 
   .subpage-hover-detail p {
