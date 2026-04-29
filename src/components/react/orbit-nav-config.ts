@@ -12,6 +12,12 @@ export type OrbitNavVersion = 'v1' | 'v2';
 // 🎛️ CHANGE THIS TO SWITCH VERSIONS
 export const ACTIVE_VERSION: OrbitNavVersion = 'v2';
 
+/**
+ * When false, OrbitNav V2 omits the visible left chevron (hint/hover code paths stay in repo).
+ * The orbit dot still runs `navigateBack` on subpages. Set to `true` to show the chevron again.
+ */
+export const ORBIT_NAV_BACK_ARROW_VISIBLE = false;
+
 // Version descriptions for reference
 export const VERSION_INFO = {
   v1: {

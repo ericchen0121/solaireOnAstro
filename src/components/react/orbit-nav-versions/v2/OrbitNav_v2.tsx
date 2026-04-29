@@ -4,6 +4,7 @@ import { gsap } from 'gsap';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import {
   DEBUG_SETTINGS,
+  ORBIT_NAV_BACK_ARROW_VISIBLE,
   getDotSize,
   getOrbitContainerOffsets,
   getOrbitPathDimensions,
@@ -1155,7 +1156,7 @@ export default function OrbitNav({
   const [backArrowHintRunning, setBackArrowHintRunning] = useState(false);
 
   useLayoutEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!ORBIT_NAV_BACK_ARROW_VISIBLE || typeof window === 'undefined') return;
     const h = window.matchMedia('(hover: hover)');
     const m = window.matchMedia('(prefers-reduced-motion: reduce)');
     const apply = () => {
@@ -1172,6 +1173,10 @@ export default function OrbitNav({
   }, []);
 
   useEffect(() => {
+    if (!ORBIT_NAV_BACK_ARROW_VISIBLE) {
+      setBackReveal(false);
+      return;
+    }
     if (!shouldShowBack) {
       setBackReveal(false);
       return;
@@ -1188,6 +1193,10 @@ export default function OrbitNav({
   }, [shouldShowBack, pathKey]);
 
   useEffect(() => {
+    if (!ORBIT_NAV_BACK_ARROW_VISIBLE) {
+      setBackArrowHintRunning(false);
+      return;
+    }
     if (!shouldShowBack || !backReveal) {
       setBackArrowHintRunning(false);
       return;
@@ -1201,7 +1210,7 @@ export default function OrbitNav({
 
   /** If the pointer is already over the nav when the hint starts, skip pulses (no mouseenter). */
   useEffect(() => {
-    if (!backArrowHintRunning) return;
+    if (!ORBIT_NAV_BACK_ARROW_VISIBLE || !backArrowHintRunning) return;
     const id = requestAnimationFrame(() => {
       const el = containerRef.current;
       if (el?.matches(':hover')) {
@@ -1264,10 +1273,14 @@ export default function OrbitNav({
       ref={containerRef}
       className="orbit-nav-container fixed z-[100] pointer-events-auto [backface-visibility:hidden]"
       onMouseEnter={() => {
+        if (!ORBIT_NAV_BACK_ARROW_VISIBLE) return;
         setOrbitNavHovered(true);
         setBackArrowHintRunning(false);
       }}
-      onMouseLeave={() => setOrbitNavHovered(false)}
+      onMouseLeave={() => {
+        if (!ORBIT_NAV_BACK_ARROW_VISIBLE) return;
+        setOrbitNavHovered(false);
+      }}
       style={{
         top: `calc(${offsets.top}px + env(safe-area-inset-top, 0px))`,
         right: `calc(${offsets.right}px + env(safe-area-inset-right, 0px))`,
@@ -1275,7 +1288,7 @@ export default function OrbitNav({
         height: PATH_HEIGHT,
       }}
     >
-      {shouldShowBack && backAnchorLocal && (
+      {ORBIT_NAV_BACK_ARROW_VISIBLE && shouldShowBack && backAnchorLocal && (
         <button
           key={`orbit-back-hint-${pathKey}`}
           type="button"
