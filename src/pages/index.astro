@@ -234,9 +234,14 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   } from "../utils/homeSubpageSectionNav";
   import { requestOrbitPillSubpageFromPage } from "../animations/orbitNavSubpagePill";
 
-  /** Bar wipe + tail; no-wipe uses pill timing only (see `shouldPlaySubpageWipeAnims`). */
-  const SUBPAGE_WIPE_NAV_DELAY_MS = 920;
+  /** Matches `.slide-bar-bg { transition: transform 0.8s ... }` in global.css */
+  const SLIDE_BAR_WIPE_TRANSITION_MS = 800;
+  /** Extra ms after wipe/orbit so elastic settle & paint finish before hard navigation */
+  const SUBPAGE_NAV_SETTLE_TAIL_MS = 180;
+  /** Projets/contact strips: no white-bar wipe — minimum hold still parallels orbit pill */
   const SUBPAGE_NO_WIPE_NAV_DELAY_MS = 880;
+  /** Brief pause after orbit + wipe complete before hard navigation */
+  const SUBPAGE_NAV_AFTER_ANIM_MS = 100;
 
   // Using native browser scrolling for better section snap reliability
   // ScrollTrigger works natively with window scrolling
@@ -249,8 +254,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     const cleanupFunctions = [];
 
     const HOME_SUBPAGE_LINK_SEL = `a.${HOME_SUBPAGE_SECTION_LINK_CLASS}`;
-    function onHomeSubpageLinkHoverEnter() {
+    function onHomeSubpageLinkHoverEnter(e) {
       if (document.body.classList.contains("section-snap-scrolling")) return;
+      const link = e.currentTarget;
+      if (!(link instanceof HTMLAnchorElement)) return;
+      /* Same rule as strip navigation timing: `data-subpage-wipe="false"` strips skip white-bar treatment — orbit inversion stays off too. */
+      if (!shouldPlaySubpageWipeAnims(link)) return;
       document.body.classList.add("nav-or-text-hovered");
     }
     function onHomeSubpageLinkHoverLeave(e) {
@@ -260,6 +269,44 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     }
     /** Teardown hover → body class on beforeunload */
     let homeSubpageOrbitHoverLinks = [];
+
+    /** Prevent double-invoke while orbit + wipe timings run */
+    let homeSubpageNavigateBusy = false;
+
+    async function runHomeSubpageStripNavigation(link, e) {
+      const href = link.getAttribute("href");
+      if (!href) return;
+
+      if (homeSubpageNavigateBusy) return;
+
+      e.preventDefault();
+      homeSubpageNavigateBusy = true;
+
+      const wipe = shouldPlaySubpageWipeAnims(link);
+      console.log("🖱️ Home subpage section link clicked", { wipe });
+      if (wipe) {
+        link.classList.add("active");
+      }
+
+      const minWallClockMs = wipe
+        ? SLIDE_BAR_WIPE_TRANSITION_MS + SUBPAGE_NAV_SETTLE_TAIL_MS
+        : SUBPAGE_NO_WIPE_NAV_DELAY_MS;
+
+      try {
+        await Promise.all([
+          requestOrbitPillSubpageFromPage(),
+          new Promise((resolve) => setTimeout(resolve, minWallClockMs)),
+        ]);
+        await new Promise((resolve) =>
+          setTimeout(resolve, SUBPAGE_NAV_AFTER_ANIM_MS),
+        );
+        console.log("🚀 Navigating to:", href);
+        window.location.href = href;
+      } catch {
+        link.classList.remove("active");
+        homeSubpageNavigateBusy = false;
+      }
+    }
 
     function scrollToHashSectionIfNeeded() {
       const { hash } = window.location;
@@ -322,9 +369,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         });
       });
 
-      // 5. Scroll letter reveals (other sections) - MUST come after subpage link setup
-      // Home subpage section links: hover → body.nav-or-text-hovered; click → orbit pill + hard nav
-      // (`data-subpage-wipe="false"` skips white-bar + shorter delay; see homeSubpageSectionNav.ts)
+      // 5. Scroll letter reveals (other sections)
+      // Home subpage strips: hover → body.nav-or-text-hovered; click → orbit pill + hard nav (timing below).
       homeSubpageOrbitHoverLinks = Array.from(
         document.querySelectorAll(HOME_SUBPAGE_LINK_SEL),
       );
@@ -337,23 +383,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         link.addEventListener("mouseenter", onHomeSubpageLinkHoverEnter);
         link.addEventListener("mouseleave", onHomeSubpageLinkHoverLeave);
         link.addEventListener("click", (e) => {
-          e.preventDefault();
-          const href = link.getAttribute("href");
-          if (!href) return;
-
-          const wipe = shouldPlaySubpageWipeAnims(link);
-          console.log("🖱️ Home subpage section link clicked", { wipe });
-          if (wipe) {
-            link.classList.add("active");
-          }
-          void requestOrbitPillSubpageFromPage();
-          const delay = wipe
-            ? SUBPAGE_WIPE_NAV_DELAY_MS
-            : SUBPAGE_NO_WIPE_NAV_DELAY_MS;
-          window.setTimeout(() => {
-            console.log("🚀 Navigating to:", href);
-            window.location.href = href;
-          }, delay);
+          void runHomeSubpageStripNavigation(link, e);
         });
       });
 
