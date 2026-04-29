@@ -70,13 +70,15 @@
     /*
      * Letter-spacing (tracking) — design tokens
      * Large display: track in | Body / detail: neutral (designer ref: track in large, neutral small)
+     * `--tracking-display-in`: em-based so tracking scales with font-size (fixed pt read too tight on mobile/tablet).
      */
     --tracking-neutral: 0;
-    --tracking-display-in: -5pt;
+    --tracking-display-in: -0.038em;
   }
 
   @media (min-width: 768px) {
     :root {
+      --tracking-display-in: -0.048em;
       --typo-hero-h2-leading: 1.22;
       --typo-h1-size: 80px;
       --typo-h2-size: 60px;
@@ -91,6 +93,7 @@
   @media (min-width: 1024px) {
     :root {
       /* Large display type: tight leading; tune with design */
+      --tracking-display-in: -0.062em;
       --typo-hero-h2-leading: 1.2;
       --typo-h1-size: 148px;
       --typo-h2-size: 108px;
@@ -453,6 +456,34 @@
     margin: 0;
   }
 
+  /*
+   * Non-home routes: fade-in on `<main>` (orbit stays outside `<main>`).
+   * Uses keyframes + fill-mode `both` only — no JS gate — so swaps / fonts API quirks can’t leave content invisible.
+   */
+  @keyframes subpage-main-enter {
+    from {
+      opacity: 0;
+      transform: translateZ(0);
+    }
+    to {
+      opacity: 1;
+      transform: translateZ(0);
+    }
+  }
+
+  @media not (prefers-reduced-motion: reduce) {
+    main:not(.home-page) {
+      animation: subpage-main-enter 0.42s ease-in-out both;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    main:not(.home-page) {
+      animation: none;
+      opacity: 1;
+    }
+  }
+
   /* Subpages: hover expand title → body (why-solar, clients, …) — `SubpageHoverSections` + `SubpageHoverSectionItem` */
   .subpage-hover-sections {
     display: flex;
@@ -507,6 +538,9 @@
   .why-solar-page .subpage-hover-heading,
   .clients-page .subpage-hover-heading {
     letter-spacing: var(--tracking-display-in);
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
   .why-solar-page .subpage-hover-detail,

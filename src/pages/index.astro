@@ -301,10 +301,15 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           setTimeout(resolve, SUBPAGE_NAV_AFTER_ANIM_MS),
         );
         console.log("🚀 Navigating to:", href);
-        window.location.href = href;
+        /*
+         * Full page navigation (not ClientRouter) keeps orbit-back → `/#…` + section snap behavior
+         * aligned with a normal document load.
+         */
+        window.location.assign(href);
       } catch {
         link.classList.remove("active");
         homeSubpageNavigateBusy = false;
+        window.location.assign(href);
       }
     }
 
@@ -370,7 +375,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       });
 
       // 5. Scroll letter reveals (other sections)
-      // Home subpage strips: hover → body.nav-or-text-hovered; click → orbit pill + hard nav (timing below).
+      // Home subpage strips: hover → body.nav-or-text-hovered; click → orbit pill + hard navigation (timing below).
       homeSubpageOrbitHoverLinks = Array.from(
         document.querySelectorAll(HOME_SUBPAGE_LINK_SEL),
       );

@@ -2,6 +2,8 @@
 import OrbitNav from "../components/react/OrbitNav.tsx";
 import ClientRouter from "astro/components/ClientRouter.astro";
 import "../styles/global.css";
+/* After global — replaces Astro VT fallback keyframes that use plus-lighter (bad on white subpages). */
+import "../styles/view-transition-fix.css";
 
 interface Props {
   title?: string;
@@ -30,7 +32,7 @@ const {
   data-orbit-is-dark={String(isDark)}
 >
   <head>
-    <ClientRouter />
+    <ClientRouter fallback="swap" />
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
     <meta
@@ -38,7 +40,24 @@ const {
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Primary UI fonts — preload before first paint to reduce swap/reflow vs system fallback -->
+    <link
+      rel="preload"
+      href="/fonts/F37Moon-Light/F37Moon-Light.otf"
+      as="font"
+      type="font/otf"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/F37Moon-Demi/F37Moon-Demi.otf"
+      as="font"
+      type="font/otf"
+      crossorigin
+    />
     <meta name="generator" content={Astro.generator} />
+    {/* Enables cross-document View Transitions between same-origin navigations where supported (Chrome 126+); ClientRouter handles internal links. */}
+    <meta name="view-transition" content="same-origin" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />

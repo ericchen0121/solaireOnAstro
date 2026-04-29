@@ -1,0 +1,31 @@
+/*
+ * Astro’s bundled view-transition fallback (`components/viewtransitions.css`) defines `astroFadeIn` /
+ * `astroFadeOut` with `mix-blend-mode: plus-lighter`. On solid white/light pages that composite step reads as a
+ * harsh flash while content settles. Redefine the same animation names without blend modes — later stylesheet wins.
+ */
+@keyframes astroFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes astroFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes astroFadeInOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
