@@ -689,7 +689,16 @@
     vertical-align: top;
   }
 
-  
+  /*
+   * Per-char spans from GSAP SplitText: stabilize compositing on Safari during opacity/autoAlpha tweens
+   * (otherwise glyphs can briefly snap ~1px after first paint — looks like a second “rewrite”).
+   */
+  .scroll-split-char {
+    display: inline-block;
+    vertical-align: baseline;
+    transform: translateZ(0);
+    -webkit-font-smoothing: antialiased;
+  }
   /* Keep slide backgrounds black without painting every hovered child black */
   section.bg-black,
   section.bg-black:hover {

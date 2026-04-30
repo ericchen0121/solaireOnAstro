@@ -6,7 +6,7 @@ gsap.registerPlugin(ScrollTrigger, SplitText);
 
 /**
  * Initialize scroll-triggered letter reveal animation
- * Letters fade from 0 to 1 opacity with stagger when section enters viewport
+ * Characters fade in with GSAP autoAlpha + stagger when section enters viewport
  * @param selector - CSS selector for the container element
  * @param stagger - Time between each character reveal (default: 0.1)
  */
@@ -28,9 +28,10 @@ export function initScrollLetterReveal(
   });
   const chars = split.chars as HTMLElement[];
 
-  // Set initial state: invisible
+  /* autoAlpha (opacity + visibility) avoids WebKit painting semi-rasterized glyphs at opacity:0 during stagger — Safari “micro rewrite” glitch */
   gsap.set(chars, {
-    opacity: 0,
+    autoAlpha: 0,
+    force3D: true,
   });
 
   // Create ScrollTrigger to animate when section enters viewport
@@ -39,12 +40,12 @@ export function initScrollLetterReveal(
     start: 'top 80%', // Start animation when top of element is 80% down the viewport
     once: true, // Only trigger once
     onEnter: () => {
-      // Animate letters from 0 to 1 opacity with stagger
       gsap.to(chars, {
-        opacity: 1,
+        autoAlpha: 1,
         duration: 0.6,
         ease: 'power2.out',
         stagger,
+        force3D: true,
       });
     },
   });
