@@ -23,7 +23,7 @@ import {
  * lineAxis 'y' = home: vertical line, up/down animation. 'x' = subpage: horizontal line, left/right.
  */
 
-/** Inner racetrack ring — thinner than original (0.3 @ 32px). */
+/** Inner racetrack ring stroke width scale (solid stroke — avoid dashed strokes: they alias at cardinal tangents vs the bar). */
 const INNER_STROKE_SCALE = 0.4 / 32;
 const TRANSITION_DURATION = 0.35;
 /** Home ↔ subpage switches `lineAxis`; keep this short to avoid a visible “morph flash” on client navigations. */
@@ -297,7 +297,7 @@ const OrbitNavDot = forwardRef<OrbitNavDotHandle, OrbitNavDotProps>(function Orb
       height={size}
       viewBox={`0 0 ${size} ${size}`}
       className={className}
-      style={{ display: 'block', overflow: 'visible' }}
+      style={{ display: 'block', overflow: 'hidden' }}
     >
       <circle
         cx={center}
@@ -316,11 +316,12 @@ const OrbitNavDot = forwardRef<OrbitNavDotHandle, OrbitNavDotProps>(function Orb
         fill="none"
         stroke={circleFill}
         strokeWidth={innerStrokeWidth}
-        strokeDasharray="1.5 1.5"
-        opacity={0.12}
+        strokeOpacity={0.12}
+        vectorEffect="non-scaling-stroke"
         style={{
           pointerEvents: 'none',
           transition: svgPaintTransition,
+          shapeRendering: 'geometricPrecision',
         }}
       />
       <rect
@@ -332,6 +333,7 @@ const OrbitNavDot = forwardRef<OrbitNavDotHandle, OrbitNavDotProps>(function Orb
         rx={0}
         ry={0}
         fill={rectFill}
+        stroke="none"
         style={{
           shapeRendering: 'geometricPrecision',
           transition: svgPaintTransition,
