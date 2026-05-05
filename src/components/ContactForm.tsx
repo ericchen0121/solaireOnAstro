@@ -109,7 +109,7 @@ function ContactFieldSection({
       }`}
     >
       <div
-        className={`mb-1 block font-f37moon-light text-xs uppercase tracking-[var(--tracking-neutral)] text-white/[0.82] transition-all duration-500 ease-out motion-reduce:duration-150 motion-reduce:transition-none ${
+        className={`mb-1 block font-f37moon-demi text-xs uppercase tracking-[var(--tracking-neutral)] text-white/[0.82] transition-all duration-500 ease-out motion-reduce:duration-150 motion-reduce:transition-none ${
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-1 opacity-0 motion-reduce:translate-y-0"
@@ -285,14 +285,14 @@ export default function ContactForm() {
             step > 1 ? (
               <label htmlFor="contact-subject" className="contents">
                 Sujet{" "}
-                <span className="font-normal normal-case tracking-[var(--tracking-neutral)] text-white/[0.62]">
+                <span className="font-f37moon-light font-normal normal-case tracking-[var(--tracking-neutral)] text-white/[0.62]">
                   (facultatif)
                 </span>
               </label>
             ) : (
               <>
                 Sujet{" "}
-                <span className="font-normal normal-case tracking-[var(--tracking-neutral)] text-white/[0.62]">
+                <span className="font-f37moon-light font-normal normal-case tracking-[var(--tracking-neutral)] text-white/[0.62]">
                   (facultatif)
                 </span>
               </>
