@@ -74,10 +74,13 @@
      */
     --tracking-neutral: 0;
     --tracking-display-in: -0.038em;
+    /* h3 copy points: match display tracking until desktop override */
+    --tracking-h3-display-in: var(--tracking-display-in);
   }
 
   @media (min-width: 768px) {
     :root {
+      --tracking-h3-display-in: -0.024em;
       --tracking-display-in: -0.048em;
       --typo-hero-h2-leading: 1.22;
       --typo-h1-size: 80px;
@@ -93,7 +96,8 @@
   @media (min-width: 1024px) {
     :root {
       /* Large display type: tight leading; tune with design */
-      --tracking-display-in: -0.062em;
+      --tracking-h3-display-in: -0.024em;
+      --tracking-display-in: -0.044em;
       --typo-hero-h2-leading: 1.2;
       --typo-h1-size: 148px;
       --typo-h2-size: 108px;
@@ -208,7 +212,7 @@
     font-weight: 300;
     font-size: var(--typo-h3-size);
     line-height: 1.15;
-    letter-spacing: -0.04em;
+    letter-spacing: var(--tracking-h3-display-in);
   }
 
   .typo-h4 {
@@ -305,24 +309,6 @@
         line-height: 1.02;
         letter-spacing: var(--tracking-display-in);
       }
-    }
-  }
-
-  /* "Solaire" — a touch heavier than Moon Light: stroke fattens the silhouette; keep Light vs "Rochat" Demi */
-  .company-name-title .company-name-solaire {
-    -webkit-text-stroke: 0.45px #ffffff;
-    paint-order: stroke fill;
-  }
-
-  @media (min-width: 768px) {
-    .company-name-title .company-name-solaire {
-      -webkit-text-stroke: 0.65px #ffffff;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .company-name-title .company-name-solaire {
-      -webkit-text-stroke: 0.85px #ffffff;
     }
   }
 
@@ -592,11 +578,7 @@
     letter-spacing: var(--tracking-neutral);
   }
 
-  /* why-work-with-us — hero copy (.typo-h3) track in; numbered list paragraphs neutral */
-  .why-us-page > .why-us-section .typo-h3 {
-    letter-spacing: var(--tracking-display-in);
-  }
-
+  /* why-work-with-us — numbered list paragraphs neutral */
   .why-us-page .numbered-list .numbered-text {
     letter-spacing: var(--tracking-neutral);
   }
