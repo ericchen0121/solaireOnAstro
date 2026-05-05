@@ -424,7 +424,7 @@
 
   .numbered-list .number-container {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: flex-start;
     flex-shrink: 0;
     min-width: var(--subpage-body-num-col);

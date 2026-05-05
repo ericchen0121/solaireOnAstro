@@ -155,10 +155,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
    * Tight line box; nudge numeral up on wide viewports only.
    * clamp(MIN, preferred, MAX) needs MIN ≤ MAX. 0.5vh is never negative, so it could never yield -12px.
    * Here: ~0 from narrow up to --num-nudge-start, then ramp to -12px by --num-nudge-end.
+   * Left-align column with hero copy; only “1” is centered in the column (narrow glyph vs 2–8).
    */
   .numbered-list .number.typo-h2 {
     line-height: 1;
-    text-align: center;
+    text-align: left;
     width: 100%;
     display: block;
     margin: 0;
@@ -172,5 +173,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       ),
       0px
     );
+  }
+
+  .numbered-list .numbered-item:first-child .number.typo-h2 {
+    margin-left: 9%;
   }
 </style>
