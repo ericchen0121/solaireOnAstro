@@ -2,7 +2,7 @@
 
 Use this note to see **which services to sign up for** so you **fully own** the repository, the **live website (hosting)**, and **contact-form email**. Your developer will connect the pieces; you keep the logins and billing.
 
-A longer technical runbook (scripts, Wrangler, secrets wiring) is in [`CLIENT_HANDOFF.md`](./CLIENT_HANDOFF.md).
+A longer technical runbook (scripts, Wrangler, secrets wiring, and **Wrangler CLI authentication** when `wrangler login` fails) is in [`CLIENT_HANDOFF.md`](./CLIENT_HANDOFF.md).
 
 ---
 

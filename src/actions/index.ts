@@ -1,4 +1,5 @@
 import { ActionError, defineAction } from "astro:actions";
+import { getEnv } from "astro/env/runtime";
 import { Resend } from "resend";
 import { z } from "zod";
 
@@ -40,7 +41,9 @@ export const server = {
   sendContactEmail: defineAction({
     input: contactInput,
     handler: async ({ subject, email, message }) => {
-      const apiKey = import.meta.env.RESEND_API_KEY;
+      // Use runtime env (Cloudflare secrets / Worker vars), not import.meta.env — Vite inlines the
+      // latter at build time, so CI builds without .env would ship an empty key otherwise.
+      const apiKey = getEnv("RESEND_API_KEY");
       if (!apiKey) {
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",
@@ -48,7 +51,7 @@ export const server = {
         });
       }
 
-      const to = import.meta.env.CONTACT_TO_EMAIL;
+      const to = getEnv("CONTACT_TO_EMAIL");
       if (!to) {
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",
@@ -56,7 +59,7 @@ export const server = {
         });
       }
 
-      const from = import.meta.env.CONTACT_FROM_EMAIL?.trim();
+      const from = getEnv("CONTACT_FROM_EMAIL")?.trim();
       if (!from) {
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",

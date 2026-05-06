@@ -144,11 +144,30 @@ Contact actions read:
 - `CONTACT_TO_EMAIL`
 - `CONTACT_FROM_EMAIL`
 
-These are **server-only** (`import.meta.env` in Astro actions). For Cloudflare Workers, set them via **Wrangler secrets** or the dashboard **Variables / Secrets** for the Worker, depending on your workflow — follow current Astro + `@astrojs/cloudflare` docs for binding `import.meta.env` in production.
+These are **server-only** env vars (read in `src/actions/index.ts` via **`getEnv()`**, not `import.meta.env` — see note below). For Cloudflare Workers, set them via **Wrangler secrets** or the dashboard **Variables / Secrets** for the Worker, depending on your workflow.
+
+**Astro + Cloudflare:** In this repo, `src/actions/index.ts` reads these values with **`getEnv()` from `astro/env/runtime`**, not `import.meta.env`. Vite replaces `import.meta.env` at **build time**, so a Git/CI build without `.env` would embed empty values and **Worker secrets would never be used**. `getEnv` uses the runtime Worker `env` object (dashboard Variables + Wrangler secrets) after deploy.
 
 **Local dev:** `.env` at project root (not committed). For Wrangler dev, the adapter may use `dist/server/.dev.vars` after build — confirm paths in current docs.
 
-**Handoff security**
+### Wrangler CLI: authentication troubleshooting
+
+When running `wrangler login`, `wrangler whoami`, or `wrangler secret put` locally, OAuth may fail with messages such as **“There was an error fetching accounts”** or **“Wrangler authorization failed.”** That usually means the browser login did not complete or Wrangler cannot reach Cloudflare’s account API—not a problem with the repo.
+
+**Try, in order:**
+
+1. Check [Cloudflare status](https://www.cloudflarestatus.com/) for API or dashboard incidents.
+2. Rule out VPN, corporate proxy, or strict network filters; try another network if possible.
+3. Reset auth and log in again:
+   - `npx wrangler logout`
+   - `npx wrangler login` (complete the browser flow in the window Wrangler opens).
+4. If the browser step fails: use another browser or a private/incognito window; disable extensions that block cookies or cross-site requests for `cloudflare.com` / `dash.cloudflare.com`.
+5. **Bypass OAuth** with an API token (often more reliable on restricted networks):
+   - Dashboard: **My Profile → API Tokens → Create Token**. Use a template such as **Edit Cloudflare Workers**, or a custom token that includes **Workers Scripts → Edit** (and any other scopes your operations need).
+   - In your shell: `export CLOUDFLARE_API_TOKEN='…'` (never commit this value).
+   - Verify: `npx wrangler whoami` should list your account without account-fetch errors.
+
+**Handoff security:**
 
 - Generate a **new Resend API key** for the client; **revoke** old keys tied to your agency.
 - Never leave production secrets in README or issues.
