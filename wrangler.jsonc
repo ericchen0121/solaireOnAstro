@@ -2,5 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "rochat-solaire",
   "compatibility_date": "2025-04-05",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
+  // Keep dashboard-defined Variables across `wrangler deploy` (secrets are already preserved by default).
+  "keep_vars": true
 }
