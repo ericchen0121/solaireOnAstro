@@ -32,6 +32,15 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * Reserve horizontal space for the vertical scrollbar so layout width does not change when
+   * hover sections expand (why-solar, clients). Safari in particular can otherwise “jump” main
+   * content + fixed orbit nav sideways when the scrollbar appears or toggles.
+   */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   :root {
     /* Color Palette */
     --color-black: #000000;
@@ -493,7 +502,8 @@
    */
   .subpage-hover-item {
     display: grid;
-    grid-template-rows: auto 0fr;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 0fr);
     align-items: start;
     position: relative;
     isolation: isolate;
@@ -502,7 +512,7 @@
 
   .subpage-hover-item:hover,
   .subpage-hover-item:focus-within {
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   @media (prefers-reduced-motion: reduce) {

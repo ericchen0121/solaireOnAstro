@@ -1354,7 +1354,7 @@ export default function OrbitNav({
       {/* Dot: larger hit area (HIT_AREA_PADDING on each side), visual dot centered */}
       <div
         ref={circleRef}
-        className={`absolute flex items-center justify-center pointer-events-auto ${canNavigateBack ? 'cursor-pointer' : 'cursor-default'}`}
+        className={`absolute flex items-center justify-center pointer-events-auto overflow-visible ${canNavigateBack ? 'cursor-pointer' : 'cursor-default'}`}
         style={{
           width: dotSize + HIT_AREA_PADDING * 2,
           height: dotSize + HIT_AREA_PADDING * 2,

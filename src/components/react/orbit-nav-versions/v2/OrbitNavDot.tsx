@@ -65,7 +65,8 @@ const OrbitNavDot = forwardRef<OrbitNavDotHandle, OrbitNavDotProps>(function Orb
   const departureRef = useRef<gsap.core.Timeline | null>(null);
 
   const center = size / 2;
-  const outerRadius = size / 2;
+  /* Slightly inset vs half-size so stroke + antialiasing stay inside the viewBox (Safari clips tight circles in `<svg style="overflow:hidden">`). */
+  const outerRadius = Math.max(center - 1, 0.5);
   const innerRadius = outerRadius * ORBIT_PILL_INNER_BOUNDARY_RATIO;
   const rectFullHeight = innerRadius;
   const rectFullWidth = size * ORBIT_PILL_WIDTH_RATIO;
@@ -297,7 +298,7 @@ const OrbitNavDot = forwardRef<OrbitNavDotHandle, OrbitNavDotProps>(function Orb
       height={size}
       viewBox={`0 0 ${size} ${size}`}
       className={className}
-      style={{ display: 'block', overflow: 'hidden' }}
+      style={{ display: 'block', overflow: 'visible' }}
     >
       <circle
         cx={center}
