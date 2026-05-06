@@ -23,6 +23,9 @@ import OrbitNavBackArrow from './OrbitNavBackArrow';
 
 gsap.registerPlugin(MotionPathPlugin);
 
+/** If the pill animation never settles, still navigate (avoids dead clicks). */
+const ORBIT_NAV_ASSIGN_FALLBACK_MS = 3500;
+
 interface OrbitNavProps {
   isDark?: boolean;
   colorMode?: 'auto' | 'light' | 'dark';
@@ -287,6 +290,9 @@ export default function OrbitNav({
   const orbitDotAnimRef = useRef<OrbitNavDotHandle | null>(null);
   const homeToSubpageNavLockRef = useRef(false);
   const subpageToHomeNavLockRef = useRef(false);
+  /** Supersedes in-flight pill+assign so an older async cannot navigate after a newer click. */
+  const homeToSubpageNavGenRef = useRef(0);
+  const subpageToHomeNavGenRef = useRef(0);
 
   /** Epsilon avoids setState + “back” flicker when iOS/Chrome re-measures the same path point. */
   const BACK_ANCHOR_EPS_PX = 0.35;
@@ -485,24 +491,44 @@ export default function OrbitNav({
       const nextPath = url.pathname.replace(/\/+$/, '') || '/';
       if (nextPath === '/') return;
 
+      const assignFromLink = () => {
+        if ((link as HTMLAnchorElement).dataset.astroHistory === 'replace') {
+          window.location.replace(url.href);
+        } else {
+          window.location.assign(url.href);
+        }
+      };
+
+      /* Busy: honor click and invalidate any in-flight animation → assign. */
+      if (homeToSubpageNavLockRef.current) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        homeToSubpageNavGenRef.current += 1;
+        assignFromLink();
+        return;
+      }
+
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      if (homeToSubpageNavLockRef.current) return;
+      homeToSubpageNavGenRef.current += 1;
+      const generation = homeToSubpageNavGenRef.current;
       homeToSubpageNavLockRef.current = true;
 
       void (async () => {
         try {
-          await orbitDotAnimRef.current?.playSubpageDepartureAnimation();
-          /* Full navigation (not `navigate()`): avoids view-transition + stale prefetched documents
-           * causing rare blank pages / wrong URL after deploy (see astro.config prefetch). */
-          if ((link as HTMLAnchorElement).dataset.astroHistory === 'replace') {
-            window.location.replace(url.href);
-          } else {
-            window.location.assign(url.href);
-          }
+          const anim = orbitDotAnimRef.current?.playSubpageDepartureAnimation();
+          await Promise.race([
+            anim ?? Promise.resolve(),
+            new Promise<void>((resolve) => {
+              setTimeout(resolve, ORBIT_NAV_ASSIGN_FALLBACK_MS);
+            }),
+          ]);
+          if (generation !== homeToSubpageNavGenRef.current) return;
+          assignFromLink();
         } catch {
-          window.location.assign(url.href);
+          if (generation !== homeToSubpageNavGenRef.current) return;
+          assignFromLink();
         } finally {
           homeToSubpageNavLockRef.current = false;
         }
@@ -544,22 +570,43 @@ export default function OrbitNav({
       const nextPath = url.pathname.replace(/\/+$/, '') || '/';
       if (nextPath !== '/') return;
 
+      const assignFromLink = () => {
+        if ((link as HTMLAnchorElement).dataset.astroHistory === 'replace') {
+          window.location.replace(url.href);
+        } else {
+          window.location.assign(url.href);
+        }
+      };
+
+      if (subpageToHomeNavLockRef.current) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        subpageToHomeNavGenRef.current += 1;
+        assignFromLink();
+        return;
+      }
+
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      if (subpageToHomeNavLockRef.current) return;
+      subpageToHomeNavGenRef.current += 1;
+      const generation = subpageToHomeNavGenRef.current;
       subpageToHomeNavLockRef.current = true;
 
       void (async () => {
         try {
-          await orbitDotAnimRef.current?.playSubpageReturnToHomeAnimation();
-          if ((link as HTMLAnchorElement).dataset.astroHistory === 'replace') {
-            window.location.replace(url.href);
-          } else {
-            window.location.assign(url.href);
-          }
+          const anim = orbitDotAnimRef.current?.playSubpageReturnToHomeAnimation();
+          await Promise.race([
+            anim ?? Promise.resolve(),
+            new Promise<void>((resolve) => {
+              setTimeout(resolve, ORBIT_NAV_ASSIGN_FALLBACK_MS);
+            }),
+          ]);
+          if (generation !== subpageToHomeNavGenRef.current) return;
+          assignFromLink();
         } catch {
-          window.location.assign(url.href);
+          if (generation !== subpageToHomeNavGenRef.current) return;
+          assignFromLink();
         } finally {
           subpageToHomeNavLockRef.current = false;
         }
@@ -1232,14 +1279,30 @@ export default function OrbitNav({
 
   const navigateBack = () => {
     if (!backTarget) return;
-    if (subpageToHomeNavLockRef.current) return;
+    const targetHref = new URL(backTarget, window.location.href).href;
+    const go = () => {
+      window.location.assign(targetHref);
+    };
+    subpageToHomeNavGenRef.current += 1;
+    if (subpageToHomeNavLockRef.current) {
+      go();
+      return;
+    }
+    const generation = subpageToHomeNavGenRef.current;
     subpageToHomeNavLockRef.current = true;
     void (async () => {
       try {
-        await orbitDotAnimRef.current?.playSubpageReturnToHomeAnimation();
-        const t = new URL(backTarget, window.location.href).href;
-        window.location.assign(t);
+        const anim = orbitDotAnimRef.current?.playSubpageReturnToHomeAnimation();
+        await Promise.race([
+          anim ?? Promise.resolve(),
+          new Promise<void>((resolve) => {
+            setTimeout(resolve, ORBIT_NAV_ASSIGN_FALLBACK_MS);
+          }),
+        ]);
+        if (generation !== subpageToHomeNavGenRef.current) return;
+        go();
       } catch {
+        if (generation !== subpageToHomeNavGenRef.current) return;
         window.location.assign(backTarget);
       } finally {
         subpageToHomeNavLockRef.current = false;
