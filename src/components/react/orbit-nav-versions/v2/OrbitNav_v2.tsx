@@ -452,7 +452,7 @@ export default function OrbitNav({
     };
   }, []);
 
-  /** Home → subpage: center pill, 90° CW w/ elastic settle, then Astro `navigate` (runs in capture before ClientRouter). */
+  /** Home → subpage: center pill, 90° CW w/ elastic settle, then full `location.assign` (avoids VT/prefetch races). */
   useEffect(() => {
     if (typeof document === 'undefined' || !isHomePage) return;
 
@@ -494,13 +494,13 @@ export default function OrbitNav({
       void (async () => {
         try {
           await orbitDotAnimRef.current?.playSubpageDepartureAnimation();
-          const { navigate } = await import('astro:transitions/client');
-          const historyMode =
-            (link as HTMLAnchorElement).dataset.astroHistory === 'replace' ? 'replace' : 'auto';
-          await navigate(url.href, {
-            history: historyMode,
-            sourceElement: link as HTMLElement,
-          });
+          /* Full navigation (not `navigate()`): avoids view-transition + stale prefetched documents
+           * causing rare blank pages / wrong URL after deploy (see astro.config prefetch). */
+          if ((link as HTMLAnchorElement).dataset.astroHistory === 'replace') {
+            window.location.replace(url.href);
+          } else {
+            window.location.assign(url.href);
+          }
         } catch {
           window.location.assign(url.href);
         } finally {
@@ -513,7 +513,7 @@ export default function OrbitNav({
     return () => document.removeEventListener('click', onClickCapture, true);
   }, [isHomePage]);
 
-  /** Subpage → home: horizontal pill, −90° w/ same ease as home→subpage, then Astro `navigate` (before ClientRouter). */
+  /** Subpage → home: horizontal pill, −90° w/ same ease as home→subpage, then full `location.assign`. */
   useEffect(() => {
     if (typeof document === 'undefined' || isHomePage) return;
 
@@ -553,13 +553,11 @@ export default function OrbitNav({
       void (async () => {
         try {
           await orbitDotAnimRef.current?.playSubpageReturnToHomeAnimation();
-          const { navigate } = await import('astro:transitions/client');
-          const historyMode =
-            (link as HTMLAnchorElement).dataset.astroHistory === 'replace' ? 'replace' : 'auto';
-          await navigate(url.href, {
-            history: historyMode,
-            sourceElement: link as HTMLElement,
-          });
+          if ((link as HTMLAnchorElement).dataset.astroHistory === 'replace') {
+            window.location.replace(url.href);
+          } else {
+            window.location.assign(url.href);
+          }
         } catch {
           window.location.assign(url.href);
         } finally {
@@ -1239,11 +1237,8 @@ export default function OrbitNav({
     void (async () => {
       try {
         await orbitDotAnimRef.current?.playSubpageReturnToHomeAnimation();
-        const { navigate } = await import('astro:transitions/client');
-        await navigate(backTarget, {
-          history: 'auto',
-          sourceElement: circleRef.current ?? undefined,
-        });
+        const t = new URL(backTarget, window.location.href).href;
+        window.location.assign(t);
       } catch {
         window.location.assign(backTarget);
       } finally {

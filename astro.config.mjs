@@ -8,6 +8,9 @@ export default defineConfig({
   // `output: "hybrid"` was removed in Astro 6; `static` + adapter + per-route `prerender` is the replacement.
   // Pages using Astro Actions must set `export const prerender = false` (e.g. contact).
   output: 'static',
+  // ClientRouter otherwise forces prefetch-all links; after a deploy, stale prefetched HTML + view
+  // transitions can nondeterministically swap to an empty or wrong document. Opt-in per-link only.
+  prefetch: false,
   // Default Cloudflare adapter session is KV; we don't use Astro.session — LRU avoids a KV namespace + dashboard binding.
   session: { driver: sessionDrivers.lruCache() },
   // Compile-time images avoid the Cloudflare Images (IMAGES) binding in Workers.
