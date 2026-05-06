@@ -144,11 +144,18 @@ Contact actions read:
 - `CONTACT_TO_EMAIL`
 - `CONTACT_FROM_EMAIL`
 
-These are **server-only** env vars (read in `src/actions/index.ts` via **`getEnv()`**, not `import.meta.env` — see note below). For Cloudflare Workers, set them via **Wrangler secrets** or the dashboard **Variables / Secrets** for the Worker, depending on your workflow.
+These are **server-only** env vars (read in `src/actions/index.ts` via **`getEnv()`**, not `import.meta.env` — see **Astro + Cloudflare** below). For Cloudflare Workers, set them via **Wrangler secrets** or the dashboard **Variables / Secrets** for the Worker, depending on your workflow.
 
 **Astro + Cloudflare:** In this repo, `src/actions/index.ts` reads these values with **`getEnv()` from `astro/env/runtime`**, not `import.meta.env`. Vite replaces `import.meta.env` at **build time**, so a Git/CI build without `.env` would embed empty values and **Worker secrets would never be used**. `getEnv` uses the runtime Worker `env` object (dashboard Variables + Wrangler secrets) after deploy.
 
-**Local dev:** `.env` at project root (not committed). For Wrangler dev, the adapter may use `dist/server/.dev.vars` after build — confirm paths in current docs.
+**Where values come from (local vs production):**
+
+| Environment | Where to set `RESEND_API_KEY`, `CONTACT_*` |
+|-------------|--------------------------------------------|
+| **Production** (live Worker on Cloudflare) | **Only** the Worker’s **Variables / Secrets** in the dashboard, or `wrangler secret put` / Wrangler-managed vars. The repo **`.env` is not used** on deploy and is **not** read from Git at runtime. |
+| **Local** (`npm run dev`, preview against a built Worker) | **`.env`** at the project root (gitignored). Astro/Wrangler dev may also use generated files such as `dist/server/.dev.vars` after a build — confirm in current adapter docs if paths change. |
+
+Updating **production** keys (e.g. rotate Resend): create the new key in **Resend**, then replace **`RESEND_API_KEY`** in **Cloudflare** (Secret or dashboard). You do **not** edit `wrangler.jsonc` for a new key value. A **secret-only** change usually **does not require a new deploy**—the running Worker picks up the new secret for subsequent requests. Redeploy when you change **code** or build output. Keep **`.env`** in sync only if you care about **local** testing.
 
 ### Wrangler CLI: authentication troubleshooting
 

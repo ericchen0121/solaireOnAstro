@@ -99,11 +99,13 @@ The **contact form** does not use your personal Gmail IMAP. It sends through **R
 | **Inbox** | Where *you* receive form submissions | `contact@yourdomain.ch` |
 | **From** | Allowed **sender** on a verified domain (what appears on notification emails) | `noreply@yourdomain.ch` |
 
-**Env names** this codebase expects in production (see `src/actions/index.ts`):
+**Env names** this codebase expects in production (see `src/actions/index.ts`). They must be set on the **Cloudflare Worker** (Variables / Secrets); the **`.env`** file is for **local development only** and is **not** deployed from Git. Production reads them at runtime via **`getEnv()`** — details in [`CLIENT_HANDOFF.md`](./CLIENT_HANDOFF.md).
 
 - `RESEND_API_KEY`
 - `CONTACT_TO_EMAIL` — your team inbox
 - `CONTACT_FROM_EMAIL` — verified “from” (reply-to the visitor is handled in code where applicable)
+
+**Rotating the Resend API key:** create the new key in Resend, update **`RESEND_API_KEY`** in Cloudflare; revoke the old key in Resend. No `wrangler.jsonc` change; a secret update alone often does not require a redeploy.
 
 **Official help:** [Resend — Domains](https://resend.com/docs/dashboard/domains/introduction), [API keys](https://resend.com/docs/dashboard/api-keys/introduction).
 
