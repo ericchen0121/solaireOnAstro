@@ -11,7 +11,7 @@ export const prerender = false;
   orbitNavColorMode="light"
   showBack={true}
 >
-  <main class="contact-page">
+  <main class="contact-page bg-black text-white">
     <section class="contact-section bg-black text-white py-16 md:py-20">
       <div class="container mx-auto px-4 md:px-[4.5rem]">
         <div class="contact-page-fade mx-auto max-w-3xl">
@@ -26,6 +26,9 @@ export const prerender = false;
 <style>
   .contact-page {
     font-family: var(--font-primary);
+    /* Deterministic contrast for the whole route (body/html do not set text color). */
+    background-color: #000000;
+    color: #ffffff;
   }
 
   /* Hero-adjacent type scale — :global so React island (ContactForm) receives rules */
@@ -98,5 +101,18 @@ export const prerender = false;
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* Island feedback must stay on black / white even if global `p` or transition CSS differs (Safari, reader extensions, etc.). */
+  .contact-form-feedback-root,
+  .contact-form-success,
+  .contact-form-error {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+  }
+
+  .contact-form-success p,
+  .contact-form-error p {
+    color: #ffffff !important;
   }
 </style>

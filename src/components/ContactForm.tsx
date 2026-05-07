@@ -252,7 +252,7 @@ export default function ContactForm() {
   const blockSubmit = step < 4;
 
   return (
-    <div className="contact-form-feedback-root w-full">
+    <div className="contact-form-feedback-root w-full bg-black text-white [color-scheme:dark] antialiased">
       {feedback === "form" && (
         <form
           ref={formRef}
@@ -460,21 +460,21 @@ export default function ContactForm() {
 
       {feedback === "success" && (
         <div
-          className="flex w-full max-w-lg flex-col items-center justify-center gap-8 px-6 py-10 text-center text-white motion-safe:animate-[contact-feedback-in_0.65s_ease-out_both] md:mx-auto md:px-10 md:py-14"
+          className="contact-form-success flex w-full max-w-lg flex-col items-center justify-center gap-8 bg-black px-6 py-10 text-center text-white motion-safe:animate-[contact-feedback-in_0.65s_ease-out_both] md:mx-auto md:px-10 md:py-14"
           role="status"
           aria-live="polite"
         >
-          <p className="font-f37moon-light text-lg leading-snug tracking-[var(--tracking-neutral)] md:text-xl">
+          <p className="font-f37moon-light text-lg leading-snug tracking-[var(--tracking-neutral)] !text-white md:text-xl">
             Merci de nous avoir contactés.
           </p>
-          <p className="font-f37moon-light text-lg leading-snug tracking-[var(--tracking-neutral)] md:text-xl">
+          <p className="font-f37moon-light text-lg leading-snug tracking-[var(--tracking-neutral)] !text-white md:text-xl">
             Votre message a bien été envoyé !
           </p>
           <ContactSuccessIcon />
           <button
             type="button"
             onClick={resetToForm}
-            className="font-f37moon-light mt-2 text-sm tracking-[var(--tracking-neutral)] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
+            className="font-f37moon-light mt-2 text-sm tracking-[var(--tracking-neutral)] !text-white/80 underline-offset-4 transition-colors hover:!text-white hover:underline"
           >
             Envoyer un autre message
           </button>
@@ -483,18 +483,18 @@ export default function ContactForm() {
 
       {feedback === "error" && errorMessage && (
         <div
-          className="flex w-full max-w-lg flex-col items-center justify-center gap-8 px-6 py-10 text-center text-white motion-safe:animate-[contact-feedback-in_0.65s_ease-out_both] md:mx-auto md:px-10 md:py-14"
+          className="contact-form-error flex w-full max-w-lg flex-col items-center justify-center gap-8 bg-black px-6 py-10 text-center text-white motion-safe:animate-[contact-feedback-in_0.65s_ease-out_both] md:mx-auto md:px-10 md:py-14"
           role="alert"
           aria-live="assertive"
         >
-          <p className="max-w-md font-f37moon-light text-base leading-relaxed tracking-[var(--tracking-neutral)] text-white/95 md:text-lg">
+          <p className="max-w-md font-f37moon-light text-base leading-relaxed tracking-[var(--tracking-neutral)] !text-white md:text-lg">
             Erreur : {errorMessage}
           </p>
           <ContactErrorIcon />
           <button
             type="button"
             onClick={resetToForm}
-            className="font-f37moon-light mt-2 text-sm tracking-[var(--tracking-neutral)] text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
+            className="font-f37moon-light mt-2 text-sm tracking-[var(--tracking-neutral)] !text-white/80 underline-offset-4 transition-colors hover:!text-white hover:underline"
           >
             Réessayer
           </button>
