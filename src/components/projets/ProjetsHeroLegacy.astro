@@ -1,0 +1,359 @@
+---
+/**
+ * Current prod projets hero: looping video + CSS title loop (video-synced).
+ * Kept as a drop-in component so `/projets` can switch to Lottie via env and revert anytime.
+ */
+import "../../styles/projetsHeroLayout.css";
+
+interface Props {
+  videoSrc: string;
+}
+
+const { videoSrc } = Astro.props;
+---
+
+<section
+  class="projets-hero-shell projets-section bg-black overflow-hidden"
+  data-projets-hero="legacy"
+>
+  <video
+    id="projets-video"
+    autoplay
+    loop
+    muted
+    playsinline
+    webkit-playsinline=""
+    preload="auto"
+    class="projets-video"
+  >
+    <source src={videoSrc} type="video/mp4" />
+  </video>
+  <div class="projets-hero-overlay">
+    <div class="projets-text-slot">
+      <span class="projets-text" data-projets-role="current"></span>
+      <span class="projets-text" data-projets-role="next"></span>
+    </div>
+  </div>
+</section>
+
+<style>
+  .projets-hero-shell {
+    --projets-title-line-height: 115px;
+  }
+
+  .projets-text-slot {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1400px;
+    perspective-origin: 50% 45%;
+  }
+
+  .projets-text-slot .projets-text {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-style: preserve-3d;
+  }
+
+  .projets-text[data-projets-role="current"] {
+    z-index: 0;
+  }
+
+  .projets-text[data-projets-role="next"] {
+    z-index: 1;
+  }
+
+  .projets-text {
+    --projets-title-enter-dur: 0.24s;
+    --projets-title-leave-dur: 0.1s;
+    --projets-title-ease-in: cubic-bezier(0.15, 0.9, 0.1, 1);
+    --projets-title-ease-out: cubic-bezier(0.75, 0, 0.9, 0.2);
+    font-family:
+      "F37Moon",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+    font-weight: 600;
+    font-style: normal;
+    font-size: 216px;
+    line-height: var(--projets-title-line-height);
+    letter-spacing: var(--tracking-display-in);
+    color: white;
+    text-align: center;
+    transform-origin: 50% 95%;
+    opacity: 0;
+    transform: translate3d(0, var(--projets-title-line-height), -48px) rotateX(14deg)
+      skewX(-1.2deg) scale(0.98);
+    transition: transform var(--projets-title-enter-dur) var(--projets-title-ease-in),
+      opacity 0.16s var(--projets-title-ease-in);
+    will-change: transform, opacity;
+  }
+
+  .projets-text.active {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateX(0) skewX(0deg) scale(1);
+  }
+
+  .projets-text.leaving {
+    opacity: 1;
+    transform: translate3d(0, calc(-1.4 * var(--projets-title-line-height)), -36px) rotateX(-11deg)
+      skewX(0.8deg) scale(0.99);
+    transition: transform var(--projets-title-leave-dur) var(--projets-title-ease-out);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .projets-text {
+      transform: translateY(var(--projets-title-line-height));
+    }
+    .projets-text.active {
+      transform: translateY(0);
+    }
+    .projets-text.leaving {
+      transform: translateY(calc(-1.4 * var(--projets-title-line-height)));
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .projets-hero-shell {
+      --projets-title-line-height: 60px;
+    }
+
+    .projets-text {
+      font-size: 108px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .projets-hero-shell {
+      --projets-title-line-height: 32px;
+    }
+
+    .projets-text {
+      font-size: 56px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .projets-hero-shell {
+      --projets-title-line-height: 26px;
+    }
+
+    .projets-text {
+      font-size: 42px;
+    }
+  }
+</style>
+
+<script>
+  import { tryPlayVideo } from "../../utils/ensureVideoPlayback";
+
+  const texts = ["Industriel", "Résidentiel", "Rural", "École", "Hôpital"];
+  const TITLE_APPEAR_OFFSET_S = 0.1;
+  const TITLE_END_BEFORE_NEXT_S = 0.06;
+  const TITLE_LEAVE_DURATION_S = 0.1;
+
+  type ProjetsViz = {
+    k: number | null;
+    m: "idle" | "active" | "leaving";
+  };
+
+  let cleanup: (() => void) | null = null;
+  let videoDuration = 0;
+  let currentTextEl: HTMLSpanElement | null = null;
+  let nextTextEl: HTMLSpanElement | null = null;
+  let rafId = 0;
+  let lastT = 0;
+  let lastViz: ProjetsViz | null = null;
+
+  function computeProjetsViz(t: number, duration: number): ProjetsViz {
+    const n = texts.length;
+    if (!Number.isFinite(t) || !Number.isFinite(duration) || duration <= 0) {
+      return { k: null, m: "idle" };
+    }
+    t = ((t % duration) + duration) % duration;
+    const D = duration / n;
+
+    if (t < TITLE_APPEAR_OFFSET_S) {
+      return { k: null, m: "idle" };
+    }
+    for (let i = 0; i < n; i++) {
+      const a0 = i * D + TITLE_APPEAR_OFFSET_S;
+      const a1 = (i + 1) * D - TITLE_END_BEFORE_NEXT_S;
+      if (t >= a0 && t < a1) {
+        return { k: i, m: "active" };
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      const l0 = (i + 1) * D - TITLE_END_BEFORE_NEXT_S;
+      const l1 = l0 + TITLE_LEAVE_DURATION_S;
+      if (t >= l0 && t < l1) {
+        return { k: i, m: "leaving" };
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      const l0 = (i + 1) * D - TITLE_END_BEFORE_NEXT_S;
+      const i0 = l0 + TITLE_LEAVE_DURATION_S;
+      const i1 = (i + 1) * D + TITLE_APPEAR_OFFSET_S;
+      if (t >= i0 && t < i1) {
+        return { k: null, m: "idle" };
+      }
+    }
+    return { k: null, m: "idle" };
+  }
+
+  function vizEqual(a: ProjetsViz | null, b: ProjetsViz | null): boolean {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return a.k === b.k && a.m === b.m;
+  }
+
+  function applyProjetsViz(viz: ProjetsViz) {
+    const cur = currentTextEl;
+    const nx = nextTextEl;
+    if (!cur || !nx) return;
+
+    if (viz.m === "idle" && viz.k == null) {
+      cur.removeAttribute("style");
+      nx.removeAttribute("style");
+      cur.classList.remove("active", "leaving");
+      nx.classList.remove("active", "leaving");
+      cur.textContent = "";
+      nx.textContent = "";
+      return;
+    }
+    if (viz.m === "leaving" && viz.k != null) {
+      nx.textContent = "";
+      nx.classList.remove("active", "leaving");
+      cur.textContent = texts[viz.k];
+      cur.classList.remove("active");
+      cur.classList.add("leaving");
+      return;
+    }
+    if (viz.m === "active" && viz.k != null) {
+      cur.textContent = texts[viz.k];
+      nx.textContent = "";
+      nx.classList.remove("active", "leaving");
+      cur.classList.remove("leaving");
+      void cur.offsetHeight;
+      cur.classList.add("active");
+    }
+  }
+
+  function initProjetsHeroLegacy() {
+    cleanup?.();
+    cleanup = null;
+
+    const root = document.querySelector('[data-projets-hero="legacy"]');
+    if (!root) return;
+
+    const video = root.querySelector<HTMLVideoElement>("#projets-video");
+    currentTextEl = root.querySelector<HTMLSpanElement>(
+      ".projets-text[data-projets-role='current']",
+    );
+    nextTextEl = root.querySelector<HTMLSpanElement>(
+      ".projets-text[data-projets-role='next']",
+    );
+
+    if (!video || !currentTextEl || !nextTextEl) return;
+
+    const v = video;
+    let didInitTiming = false;
+    videoDuration = 0;
+    lastT = 0;
+    lastViz = null;
+
+    const ac = new AbortController();
+
+    const stopRaf = () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+    };
+
+    const tick = () => {
+      rafId = requestAnimationFrame(tick);
+      if (videoDuration <= 0) return;
+      const tRaw = v.currentTime;
+      const t = ((tRaw % videoDuration) + videoDuration) % videoDuration;
+      if (lastT - t > 0.2 && lastT > 0.5) {
+        lastViz = null;
+      }
+      const viz = computeProjetsViz(t, videoDuration);
+      if (lastViz == null || !vizEqual(viz, lastViz)) {
+        applyProjetsViz(viz);
+        lastViz = viz;
+      }
+      lastT = t;
+    };
+
+    function startRaf() {
+      stopRaf();
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function onLoadedMetadata() {
+      const d = v.duration;
+      if (!Number.isFinite(d) || d <= 0) return;
+      if (didInitTiming) {
+        return;
+      }
+      didInitTiming = true;
+      videoDuration = d;
+      lastViz = null;
+      lastT = 0;
+      const t =
+        ((v.currentTime % videoDuration) + videoDuration) % videoDuration;
+      const viz = computeProjetsViz(t, videoDuration);
+      applyProjetsViz(viz);
+      lastViz = viz;
+      startRaf();
+      tryPlayVideo(v);
+    }
+
+    v.addEventListener("loadedmetadata", onLoadedMetadata, {
+      signal: ac.signal,
+    });
+    v.addEventListener(
+      "ended",
+      () => {
+        lastViz = null;
+        lastT = 0;
+        if (Number.isFinite(v.duration) && v.duration > 0) {
+          videoDuration = v.duration;
+        }
+        const t = 0;
+        const viz = computeProjetsViz(t, videoDuration);
+        applyProjetsViz(viz);
+        lastViz = viz;
+      },
+      { signal: ac.signal },
+    );
+
+    tryPlayVideo(v);
+
+    if (v.readyState >= 2 && Number.isFinite(v.duration) && v.duration > 0) {
+      videoDuration = v.duration;
+      onLoadedMetadata();
+    }
+
+    cleanup = () => {
+      ac.abort();
+      stopRaf();
+    };
+  }
+
+  document.addEventListener("astro:page-load", initProjetsHeroLegacy);
+  initProjetsHeroLegacy();
+</script>

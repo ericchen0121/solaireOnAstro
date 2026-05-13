@@ -1,0 +1,275 @@
+---
+/**
+ * Experimental projets hero: same video bed + designer Lottie (`public/projets_animation_lottie.json`).
+ * Enable with `USE_LOTTIE_PROJETS_HERO` in `src/pages/projets/index.astro`.
+ *
+ * When `syncLottieDurationToVideo` is true, each **video loop** maps wall time → Lottie phase:
+ * first plays the last `lottieLeadInSeconds` of the composition (e.g. 9s→10s), then the rest (0→9s).
+ */
+import "../../styles/projetsHeroLayout.css";
+
+interface Props {
+  videoSrc: string;
+  lottieSrc?: string;
+  /**
+   * Length of the **end** of the Lottie timeline (composition seconds) that begins each video loop.
+   * Example: `1` with a 10s Lottie → first play 9s…10s, then 0s…9s over one `video.duration`.
+   */
+  lottieLeadInSeconds?: number;
+  /** If set, overrides seconds: `frames / composition frameRate`. */
+  lottieLeadInFrames?: number;
+  /**
+   * Drive Lottie frames from `video.currentTime` so one video loop = one full Lottie cycle (tail + head).
+   * Off: normal Lottie loop at 1× speed (no phase alignment).
+   */
+  syncLottieDurationToVideo?: boolean;
+}
+
+const {
+  videoSrc,
+  lottieSrc = "/projets_animation_lottie.json",
+  lottieLeadInSeconds = 1.3,
+  lottieLeadInFrames,
+  syncLottieDurationToVideo = true,
+} = Astro.props;
+
+const lottieLeadInSecAttr = String(Math.max(0, lottieLeadInSeconds));
+const lottieLeadInFramesAttr =
+  lottieLeadInFrames != null && Number.isFinite(lottieLeadInFrames)
+    ? String(Math.max(0, Math.round(lottieLeadInFrames)))
+    : "";
+---
+
+<section
+  class="projets-hero-shell projets-section bg-black overflow-hidden"
+  data-projets-hero="lottie"
+  data-sync-lottie-to-video={syncLottieDurationToVideo ? "true" : "false"}
+>
+  <video
+    id="projets-video"
+    autoplay
+    loop
+    muted
+    playsinline
+    webkit-playsinline=""
+    preload="auto"
+    class="projets-video"
+  >
+    <source src={videoSrc} type="video/mp4" />
+  </video>
+  <div class="projets-hero-overlay projets-lottie-overlay">
+    <div
+      class="projets-lottie-host"
+      data-lottie-src={lottieSrc}
+      data-lottie-lead-in-sec={lottieLeadInSecAttr}
+      data-lottie-lead-in-frames={lottieLeadInFramesAttr}
+      aria-hidden="true"
+    >
+    </div>
+  </div>
+</section>
+
+<style>
+  .projets-lottie-overlay {
+    overflow: hidden;
+  }
+
+  .projets-lottie-host {
+    width: min(100%, 1200px);
+    height: min(45dvh, 420px);
+    max-height: 50vh;
+  }
+
+  .projets-lottie-host :global(svg) {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  @media (max-width: 768px) {
+    .projets-lottie-host {
+      width: 100%;
+      height: min(38dvh, 280px);
+    }
+  }
+</style>
+
+<script>
+  import lottie from "lottie-web";
+  import { tryPlayVideo } from "../../utils/ensureVideoPlayback";
+
+  let anim: ReturnType<typeof lottie.loadAnimation> | null = null;
+  let heroAc: AbortController | null = null;
+  /** Latest `requestVideoFrameCallback` id for cancel */
+  let videoFrameHandle = 0;
+  /** rAF fallback when `requestVideoFrameCallback` is missing */
+  let rafSyncId = 0;
+  let stopVideoSync = false;
+
+  function destroyLottie() {
+    stopVideoSync = true;
+    heroAc?.abort();
+    heroAc = null;
+    if (rafSyncId) {
+      globalThis.cancelAnimationFrame(rafSyncId);
+      rafSyncId = 0;
+    }
+    if (
+      videoFrameHandle &&
+      typeof HTMLVideoElement.prototype.cancelVideoFrameCallback === "function"
+    ) {
+      const v = document.querySelector<HTMLVideoElement>("#projets-video");
+      if (v) v.cancelVideoFrameCallback(videoFrameHandle);
+    }
+    videoFrameHandle = 0;
+    anim?.destroy();
+    anim = null;
+  }
+
+  /** Composition time [0, L] for phase p in [0, 1) over one video loop (tail then head). */
+  function compSecFromPhase(p: number, L: number, leadIn: number): number {
+    const lead = Math.min(Math.max(0, leadIn), L - 1e-6);
+    if (lead <= 0) return p * L;
+    const a = lead / L;
+    if (p < a) {
+      return L - lead + (p / a) * lead;
+    }
+    const p2 = (p - a) / (1 - a);
+    return p2 * (L - lead);
+  }
+
+  function initProjetsHeroLottie() {
+    destroyLottie();
+    stopVideoSync = false;
+
+    const root = document.querySelector<HTMLElement>(
+      '[data-projets-hero="lottie"]',
+    );
+    if (!root) return;
+
+    const hostEl = root.querySelector<HTMLElement>(".projets-lottie-host");
+    const video = root.querySelector<HTMLVideoElement>("#projets-video");
+    if (!hostEl || !video) return;
+    const host = hostEl;
+    const vid = video;
+
+    tryPlayVideo(video);
+
+    const path = host.dataset.lottieSrc;
+    if (!path) return;
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    const syncToVideo = root.dataset.syncLottieToVideo !== "false";
+
+    heroAc = new AbortController();
+    const { signal } = heroAc;
+
+    function resolveLeadSec(): number {
+      if (!anim) return 0;
+      const framesStr = host.dataset.lottieLeadInFrames?.trim();
+      if (framesStr) {
+        const n = Number.parseInt(framesStr, 10);
+        if (Number.isFinite(n) && n > 0 && anim.frameRate > 0) {
+          return n / anim.frameRate;
+        }
+      }
+      const s = Number.parseFloat(host.dataset.lottieLeadInSec ?? "1");
+      return Math.max(0, Number.isFinite(s) ? s : 0);
+    }
+
+    function syncLottieFrameFromVideo() {
+      if (!anim || reduceMotion || !syncToVideo) return;
+      const D = vid.duration;
+      if (!Number.isFinite(D) || D <= 0) return;
+      const L = anim.getDuration(false);
+      if (!Number.isFinite(L) || L <= 0) return;
+
+      const lead = Math.min(resolveLeadSec(), L - 1e-6);
+      const t = ((vid.currentTime % D) + D) % D;
+      const p = t / D;
+      const compSec = compSecFromPhase(p, L, lead);
+
+      const maxFrameIx = Math.max(0, anim.totalFrames - 1);
+      const frame =
+        L > 0
+          ? Math.min(maxFrameIx, Math.max(0, (compSec / L) * (maxFrameIx + 1)))
+          : 0;
+      anim.goToAndStop(frame, true);
+    }
+
+    function scheduleVideoSyncLoop() {
+      if (stopVideoSync || !anim || reduceMotion || !syncToVideo) return;
+      if (typeof vid.requestVideoFrameCallback !== "function") {
+        const rafMs = () => {
+          if (stopVideoSync || !anim) {
+            rafSyncId = 0;
+            return;
+          }
+          syncLottieFrameFromVideo();
+          rafSyncId = globalThis.requestAnimationFrame(rafMs);
+        };
+        rafSyncId = globalThis.requestAnimationFrame(rafMs);
+        return;
+      }
+      const step = () => {
+        if (stopVideoSync || !anim) return;
+        syncLottieFrameFromVideo();
+        videoFrameHandle = vid.requestVideoFrameCallback(step);
+      };
+      videoFrameHandle = vid.requestVideoFrameCallback(step);
+    }
+
+    anim = lottie.loadAnimation({
+      container: host,
+      renderer: "svg",
+      loop: !syncToVideo && !reduceMotion,
+      autoplay: false,
+      path,
+      rendererSettings: {
+        preserveAspectRatio: "xMidYMid meet",
+      },
+    });
+
+    anim.addEventListener("DOMLoaded", () => {
+      const propLeadSec = Number.parseFloat(
+        host.dataset.lottieLeadInSec ?? "1",
+      );
+      console.log(
+        "[ProjetsHeroLottie] lottieLeadInSeconds (prop)",
+        Number.isFinite(propLeadSec) ? propLeadSec : 1,
+        "resolved lead-in (s)",
+        resolveLeadSec(),
+      );
+      if (reduceMotion) {
+        anim?.goToAndStop(0, true);
+        return;
+      }
+
+      if (syncToVideo) {
+        syncLottieFrameFromVideo();
+        scheduleVideoSyncLoop();
+        return;
+      }
+
+      anim?.setSpeed(1);
+      anim?.play();
+    });
+
+    video.addEventListener(
+      "loadedmetadata",
+      () => {
+        if (anim && syncToVideo && !reduceMotion) {
+          syncLottieFrameFromVideo();
+        }
+      },
+      { signal },
+    );
+  }
+
+  document.addEventListener("astro:page-load", initProjetsHeroLottie);
+  initProjetsHeroLottie();
+
+  document.addEventListener("astro:before-preparation", destroyLottie);
+</script>
