@@ -86,9 +86,16 @@ const lottieLeadInFramesAttr =
   }
 
   @media (max-width: 768px) {
+    /* Inset so long title words (e.g. Residential) aren’t flush to the screen edge */
+    .projets-lottie-overlay {
+      padding-inline: clamp(0.875rem, 5vw, 1.5rem);
+      box-sizing: border-box;
+    }
+
     .projets-lottie-host {
       width: 100%;
-      height: min(38dvh, 280px);
+      max-width: 100%;
+      height: min(34dvh, 260px);
     }
   }
 </style>
