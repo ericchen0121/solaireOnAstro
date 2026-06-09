@@ -33,6 +33,89 @@ const {
 >
   <head>
     <ClientRouter fallback="swap" />
+    {/* Sync + capture: block ClientRouter SPA swap on subpage → home back; force full reload (GSAP/snap need document load). */}
+    <script is:inline>
+      (function () {
+        var STORAGE_KEY = "sol:lastPath";
+
+        function normPath(pathname) {
+          return (pathname || location.pathname).replace(/\/+$/, "") || "/";
+        }
+
+        function readStoredPath() {
+          try {
+            return sessionStorage.getItem(STORAGE_KEY);
+          } catch {
+            return null;
+          }
+        }
+
+        function writeStoredPath(path) {
+          try {
+            sessionStorage.setItem(STORAGE_KEY, path);
+          } catch {}
+        }
+
+        function isHomeDom() {
+          return !!document.querySelector("main.home-page");
+        }
+
+        function forceHomeReload() {
+          location.replace(location.href);
+        }
+
+        function shouldReloadOnBackToHome(fromPath, toPath) {
+          return fromPath !== "/" && toPath === "/";
+        }
+
+        var trackedPath = normPath();
+        writeStoredPath(trackedPath);
+
+        function syncTrackedPath() {
+          trackedPath = normPath();
+          writeStoredPath(trackedPath);
+        }
+
+        var push = history.pushState;
+        var replace = history.replaceState;
+        history.pushState = function () {
+          push.apply(history, arguments);
+          syncTrackedPath();
+        };
+        history.replaceState = function () {
+          replace.apply(history, arguments);
+          syncTrackedPath();
+        };
+
+        function reloadBackToHomeIfNeeded(fromPath) {
+          var toPath = normPath();
+          trackedPath = toPath;
+          writeStoredPath(toPath);
+          if (!shouldReloadOnBackToHome(fromPath, toPath)) return false;
+          forceHomeReload();
+          return true;
+        }
+
+        window.addEventListener(
+          "popstate",
+          function (e) {
+            var stored = readStoredPath();
+            var fromPath = stored || trackedPath;
+            if (reloadBackToHomeIfNeeded(fromPath)) {
+              e.stopImmediatePropagation();
+              e.stopPropagation();
+            }
+          },
+          true,
+        );
+
+        window.addEventListener("pageshow", function (e) {
+          if (normPath() !== "/") return;
+          if (!e.persisted && isHomeDom()) return;
+          if (!isHomeDom()) forceHomeReload();
+        });
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
     <meta
@@ -102,42 +185,17 @@ const {
       />
     </div>
     <slot />
-    {/* Inline + sync: must run before ClientRouter modules; handles `popstate` when `history.state` is null (Astro skips transition → white subpage + home URL). */}
-    <script is:inline>
-      (function () {
-        function normPath() {
-          return location.pathname.replace(/\/+$/, "") || "/";
-        }
-        var trackedPath = normPath();
-
-        function syncTrackedPath() {
-          trackedPath = normPath();
-        }
-
-        var push = history.pushState;
-        var replace = history.replaceState;
-        history.pushState = function () {
-          push.apply(history, arguments);
-          syncTrackedPath();
-        };
-        history.replaceState = function () {
-          replace.apply(history, arguments);
-          syncTrackedPath();
-        };
-
-        window.addEventListener(
-          "popstate",
-          function () {
-            var next = normPath();
-            var fromSubpage = trackedPath !== "/";
-            trackedPath = next;
-            if (fromSubpage && next === "/") {
-              location.replace(location.href);
-            }
-          },
-          true,
-        );
-      })();
+    {/* Belt-and-suspenders when Astro still starts a back transition (`history.state` present). */}
+    <script>
+      document.addEventListener("astro:before-preparation", (event) => {
+        const ev = event;
+        if (ev.direction !== "back" || ev.navigationType !== "traverse") return;
+        const toPath = ev.to.pathname.replace(/\/+$/, "") || "/";
+        if (toPath !== "/") return;
+        const fromPath = ev.from.pathname.replace(/\/+$/, "") || "/";
+        if (fromPath === "/") return;
+        ev.preventDefault();
+      });
     </script>
   </body>
 </html>
