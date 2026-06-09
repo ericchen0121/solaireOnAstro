@@ -406,6 +406,8 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
 
     console.log("✅ SectionSnap: Pin trigger created");
 
+    syncCurrentIndexFromScroll();
+
     // Track current section with ScrollTriggers
     sections.forEach((section, index) => {
       ScrollTrigger.create({
@@ -470,6 +472,32 @@ export function initSectionSnap(options: SectionSnapOptions = {}): () => void {
   return () => {
     cleanupFn?.();
   };
+}
+
+/** Align snap index with current scroll (e.g. after hash restore on back nav). */
+export function syncSectionSnapIndexFromScroll(): void {
+  if (sections.length === 0) return;
+
+  const scrollY = window.scrollY;
+  let best = 0;
+  let minDistance = Infinity;
+
+  for (let i = 0; i < sections.length; i++) {
+    const distance = Math.abs(scrollY - sections[i].offsetTop);
+    if (distance < minDistance) {
+      minDistance = distance;
+      best = i;
+    }
+  }
+
+  currentIndex = best;
+}
+
+function syncCurrentIndexFromScroll(): void {
+  syncSectionSnapIndexFromScroll();
+  if (sections.length > 0) {
+    console.log(`📍 SectionSnap: Synced index from scroll to ${currentIndex}`);
+  }
 }
 
 export function setSectionSnapAnimationActive(_active: boolean): void {

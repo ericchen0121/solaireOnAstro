@@ -229,7 +229,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   import { initScrollLetterReveal } from "../animations/scrollLetterReveal";
   import { initStatsSectionReveal } from "../animations/statsSectionReveal";
   import { initVideoSectionScale } from "../animations/videoSectionScale";
-  import { initSectionSnap } from "../animations/sectionSnap";
+  import {
+    initSectionSnap,
+    syncSectionSnapIndexFromScroll,
+  } from "../animations/sectionSnap";
+  import { resetHomePageVisualState } from "../utils/resetHomePageVisualState";
   import { tryPlayVideo } from "../utils/ensureVideoPlayback";
   import {
     HOME_SUBPAGE_SECTION_LINK_CLASS,
@@ -243,8 +247,6 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   const SUBPAGE_NAV_SETTLE_TAIL_MS = 180;
   /** Projets/contact strips: no white-bar wipe — minimum hold still parallels orbit pill */
   const SUBPAGE_NO_WIPE_NAV_DELAY_MS = 880;
-  /** Brief pause after orbit + wipe complete before hard navigation */
-  const SUBPAGE_NAV_AFTER_ANIM_MS = 100;
   /** Failsafe if `location.assign` does not unload the page (busy would block later clicks). */
   const SUBPAGE_NAV_BUSY_RESET_MS = 4000;
 
@@ -270,6 +272,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       document.body.classList.add("nav-or-text-hovered");
     }
     function onHomeSubpageLinkHoverLeave(e) {
+      if (homeSubpageNavigateBusy) return;
       const rt = e.relatedTarget;
       if (rt instanceof Element && rt.closest(HOME_SUBPAGE_LINK_SEL)) return;
       document.body.classList.remove("nav-or-text-hovered");
@@ -307,6 +310,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       console.log("🖱️ Home subpage section link clicked", { wipe });
       if (wipe) {
         link.classList.add("active");
+        document.body.classList.add("strip-nav-departing", "nav-or-text-hovered");
       }
 
       const minWallClockMs = wipe
@@ -318,17 +322,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           requestOrbitPillSubpageFromPage(),
           new Promise((resolve) => setTimeout(resolve, minWallClockMs)),
         ]);
-        await new Promise((resolve) =>
-          setTimeout(resolve, SUBPAGE_NAV_AFTER_ANIM_MS),
-        );
         console.log("🚀 Navigating to:", href);
-        /*
-         * Full page navigation (not ClientRouter) keeps orbit-back → `/#…` + section snap behavior
-         * aligned with a normal document load.
-         */
+        /* Hold wipe palette through assign; visual reset runs on pagehide only (not beforeunload). */
         window.location.assign(href);
       } catch {
-        link.classList.remove("active");
         window.location.assign(href);
       } finally {
         clearHomeSubpageNavigateBusy();
@@ -348,6 +345,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           window.scrollTo({
             top: target.offsetTop,
             behavior: "auto",
+          });
+          requestAnimationFrame(() => {
+            syncSectionSnapIndexFromScroll();
           });
         });
       } catch (err) {
@@ -456,6 +456,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
     function mountHomePage() {
       if (!isHomePath()) return;
+      resetHomePageVisualState();
       destroyHomeAnimations();
       initAnimations();
     }
@@ -465,6 +466,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     });
 
     window.addEventListener("beforeunload", destroyHomeAnimations);
+    /* bfcache snapshot: strip .active after hide (no visible flash); pagehide is more reliable than beforeunload on mobile */
+    window.addEventListener("pagehide", () => {
+      if (isHomePath()) resetHomePageVisualState();
+    });
 
     function playHomeVideoIfPresent() {
       const v = document.querySelector(".video-section video");

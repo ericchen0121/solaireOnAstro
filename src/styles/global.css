@@ -857,6 +857,31 @@
 
   /* no-wipe strips never get .active for bar — no extra click palette block */
 
+  /*
+   * Strip click → hard nav: lock white field + black type until pagehide (no 0.3s transition flash
+   * when beforeunload tears down GSAP but must not repaint idle black/white).
+   */
+  body.strip-nav-departing .why-solar-section,
+  body.strip-nav-departing .why-us-section,
+  body.strip-nav-departing .clients-section {
+    background-color: #ffffff !important;
+    transition: none !important;
+  }
+
+  body.strip-nav-departing #why-solar-text,
+  body.strip-nav-departing #why-solar-text *,
+  body.strip-nav-departing #why-us-text,
+  body.strip-nav-departing #why-us-text *,
+  body.strip-nav-departing #clients-text,
+  body.strip-nav-departing #clients-text * {
+    color: #000000 !important;
+    transition: none !important;
+  }
+
+  body.strip-nav-departing .slide-bar-bg {
+    transition: none !important;
+  }
+
   /* When nav is hovered, also flip the section colors */
   body.nav-or-text-hovered .why-solar-section,
   body.nav-or-text-hovered .why-us-section,

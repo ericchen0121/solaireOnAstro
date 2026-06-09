@@ -111,7 +111,14 @@ const {
 
         window.addEventListener("pageshow", function (e) {
           if (normPath() !== "/") return;
-          if (!e.persisted && isHomeDom()) return;
+          /*
+           * BFCache restores pre-navigation DOM (.active strip, nav-or-text-hovered, stuck GSAP).
+           * Scripts do not re-run — section snap stays broken until a real reload.
+           */
+          if (e.persisted) {
+            location.reload();
+            return;
+          }
           if (!isHomeDom()) forceHomeReload();
         });
       })();
@@ -165,6 +172,30 @@ const {
     <title>{title}</title>
   </head>
   <body class:list={[{ "bg-black min-h-full": isDark }]}>
+    {/* Before paint: drop stale strip/hover classes when BFCache or fast back nav beat module init. */}
+    <script is:inline>
+      (function () {
+        function resetHomeVisualStateEarly() {
+          if (!document.querySelector("main.home-page")) return;
+          document.body.classList.remove(
+            "nav-or-text-hovered",
+            "section-snap-scrolling",
+            "strip-nav-departing",
+          );
+          var links = document.querySelectorAll(
+            "a.home-subpage-section-link.active",
+          );
+          for (var i = 0; i < links.length; i++) {
+            links[i].classList.remove("active");
+          }
+        }
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", resetHomeVisualStateEarly);
+        } else {
+          resetHomeVisualStateEarly();
+        }
+      })();
+    </script>
     <script define:vars={{ orbitNavColorMode, showBack, isDark }}>
       document.documentElement.dataset.orbitNavColorMode = orbitNavColorMode;
       document.documentElement.dataset.orbitShowBack = String(showBack);
