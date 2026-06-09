@@ -102,5 +102,20 @@ const {
       />
     </div>
     <slot />
+    <script>
+      /**
+       * Homepage strip links use `location.assign` (full document load). Browser Back from a
+       * subpage is handled by ClientRouter (`popstate` + body swap), which leaves `/` + `#section`
+       * without a proper homepage init (blank white / wrong scroll). Force a full reload instead.
+       */
+      document.addEventListener("astro:before-preparation", (ev) => {
+        const e = ev;
+        if (!("navigationType" in e) || !("to" in e) || !("direction" in e)) return;
+        if (e.navigationType !== "traverse" || e.direction !== "back") return;
+        const toPath = e.to.pathname.replace(/\/+$/, "") || "/";
+        if (toPath !== "/") return;
+        e.preventDefault();
+      });
+    </script>
   </body>
 </html>

@@ -333,6 +333,29 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       }
     }
 
+    function isHomePath() {
+      const p = window.location.pathname.replace(/\/+$/, "") || "/";
+      return p === "/";
+    }
+
+    function destroyHomeAnimations() {
+      cleanupLetterReveal?.();
+      cleanupLetterReveal = null;
+      cleanupSectionSnap?.();
+      cleanupSectionSnap = null;
+      cleanupStatsReveal?.();
+      cleanupStatsReveal = null;
+      cleanupVideoScale?.();
+      cleanupVideoScale = null;
+      cleanupFunctions.forEach((fn) => fn());
+      cleanupFunctions.length = 0;
+      homeSubpageOrbitHoverLinks.forEach((link) => {
+        link.removeEventListener("mouseenter", onHomeSubpageLinkHoverEnter);
+        link.removeEventListener("mouseleave", onHomeSubpageLinkHoverLeave);
+      });
+      homeSubpageOrbitHoverLinks = [];
+    }
+
     function initAnimations() {
       console.log("🎬 initAnimations called");
       // 1. Letter reveal for hero - MUST run first before any other animations
@@ -400,30 +423,28 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       cleanupFunctions.push(initScrollLetterReveal("#contact-text", 0.1));
     }
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initAnimations);
-    } else {
+    function mountHomePage() {
+      if (!isHomePath()) return;
+      destroyHomeAnimations();
       initAnimations();
     }
 
-    window.addEventListener("beforeunload", () => {
-      cleanupLetterReveal?.();
-      cleanupSectionSnap?.();
-      cleanupStatsReveal?.();
-      cleanupVideoScale?.();
-      cleanupFunctions.forEach((fn) => fn());
-      homeSubpageOrbitHoverLinks.forEach((link) => {
-        link.removeEventListener("mouseenter", onHomeSubpageLinkHoverEnter);
-        link.removeEventListener("mouseleave", onHomeSubpageLinkHoverLeave);
-      });
-      homeSubpageOrbitHoverLinks = [];
+    document.addEventListener("astro:before-swap", () => {
+      if (isHomePath()) destroyHomeAnimations();
     });
+
+    window.addEventListener("beforeunload", destroyHomeAnimations);
 
     function playHomeVideoIfPresent() {
       const v = document.querySelector(".video-section video");
       if (v instanceof HTMLVideoElement) tryPlayVideo(v);
     }
 
-    document.addEventListener("astro:page-load", playHomeVideoIfPresent);
+    document.addEventListener("astro:page-load", () => {
+      mountHomePage();
+      playHomeVideoIfPresent();
+    });
+
+    mountHomePage();
   }
 </script>
