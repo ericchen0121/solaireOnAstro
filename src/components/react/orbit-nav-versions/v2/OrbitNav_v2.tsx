@@ -626,9 +626,8 @@ export default function OrbitNav({
         d.done();
         return;
       }
-      void orbitDotAnimRef.current
-        ?.playSubpageDepartureAnimation()
-        .then(d.done, d.done);
+      const anim = orbitDotAnimRef.current?.playSubpageDepartureAnimation();
+      void (anim ?? Promise.resolve()).then(d.done, d.done);
     };
     window.addEventListener(ORBIT_PILL_SUBPAGE_REQUEST, onPillRequest);
     return () => window.removeEventListener(ORBIT_PILL_SUBPAGE_REQUEST, onPillRequest);

@@ -102,20 +102,42 @@ const {
       />
     </div>
     <slot />
-    <script>
-      /**
-       * Homepage strip links use `location.assign` (full document load). Browser Back from a
-       * subpage is handled by ClientRouter (`popstate` + body swap), which leaves `/` + `#section`
-       * without a proper homepage init (blank white / wrong scroll). Force a full reload instead.
-       */
-      document.addEventListener("astro:before-preparation", (ev) => {
-        const e = ev;
-        if (!("navigationType" in e) || !("to" in e) || !("direction" in e)) return;
-        if (e.navigationType !== "traverse" || e.direction !== "back") return;
-        const toPath = e.to.pathname.replace(/\/+$/, "") || "/";
-        if (toPath !== "/") return;
-        e.preventDefault();
-      });
+    {/* Inline + sync: must run before ClientRouter modules; handles `popstate` when `history.state` is null (Astro skips transition → white subpage + home URL). */}
+    <script is:inline>
+      (function () {
+        function normPath() {
+          return location.pathname.replace(/\/+$/, "") || "/";
+        }
+        var trackedPath = normPath();
+
+        function syncTrackedPath() {
+          trackedPath = normPath();
+        }
+
+        var push = history.pushState;
+        var replace = history.replaceState;
+        history.pushState = function () {
+          push.apply(history, arguments);
+          syncTrackedPath();
+        };
+        history.replaceState = function () {
+          replace.apply(history, arguments);
+          syncTrackedPath();
+        };
+
+        window.addEventListener(
+          "popstate",
+          function () {
+            var next = normPath();
+            var fromSubpage = trackedPath !== "/";
+            trackedPath = next;
+            if (fromSubpage && next === "/") {
+              location.replace(location.href);
+            }
+          },
+          true,
+        );
+      })();
     </script>
   </body>
 </html>
